@@ -5,39 +5,50 @@ export class SiteHandlers {
     this.inputHandler = inputHandler;
   }
 
-  setupGoogle() {
-    const currentHost = window.location.hostname;
-    if (!currentHost.includes('google')) return;
+setupGoogle() {
+  const currentHost = window.location.hostname;
+  if (!currentHost.includes('google')) return;
 
-    const setupGoogleSearch = () => {
-      const searchBox = document.querySelector(
-        this.config.GOOGLE_SEARCH_SELECTORS.join(',')
-      );
-      
-      if (searchBox) {
-        if (!searchBox.dataset.filterAttached) {
-          this.utils.log('Found Google search box, attaching listeners');
-          this.inputHandler.attachToInputs(searchBox.parentElement || document);
-          
-          searchBox.setAttribute('autocomplete', 'off');
-          searchBox.setAttribute('aria-autocomplete', 'none');
-        }
+  const setupGoogleSearch = () => {
+    const searchBox = document.querySelector(
+      this.config.GOOGLE_SEARCH_SELECTORS.join(',')
+    );
+    
+    if (searchBox) {
+      if (!searchBox.dataset.filterAttached) {
+        this.utils.log('Found Google search box, attaching listeners');
+        this.inputHandler.attachToInputs(searchBox.parentElement || document);
+        
+        searchBox.setAttribute('autocomplete', 'off');
+        searchBox.setAttribute('aria-autocomplete', 'none');
       }
+    }
 
-      const containers = document.querySelectorAll(
-        this.config.GOOGLE_SUGGESTION_SELECTORS.join(',')
-      );
-      containers.forEach(c => {
-        if (c.textContent && this.utils.containsBlockedWord(c.textContent)) {
-          c.style.cssText = 'display: none !important;';
-          c.innerHTML = '';
+    // More aggressive suggestion removal
+    const suggestionContainers = document.querySelectorAll(
+      '[role="listbox"], .sbdd_b, .mkHrUc, .G43f7e, .erkvQe'
+    );
+    
+    suggestionContainers.forEach(container => {
+      // Check all child elements
+      const allElements = container.querySelectorAll('*');
+      allElements.forEach(el => {
+        const text = el.textContent || el.innerText || el.getAttribute('data-query') || '';
+        if (text && this.utils.containsBlockedWord(text)) {
+          // Remove the entire suggestion item
+          const suggestionItem = el.closest('[role="option"], li, .sbct, div[jsname]');
+          if (suggestionItem) {
+            suggestionItem.remove();
+            this.utils.log('Removed Google suggestion:', text);
+          }
         }
       });
-    };
+    });
+  };
 
-    setupGoogleSearch();
-    setInterval(setupGoogleSearch, 300);
-  }
+  setupGoogleSearch();
+  setInterval(setupGoogleSearch, 100); // More frequent checking
+}
 
   setupYahoo() {
     const currentHost = window.location.hostname;

@@ -44,23 +44,36 @@ export const SELECTORS = {
     'input[type="text"][title*="Search"]',
     'input[aria-label*="Search"]',
     'textarea[aria-label*="Search"]',
-    '[role="combobox"][name="q"]'
+    '[role="combobox"][name="q"]',
+    'textarea[aria-controls*="Alh6id"]' // New Google textarea
   ],
   GOOGLE_SUGGESTION: [
-    '.UUbT9', '.aajZCb', '[role="listbox"]', '.sbdd_b', '.erkvQe'
+    '.UUbT9',
+    '.aajZCb', 
+    '[role="listbox"]',
+    '.sbdd_b',
+    '.erkvQe',
+    '.mkHrUc', // New suggestion container
+    '.G43f7e', // New suggestion wrapper
+    '[jsname]',  // Google uses jsname attributes
+    'div[role="presentation"]' // New structure
   ],
   SUGGESTION: [
     '[role="option"]',
     '[role="listbox"] li',
+    '[role="listbox"] div',  // Add this
     '.suggestion',
     '[data-suggestion]',
     '.sbct',
     '.aypbod',
     'li',
+    'div[jsname]', // Google's dynamic elements
     '.UUbT9',
     '.aajZCb',
     '.erkvQe',
-    '.sbdd_b'
+    '.sbdd_b',
+    '.mkHrUc',
+    '.G43f7e'
   ],
   INPUT: [
     'input:not([data-filter-attached])',
@@ -72,3 +85,11 @@ export const SELECTORS = {
 };
 
 export const MIN_CLEAN_INTERVAL = 500;
+
+// Test if we can find the input
+// const testInput = document.querySelector('input#input');
+// console.log('Found input?', testInput);
+// console.log('Input value:', testInput?.value);
+// VM60:3 Found input? null
+// VM60:4 Input value: undefined
+// undefined
