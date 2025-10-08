@@ -14,11 +14,6 @@ import { EventListeners } from './modules/EventListeners';
 
   const utils = new WellnessUtils(config);
 
-  if (utils.isSiteExcluded()) {
-    utils.log("Site excluded");
-    return;
-  }
-
   utils.log(`Active on: ${window.location.hostname}`);
 
   const textScrubber = new TextScrubber(utils);

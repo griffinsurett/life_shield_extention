@@ -6,7 +6,6 @@ export class WellnessConfig {
     this.REDIRECT_URL = "";
     this.SHOW_ALERTS = false;
     this.DEBUG_MODE = false;
-    this.EXCLUDED_SITES = [];
     this.BLUR_INSTEAD_OF_HIDE = false;
     this.ENABLED = true;
     this.REPLACEMENT_PHRASES = [];
@@ -31,7 +30,6 @@ export class WellnessConfig {
       "redirectUrl",
       "showAlerts",
       "debugMode",
-      "excludedSites",
       "blurInsteadOfHide",
       "replacementPhrases",
       "scanInterval",
@@ -43,7 +41,6 @@ export class WellnessConfig {
     this.REDIRECT_URL = result.redirectUrl || "";
     this.SHOW_ALERTS = result.showAlerts || false;
     this.DEBUG_MODE = result.debugMode || false;
-    this.EXCLUDED_SITES = result.excludedSites || [];
     this.BLUR_INSTEAD_OF_HIDE = result.blurInsteadOfHide || false;
     this.REPLACEMENT_PHRASES = result.replacementPhrases || [];
     this.SCAN_INTERVAL = result.scanInterval || 2000;
@@ -68,9 +65,6 @@ export class WellnessConfig {
         }
         if (changes.replacementPhrases) {
           this.REPLACEMENT_PHRASES = changes.replacementPhrases.newValue || [];
-        }
-        if (changes.excludedSites) {
-          this.EXCLUDED_SITES = changes.excludedSites.newValue || [];
         }
         if (changes.redirectUrl) {
           this.REDIRECT_URL = changes.redirectUrl.newValue || "";

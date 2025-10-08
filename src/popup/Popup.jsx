@@ -6,6 +6,7 @@ import { useFileOperations } from '../hooks/useFileOperations';
 import { PopupHeader } from './components/PopupHeader';
 import { StatusCard } from './components/StatusCard';
 import { BlockedWordsSection } from './components/BlockedWordsSection';
+import { BlockedSitesSection } from './components/BlockedSitesSection';
 import { ReplacementPhrasesPreview } from './components/ReplacementPhrasesPreview';
 import { QuickActions } from './components/QuickActions';
 import { SettingsButton } from './components/SettingsButton';
@@ -22,6 +23,22 @@ export const Popup = () => {
     settings.blockedWords,
     (words) => updateSettings({ blockedWords: words }),
     { itemName: 'word' }
+  );
+
+  // Use the list manager hook for site management
+  const siteManager = useListManager(
+    settings.blockedSites,
+    (sites) => updateSettings({ blockedSites: sites }),
+    {
+      itemName: 'site',
+      transform: (val) =>
+        val
+          .trim()
+          .toLowerCase()
+          .replace(/^https?:\/\//, '')
+          .replace(/\/$/, ''),
+      duplicateCheck: true,
+    }
   );
 
   // Random phrase preview
@@ -59,10 +76,18 @@ export const Popup = () => {
   return (
     <div className="w-[360px] min-h-[500px] m-0 p-0 bg-gradient-to-br from-primary via-purple-600 to-secondary overflow-x-hidden">
       <div className="p-6 text-white">
-        <PopupHeader onRefresh={() => window.location.reload()} />
+        <PopupHeader onSettingsClick={openSettings} />
         
         <StatusCard todayCount={stats.todayCount} />
         
+        <BlockedSitesSection
+          sites={settings.blockedSites}
+          newSite={siteManager.inputValue}
+          onNewSiteChange={siteManager.setInputValue}
+          onAddSite={siteManager.addItem}
+          onRemoveSite={siteManager.removeItem}
+        />
+
         <BlockedWordsSection
           words={settings.blockedWords}
           newWord={wordManager.inputValue}
