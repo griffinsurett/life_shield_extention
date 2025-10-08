@@ -1,19 +1,21 @@
-import { useListManager } from '../../shared/hooks/useListManager';
-import { AddItemInput } from '../../shared/components/AddItemInput';
-import { ListItem } from '../../shared/components/ListItem';
-import { SectionHeader } from '../../shared/components/SectionHeader';
+import { useListManager } from "../../hooks/useListManager";
+import { AddItemInput } from "../../components/AddItemInput";
+import { ListItem } from "../../components/ListItem";
+import { SectionHeader } from "../../components/SectionHeader";
 
 export const WordsTab = ({ settings, updateSettings }) => {
   const wordManager = useListManager(
     settings.blockedWords,
     (words) => updateSettings({ blockedWords: words }),
-    { itemName: 'word' }
+    { itemName: "word" }
   );
 
   return (
     <div className="bg-white rounded-2xl shadow-lg p-8 animate-fade-in">
-      <h2 className="text-2xl font-bold text-gray-800 mb-6">Blocked Words Management</h2>
-      
+      <h2 className="text-2xl font-bold text-gray-800 mb-6">
+        Blocked Words Management
+      </h2>
+
       <div className="mb-8 p-6 bg-gradient-to-r from-primary/5 to-secondary/5 rounded-xl border-2 border-primary/20">
         <AddItemInput
           value={wordManager.inputValue}
@@ -25,11 +27,11 @@ export const WordsTab = ({ settings, updateSettings }) => {
       </div>
 
       <div>
-        <SectionHeader 
-          title="Current Blocked Words" 
+        <SectionHeader
+          title="Current Blocked Words"
           count={settings.blockedWords.length}
         />
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-96 overflow-y-auto pr-2">
           {settings.blockedWords.length === 0 ? (
             <div className="col-span-2 text-center py-12 text-gray-400">
@@ -38,8 +40,8 @@ export const WordsTab = ({ settings, updateSettings }) => {
             </div>
           ) : (
             settings.blockedWords.map((word, index) => (
-              <ListItem 
-                key={index} 
+              <ListItem
+                key={index}
                 onRemove={() => wordManager.removeItem(index)}
               >
                 {word}
@@ -50,8 +52,12 @@ export const WordsTab = ({ settings, updateSettings }) => {
       </div>
 
       <div className="mt-6">
-        <button 
-          onClick={() => wordManager.clearAll('Are you sure you want to remove all blocked words?')}
+        <button
+          onClick={() =>
+            wordManager.clearAll(
+              "Are you sure you want to remove all blocked words?"
+            )
+          }
           className="px-4 py-2 bg-red-500 text-white rounded-xl font-medium hover:bg-red-600 transition-colors"
         >
           Clear All

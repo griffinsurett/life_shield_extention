@@ -3,7 +3,7 @@
   "name": "Wellness Content Filter",
   "version": "1.0.0",
   "description": "Filters unwanted content and promotes healthy alternatives",
-  "permissions": ["storage", "webNavigation"],
+  "permissions": ["storage", "webNavigation", "notifications"],
   "host_permissions": ["<all_urls>"],
   "background": {
     "service_worker": "src/background/index.js",

@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { useSettings } from '../shared/hooks/useSettings';
-import { useStats } from '../shared/hooks/useStats';
-import { useListManager } from '../shared/hooks/useListManager';
-import { useFileOperations } from '../shared/hooks/useFileOperations';
+import { useSettings } from '../hooks/useSettings';
+import { useStats } from '../hooks/useStats';
+import { useListManager } from '../hooks/useListManager';
+import { useFileOperations } from '../hooks/useFileOperations';
 import { PopupHeader } from './components/PopupHeader';
 import { StatusCard } from './components/StatusCard';
 import { BlockedWordsSection } from './components/BlockedWordsSection';
@@ -61,7 +61,7 @@ export const Popup = () => {
       <div className="p-6 text-white">
         <PopupHeader onRefresh={() => window.location.reload()} />
         
-        <StatusCard filterCount={stats.filterCount} />
+        <StatusCard todayCount={stats.todayCount} />
         
         <BlockedWordsSection
           words={settings.blockedWords}

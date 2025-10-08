@@ -1,4 +1,4 @@
-import { SELECTORS } from '../shared/utils/constants';
+import { SELECTORS } from "../utils/constants";
 
 export class WellnessConfig {
   constructor() {
@@ -12,31 +12,31 @@ export class WellnessConfig {
     this.REPLACEMENT_PHRASES = [];
     this.SCAN_INTERVAL = 2000;
     this.MUTATION_DEBOUNCE = 200;
-    
+
     this.MIN_CLEAN_INTERVAL = 500;
     this.HIDE_ENTIRE_DROPDOWN = true;
-    
+
     this.GOOGLE_SEARCH_SELECTORS = SELECTORS.GOOGLE_SEARCH;
     this.GOOGLE_SUGGESTION_SELECTORS = SELECTORS.GOOGLE_SUGGESTION;
     this.SUGGESTION_SELECTORS = SELECTORS.SUGGESTION;
     this.INPUT_SELECTORS = SELECTORS.INPUT;
-    
+
     this.loadConfig();
     this.setupListeners();
   }
 
   async loadConfig() {
     const result = await chrome.storage.sync.get([
-      'blockedWords',
-      'redirectUrl',
-      'showAlerts',
-      'debugMode',
-      'excludedSites',
-      'blurInsteadOfHide',
-      'replacementPhrases',
-      'scanInterval',
-      'mutationDebounce',
-      'enableFilter'
+      "blockedWords",
+      "redirectUrl",
+      "showAlerts",
+      "debugMode",
+      "excludedSites",
+      "blurInsteadOfHide",
+      "replacementPhrases",
+      "scanInterval",
+      "mutationDebounce",
+      "enableFilter",
     ]);
 
     this.BLOCKED_WORDS = result.blockedWords || [];
@@ -50,19 +50,19 @@ export class WellnessConfig {
     this.MUTATION_DEBOUNCE = result.mutationDebounce || 200;
     this.ENABLED = result.enableFilter !== false;
 
-    console.log('[Wellness Filter Config] Settings loaded from storage');
+    console.log("[Wellness Filter Config] Settings loaded from storage");
   }
 
   setupListeners() {
     chrome.runtime.onMessage.addListener((message) => {
-      if (message.action === 'reloadConfig') {
+      if (message.action === "reloadConfig") {
         this.loadConfig();
-        console.log('[Wellness Filter Config] Config reloaded');
+        console.log("[Wellness Filter Config] Config reloaded");
       }
     });
 
     chrome.storage.onChanged.addListener((changes, namespace) => {
-      if (namespace === 'sync') {
+      if (namespace === "sync") {
         if (changes.blockedWords) {
           this.BLOCKED_WORDS = changes.blockedWords.newValue || [];
         }
@@ -93,10 +93,10 @@ export class WellnessConfig {
         if (changes.enableFilter !== undefined) {
           this.ENABLED = changes.enableFilter.newValue;
           if (!changes.enableFilter.newValue) {
-            console.log('[Wellness Filter] Filter disabled');
+            console.log("[Wellness Filter] Filter disabled");
           }
         }
-        console.log('[Wellness Filter Config] Settings updated in real-time');
+        console.log("[Wellness Filter Config] Settings updated in real-time");
       }
     });
   }

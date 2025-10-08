@@ -29,6 +29,8 @@ import { EventListeners } from './modules/EventListeners';
 
   let lastCleanTime = 0;
   let mutationTimer = null;
+  let totalFilteredThisPage = 0;
+  let hasNotifiedThisPage = false;
 
   function throttledClean(container = document.body) {
     const now = Date.now();
@@ -44,6 +46,13 @@ import { EventListeners } from './modules/EventListeners';
       
       if (textCount > 0 || inputCount > 0) {
         utils.log(`Cleaned ${textCount} text nodes, ${inputCount} new inputs`);
+        totalFilteredThisPage += textCount;
+        
+        // Show notification once per page load when threshold reached
+        if (!hasNotifiedThisPage && totalFilteredThisPage >= 5) {
+          utils.notifyContentFiltered(totalFilteredThisPage);
+          hasNotifiedThisPage = true;
+        }
       }
     }
     utils.checkURL();

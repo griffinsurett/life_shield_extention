@@ -1,6 +1,7 @@
 export class WellnessUtils {
   constructor(config) {
     this.config = config;
+    this.sessionFilterCount = 0;
   }
 
   log(msg) {
@@ -24,13 +25,25 @@ export class WellnessUtils {
 
   scrubText(text) {
     let scrubbed = text;
+    let foundCount = 0;
+    
     this.config.BLOCKED_WORDS.forEach(word => {
       const regex = new RegExp(
         word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 
         'gi'
       );
-      scrubbed = scrubbed.replace(regex, this.getRandomReplacement());
+      const matches = scrubbed.match(regex);
+      if (matches) {
+        foundCount += matches.length;
+        scrubbed = scrubbed.replace(regex, this.getRandomReplacement());
+      }
     });
+    
+    if (foundCount > 0) {
+      this.sessionFilterCount += foundCount;
+      this.updateFilterStats(foundCount);
+    }
+    
     return scrubbed;
   }
 
@@ -54,6 +67,41 @@ export class WellnessUtils {
           url: window.location.href
         });
       }
+    }
+  }
+
+updateFilterStats(count) {
+  console.log('[WellnessUtils] Updating stats with count:', count); // ADD THIS
+  
+  // Update local storage stats
+  if (typeof chrome !== 'undefined' && chrome.storage) {
+    chrome.storage.local.get(['filterCount', 'todayCount'], (result) => {
+      const newFilterCount = (result.filterCount || 0) + count;
+      const newTodayCount = (result.todayCount || 0) + count;
+      
+      console.log('[WellnessUtils] New counts:', { newFilterCount, newTodayCount }); // ADD THIS
+      
+      chrome.storage.local.set({
+        filterCount: newFilterCount,
+        todayCount: newTodayCount
+      }, () => {
+        console.log('[WellnessUtils] Stats saved, sending updateBadge message'); // ADD THIS
+        
+        // Notify background to update badge
+        chrome.runtime.sendMessage({
+          action: 'updateBadge'
+        });
+      });
+    });
+  }
+}
+
+  notifyContentFiltered(count) {
+    if (this.config.SHOW_ALERTS && count > 0) {
+      chrome.runtime.sendMessage({
+        action: 'contentFiltered',
+        count: count
+      });
     }
   }
 }

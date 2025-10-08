@@ -1,16 +1,21 @@
-import { useListManager } from '../../shared/hooks/useListManager';
-import { AddItemInput } from '../../shared/components/AddItemInput';
-import { ListItem } from '../../shared/components/ListItem';
-import { SectionHeader } from '../../shared/components/SectionHeader';
+import { useListManager } from "../../hooks/useListManager";
+import { AddItemInput } from "../../components/AddItemInput";
+import { ListItem } from "../../components/ListItem";
+import { SectionHeader } from "../../components/SectionHeader";
 
 export const SitesTab = ({ settings, updateSettings }) => {
   const siteManager = useListManager(
     settings.excludedSites,
     (sites) => updateSettings({ excludedSites: sites }),
-    { 
-      itemName: 'site',
-      transform: (val) => val.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/$/, ''),
-      duplicateCheck: true
+    {
+      itemName: "site",
+      transform: (val) =>
+        val
+          .trim()
+          .toLowerCase()
+          .replace(/^https?:\/\//, "")
+          .replace(/\/$/, ""),
+      duplicateCheck: true,
     }
   );
 
@@ -31,12 +36,12 @@ export const SitesTab = ({ settings, updateSettings }) => {
       </div>
 
       <div>
-        <SectionHeader 
-          title="Excluded Sites" 
+        <SectionHeader
+          title="Excluded Sites"
           count={settings.excludedSites.length}
           countColor="orange"
         />
-        
+
         <div className="space-y-2 max-h-96 overflow-y-auto pr-2">
           {settings.excludedSites.length === 0 ? (
             <div className="text-center py-12 text-gray-400">
@@ -45,8 +50,8 @@ export const SitesTab = ({ settings, updateSettings }) => {
             </div>
           ) : (
             settings.excludedSites.map((site, index) => (
-              <ListItem 
-                key={index} 
+              <ListItem
+                key={index}
                 onRemove={() => siteManager.removeItem(index)}
                 bgColor="orange"
               >

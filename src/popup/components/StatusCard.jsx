@@ -1,4 +1,4 @@
-export const StatusCard = ({ filterCount }) => {
+export const StatusCard = ({ todayCount }) => {
   return (
     <div className="mb-5 p-4 bg-white/10 rounded-xl backdrop-blur-sm border border-white/20 animate-slide-up shadow-lg">
       <div className="flex items-center justify-between">
@@ -13,8 +13,8 @@ export const StatusCard = ({ filterCount }) => {
           </div>
         </div>
         <div className="text-right">
-          <div className="text-2xl font-bold">{filterCount}</div>
-          <div className="text-xs text-white/60">Filtered</div>
+          <div className="text-2xl font-bold">{todayCount}</div>
+          <div className="text-xs text-white/60">Today</div>
         </div>
       </div>
     </div>
