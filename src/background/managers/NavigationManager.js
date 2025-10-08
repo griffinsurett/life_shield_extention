@@ -11,12 +11,10 @@ export class NavigationManager {
   }
 
   setupNavigationListeners() {
-    // Listen for navigation attempts
     chrome.webNavigation.onBeforeNavigate.addListener((details) => {
       this.handleBeforeNavigate(details);
     });
 
-    // Check URL parameters after navigation
     chrome.webNavigation.onCommitted.addListener((details) => {
       this.handleCommitted(details);
     });
@@ -27,16 +25,26 @@ export class NavigationManager {
     
     const url = details.url;
     
+    // Check for blocked sites FIRST
+    if (this.settingsManager.containsBlockedSite(url)) {
+      console.log('[Navigation Manager] Intercepted navigation to blocked site:', url);
+      
+      await this.statsManager.incrementStats(1);
+      await this.notificationManager.showUrlBlockedNotification();
+      
+      chrome.tabs.update(details.tabId, { 
+        url: this.settingsManager.getRedirectUrl() 
+      });
+      return;
+    }
+    
+    // Then check for blocked words in URL
     if (this.settingsManager.containsBlockedWord(url)) {
       console.log('[Navigation Manager] Intercepted navigation to blocked URL:', url);
       
-      // Increment stats for blocked navigation
       await this.statsManager.incrementStats(1);
-      
-      // Show notification
       await this.notificationManager.showUrlBlockedNotification();
       
-      // Redirect
       chrome.tabs.update(details.tabId, { 
         url: this.settingsManager.getRedirectUrl() 
       });
@@ -55,13 +63,9 @@ export class NavigationManager {
       if (this.settingsManager.containsBlockedWord(query)) {
         console.log('[Navigation Manager] Blocked query parameter detected');
         
-        // Increment stats for blocked search
         await this.statsManager.incrementStats(1);
-        
-        // Show notification
         await this.notificationManager.showSearchBlockedNotification();
         
-        // Redirect
         chrome.tabs.update(details.tabId, { 
           url: this.settingsManager.getRedirectUrl() 
         });

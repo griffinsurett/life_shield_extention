@@ -1,5 +1,6 @@
 export const DEFAULT_SETTINGS = {
   blockedWords: ["chair", "a chair"],
+  blockedSites: [], // CHANGED from excludedSites
   redirectUrl: "https://griffinswebservices.com",
   enableFilter: true,
   debugMode: true,
@@ -7,7 +8,6 @@ export const DEFAULT_SETTINGS = {
   blurInsteadOfHide: false,
   scanInterval: 2000,
   mutationDebounce: 200,
-  excludedSites: [],
   replacementPhrases: [
     "yoga for beginners", "meditation techniques", "healthy recipes",
     "stress relief tips", "walking benefits", "sleep improvement",
@@ -22,6 +22,7 @@ export const DEFAULT_SETTINGS = {
 
 export const STORAGE_KEYS = {
   BLOCKED_WORDS: 'blockedWords',
+  BLOCKED_SITES: 'blockedSites', // CHANGED
   REDIRECT_URL: 'redirectUrl',
   ENABLE_FILTER: 'enableFilter',
   DEBUG_MODE: 'debugMode',
@@ -29,7 +30,6 @@ export const STORAGE_KEYS = {
   BLUR_INSTEAD_OF_HIDE: 'blurInsteadOfHide',
   SCAN_INTERVAL: 'scanInterval',
   MUTATION_DEBOUNCE: 'mutationDebounce',
-  EXCLUDED_SITES: 'excludedSites',
   REPLACEMENT_PHRASES: 'replacementPhrases',
   FILTER_COUNT: 'filterCount',
   TODAY_COUNT: 'todayCount',
@@ -37,6 +37,7 @@ export const STORAGE_KEYS = {
   LAST_RESET_DATE: 'lastResetDate'
 };
 
+// Rest stays the same...
 export const SELECTORS = {
   GOOGLE_SEARCH: [
     'input[name="q"]',
@@ -45,7 +46,7 @@ export const SELECTORS = {
     'input[aria-label*="Search"]',
     'textarea[aria-label*="Search"]',
     '[role="combobox"][name="q"]',
-    'textarea[aria-controls*="Alh6id"]' // New Google textarea
+    'textarea[aria-controls*="Alh6id"]'
   ],
   GOOGLE_SUGGESTION: [
     '.UUbT9',
@@ -53,21 +54,21 @@ export const SELECTORS = {
     '[role="listbox"]',
     '.sbdd_b',
     '.erkvQe',
-    '.mkHrUc', // New suggestion container
-    '.G43f7e', // New suggestion wrapper
-    '[jsname]',  // Google uses jsname attributes
-    'div[role="presentation"]' // New structure
+    '.mkHrUc',
+    '.G43f7e',
+    '[jsname]',
+    'div[role="presentation"]'
   ],
   SUGGESTION: [
     '[role="option"]',
     '[role="listbox"] li',
-    '[role="listbox"] div',  // Add this
+    '[role="listbox"] div',
     '.suggestion',
     '[data-suggestion]',
     '.sbct',
     '.aypbod',
     'li',
-    'div[jsname]', // Google's dynamic elements
+    'div[jsname]',
     '.UUbT9',
     '.aajZCb',
     '.erkvQe',

@@ -27,6 +27,7 @@ export const useSettings = () => {
     
     setSettings({
       blockedWords: result.blockedWords ?? DEFAULT_SETTINGS.blockedWords,
+      blockedSites: result.blockedSites ?? DEFAULT_SETTINGS.blockedSites, // CHANGED
       redirectUrl: result.redirectUrl ?? DEFAULT_SETTINGS.redirectUrl,
       enableFilter: result.enableFilter ?? DEFAULT_SETTINGS.enableFilter,
       debugMode: result.debugMode ?? DEFAULT_SETTINGS.debugMode,
@@ -34,7 +35,6 @@ export const useSettings = () => {
       blurInsteadOfHide: result.blurInsteadOfHide ?? DEFAULT_SETTINGS.blurInsteadOfHide,
       scanInterval: result.scanInterval ?? DEFAULT_SETTINGS.scanInterval,
       mutationDebounce: result.mutationDebounce ?? DEFAULT_SETTINGS.mutationDebounce,
-      excludedSites: result.excludedSites ?? DEFAULT_SETTINGS.excludedSites,
       replacementPhrases: result.replacementPhrases ?? DEFAULT_SETTINGS.replacementPhrases,
     });
     setLoading(false);

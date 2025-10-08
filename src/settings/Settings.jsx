@@ -20,7 +20,7 @@ export const Settings = () => {
     { id: "general", name: "General", icon: "⚙️" },
     { id: "words", name: "Blocked Words", icon: "📝" },
     { id: "phrases", name: "Replacement Phrases", icon: "💬" },
-    { id: "sites", name: "Excluded Sites", icon: "🌐" },
+    { id: "sites", name: "Blocked Sites", icon: "🚫" }, // CHANGED
     { id: "stats", name: "Statistics", icon: "📊" },
     { id: "advanced", name: "Advanced", icon: "⚡" },
     { id: "about", name: "About", icon: "ℹ️" },
@@ -51,7 +51,6 @@ export const Settings = () => {
 
   return (
     <div className="bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
-      {/* Header */}
       <header className="bg-gradient-to-r from-primary to-secondary shadow-xl">
         <div className="max-w-7xl mx-auto px-6 py-8">
           <div className="flex items-center gap-4">
@@ -70,7 +69,6 @@ export const Settings = () => {
 
       <div className="max-w-7xl mx-auto px-6 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Sidebar */}
           <aside className="lg:col-span-1">
             <nav className="bg-white rounded-2xl shadow-lg p-4 sticky top-6">
               <div className="space-y-2">
@@ -92,7 +90,6 @@ export const Settings = () => {
             </nav>
           </aside>
 
-          {/* Main Content */}
           <main className="lg:col-span-3">{renderTab()}</main>
         </div>
       </div>
