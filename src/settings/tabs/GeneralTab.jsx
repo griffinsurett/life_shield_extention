@@ -1,6 +1,38 @@
+/**
+ * General Tab Component
+ * 
+ * Main settings tab with core configuration options.
+ * 
+ * Settings:
+ * - Enable Filter: Master toggle for all filtering
+ * - Debug Mode: Enable console logging
+ * - Show Alerts: Enable notifications
+ * - Redirect URL: Where to redirect blocked content
+ * - Content Display: Hide vs blur blocked content
+ * 
+ * Features:
+ * - Toggle switches for boolean settings
+ * - Text input for redirect URL
+ * - Radio buttons for display mode
+ * - Auto-save on change
+ * - Toast notifications
+ * 
+ * @component
+ * @param {Object} props
+ * @param {Object} props.settings - Current settings
+ * @param {Function} props.updateSettings - Update settings function
+ * @param {Function} props.showToast - Show toast notification
+ */
+
 import { Toggle } from "../../components/Toggle";
 
 export const GeneralTab = ({ settings, updateSettings, showToast }) => {
+  /**
+   * Save settings and show toast
+   * Wrapper function for common save pattern
+   * 
+   * @param {Object} updates - Settings to update
+   */
   const saveSettings = async (updates) => {
     await updateSettings(updates);
     showToast("Settings saved!", "success");
@@ -11,19 +43,25 @@ export const GeneralTab = ({ settings, updateSettings, showToast }) => {
       <h2 className="text-2xl font-bold text-gray-800 mb-6">
         General Settings
       </h2>
+      
       <div className="space-y-6">
+        {/* Master toggle for filtering */}
         <Toggle
           checked={settings.enableFilter}
           onChange={(val) => saveSettings({ enableFilter: val })}
           label="Enable Filter"
           description="Turn the content filter on or off globally"
         />
+        
+        {/* Debug mode toggle */}
         <Toggle
           checked={settings.debugMode}
           onChange={(val) => saveSettings({ debugMode: val })}
           label="Debug Mode"
           description="Show console logs for debugging (dev only)"
         />
+        
+        {/* Notifications toggle */}
         <Toggle
           checked={settings.showAlerts}
           onChange={(val) => saveSettings({ showAlerts: val })}
@@ -31,6 +69,7 @@ export const GeneralTab = ({ settings, updateSettings, showToast }) => {
           description="Display notifications when content is blocked"
         />
 
+        {/* Redirect URL setting */}
         <div className="p-6 bg-gray-50 rounded-xl">
           <h3 className="font-semibold text-gray-800 mb-3">Redirect URL</h3>
           <p className="text-sm text-gray-600 mb-4">
@@ -46,12 +85,16 @@ export const GeneralTab = ({ settings, updateSettings, showToast }) => {
           />
         </div>
 
+        {/* Content display mode setting */}
         <div className="p-6 bg-gray-50 rounded-xl">
           <h3 className="font-semibold text-gray-800 mb-3">Content Display</h3>
           <p className="text-sm text-gray-600 mb-4">
             How to handle blocked content visually
           </p>
+          
+          {/* Radio buttons for display mode */}
           <div className="flex gap-4">
+            {/* Hide option */}
             <label className="flex-1 cursor-pointer">
               <input
                 type="radio"
@@ -67,6 +110,8 @@ export const GeneralTab = ({ settings, updateSettings, showToast }) => {
                 </div>
               </div>
             </label>
+            
+            {/* Blur option */}
             <label className="flex-1 cursor-pointer">
               <input
                 type="radio"
