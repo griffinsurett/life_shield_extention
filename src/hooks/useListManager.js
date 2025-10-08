@@ -3,10 +3,12 @@
  * 
  * Generic hook for managing lists of items (words, sites, phrases).
  * Handles adding, removing, and clearing items with validation.
+ * Now supports optional confirmation before adding.
  * 
  * Features:
  * - Input state management
  * - Add with validation and duplicate checking
+ * - Optional confirmation modal before adding
  * - Remove by index
  * - Clear all with confirmation
  * - Toast notifications
@@ -20,6 +22,8 @@
  * @param {Function} options.transform - Function to transform input value
  * @param {Function} options.validate - Function to validate input value
  * @param {boolean} options.duplicateCheck - Whether to check for duplicates
+ * @param {boolean} options.requireConfirmation - Whether to require confirmation before adding
+ * @param {Function} options.getConfirmMessage - Function to get confirmation message
  * @returns {Object} Object with input state and management functions
  */
 
@@ -29,21 +33,26 @@ import { useToast } from "../components/ToastContainer";
 export const useListManager = (items = [], updateItems, options = {}) => {
   const { showToast } = useToast();
   const [inputValue, setInputValue] = useState("");
+  const [pendingItem, setPendingItem] = useState(null);
 
   // Extract options with defaults
   const {
     itemName = "item",
-    transform = (val) => val.trim().toLowerCase(), // Default: trim and lowercase
-    validate = (val) => !!val, // Default: check if not empty
-    duplicateCheck = true, // Default: check for duplicates
+    transform = (val) => val.trim().toLowerCase(),
+    validate = (val) => !!val,
+    duplicateCheck = true,
+    requireConfirmation = false,
+    getConfirmMessage = (item) => `Are you sure you want to block "${item}"?`,
   } = options;
 
   /**
    * Add new item to list
-   * Transforms, validates, and checks for duplicates before adding
+   * Validates and optionally shows confirmation before adding
+   * 
+   * @param {Function} onConfirm - Optional callback for confirmation flow
    */
-  const addItem = async () => {
-    // Transform input (e.g., lowercase, trim)
+  const addItem = async (onConfirm) => {
+    // Transform input
     const newItem = transform(inputValue);
 
     // Validate input
@@ -55,21 +64,47 @@ export const useListManager = (items = [], updateItems, options = {}) => {
     // Check for duplicates if enabled
     if (duplicateCheck && items.includes(newItem)) {
       showToast(
-        `${
-          itemName.charAt(0).toUpperCase() + itemName.slice(1)
-        } already exists`,
+        `${itemName.charAt(0).toUpperCase() + itemName.slice(1)} already exists`,
         "error"
       );
       return;
     }
 
-    // Add to list
-    await updateItems([...items, newItem]);
-    
-    // Clear input
+    // If confirmation required, store pending item and trigger callback
+    if (requireConfirmation && onConfirm) {
+      setPendingItem(newItem);
+      onConfirm({
+        title: `Block ${itemName.charAt(0).toUpperCase() + itemName.slice(1)}?`,
+        message: getConfirmMessage(newItem),
+        confirmText: `Yes, Block ${itemName.charAt(0).toUpperCase() + itemName.slice(1)}`,
+        cancelText: "Cancel",
+        confirmColor: "red",
+        onConfirm: () => confirmAdd(newItem)
+      });
+      return;
+    }
+
+    // Otherwise add immediately
+    await performAdd(newItem);
+  };
+
+  /**
+   * Confirm and add the pending item
+   * Called after user confirms in modal
+   */
+  const confirmAdd = async (item) => {
+    await performAdd(item || pendingItem);
+    setPendingItem(null);
+  };
+
+  /**
+   * Actually perform the add operation
+   * Internal method called after validation/confirmation
+   */
+  const performAdd = async (item) => {
+    await updateItems([...items, item]);
     setInputValue("");
-    
-    showToast(`Added "${newItem}"`, "success");
+    showToast(`Added "${item}"`, "success");
   };
 
   /**
@@ -107,5 +142,6 @@ export const useListManager = (items = [], updateItems, options = {}) => {
     addItem,
     removeItem,
     clearAll,
+    pendingItem,
   };
 };

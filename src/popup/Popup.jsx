@@ -1,21 +1,21 @@
 /**
  * Popup Component
  * 
- * Main popup UI that appears when clicking the extension icon.
- * Displays:
- * - Today's block count
- * - Quick access to add blocked words
- * - Quick access to add blocked sites
- * - Preview of replacement phrases
- * - Import/Export buttons
- * - Link to full settings
+ * Main popup UI with tabbed interface.
+ * Now includes confirmation modals for all blocking actions.
+ * 
+ * Tabs:
+ * - Home: Status card and quick actions
+ * - Words: Blocked words management
+ * - Sites: Blocked sites management
+ * - More: Replacement phrases, import/export, settings
  * 
  * Features:
- * - Compact design (460px wide)
+ * - Compact tabbed design (460px wide, ~500px tall)
  * - Gradient purple background
  * - Real-time updates
  * - Toast notifications
- * - Quick actions for common tasks
+ * - Confirmation modals for all blocks
  * 
  * @component
  */
@@ -25,13 +25,14 @@ import { useSettings } from '../hooks/useSettings';
 import { useStats } from '../hooks/useStats';
 import { useListManager } from '../hooks/useListManager';
 import { useFileOperations } from '../hooks/useFileOperations';
+import { useConfirmation } from '../hooks/useConfirmation';
+import { ConfirmationModal } from '../components/ConfirmationModal';
 import { PopupHeader } from './components/PopupHeader';
-import { StatusCard } from './components/StatusCard';
-import { BlockedWordsSection } from './components/BlockedWordsSection';
-import { BlockedSitesSection } from './components/BlockedSitesSection';
-import { ReplacementPhrasesPreview } from './components/ReplacementPhrasesPreview';
-import { QuickActions } from './components/QuickActions';
-import { SettingsButton } from './components/SettingsButton';
+import { PopupTabs } from './components/PopupTabs';
+import { HomeTab } from './tabs/HomeTab';
+import { WordsTab as PopupWordsTab } from './tabs/WordsTab';
+import { SitesTab as PopupSitesTab } from './tabs/SitesTab';
+import { MoreTab } from './tabs/MoreTab';
 import { PopupFooter } from './components/PopupFooter';
 
 export const Popup = () => {
@@ -40,27 +41,33 @@ export const Popup = () => {
   const { stats } = useStats();
   const { exportToFile, importFromFile } = useFileOperations();
   const [previewPhrase, setPreviewPhrase] = useState('');
+  const [activeTab, setActiveTab] = useState('home');
+  
+  // Confirmation modal state
+  const confirmation = useConfirmation();
 
   /**
-   * List manager for blocked words
-   * Handles adding/removing words with validation
+   * List manager for blocked words with confirmation
    */
   const wordManager = useListManager(
     settings.blockedWords,
     (words) => updateSettings({ blockedWords: words }),
-    { itemName: 'word' }
+    { 
+      itemName: 'word',
+      requireConfirmation: true,
+      getConfirmMessage: (word) => 
+        `Are you sure you want to block the word "${word}"? This will filter it from all web pages you visit.`
+    }
   );
 
   /**
-   * List manager for blocked sites
-   * Transforms input to clean domain format
+   * List manager for blocked sites with confirmation
    */
   const siteManager = useListManager(
     settings.blockedSites,
     (sites) => updateSettings({ blockedSites: sites }),
     {
       itemName: 'site',
-      // Transform: remove protocol and trailing slash
       transform: (val) =>
         val
           .trim()
@@ -68,12 +75,14 @@ export const Popup = () => {
           .replace(/^https?:\/\//, '')
           .replace(/\/$/, ''),
       duplicateCheck: true,
+      requireConfirmation: true,
+      getConfirmMessage: (site) =>
+        `Are you sure you want to block "${site}"? You will be redirected and unable to access this site until you unblock it.`
     }
   );
 
   /**
    * Select and display a random replacement phrase
-   * Called on mount and when user clicks refresh
    */
   const refreshPreviewPhrase = () => {
     if (settings.replacementPhrases.length > 0) {
@@ -98,11 +107,9 @@ export const Popup = () => {
 
   /**
    * Import blocked words from JSON file
-   * Merges with existing words (no duplicates)
    */
   const handleImport = async () => {
     await importFromFile(async (importedWords) => {
-      // Merge and deduplicate
       const mergedWords = [...new Set([...settings.blockedWords, ...importedWords])];
       await updateSettings({ blockedWords: mergedWords });
     }, 'words');
@@ -115,51 +122,67 @@ export const Popup = () => {
     chrome.runtime.openOptionsPage();
   };
 
+  /**
+   * Render active tab content
+   */
+  const renderTabContent = () => {
+    const props = {
+      settings,
+      updateSettings,
+      stats,
+      wordManager,
+      siteManager,
+      previewPhrase,
+      refreshPreviewPhrase,
+      handleExport,
+      handleImport,
+      openSettings,
+      showConfirmation: confirmation.showConfirmation
+    };
+
+    switch (activeTab) {
+      case 'home':
+        return <HomeTab {...props} />;
+      case 'words':
+        return <PopupWordsTab {...props} />;
+      case 'sites':
+        return <PopupSitesTab {...props} />;
+      case 'more':
+        return <MoreTab {...props} />;
+      default:
+        return <HomeTab {...props} />;
+    }
+  };
+
   return (
-    <div className="w-[460px] min-h-[500px] m-0 p-0 bg-gradient-to-br from-primary via-purple-600 to-secondary overflow-x-hidden">
-      <div className="p-6 text-white">
-        {/* Header with settings button */}
+    <div className="w-[460px] h-[580px] m-0 p-0 bg-gradient-to-br from-primary via-purple-600 to-secondary overflow-hidden flex flex-col">
+      <div className="flex-1 flex flex-col p-6 text-white overflow-hidden">
+        {/* Header */}
         <PopupHeader onSettingsClick={openSettings} />
         
-        {/* Status card showing today's count */}
-        <StatusCard todayCount={stats.todayCount} />
+        {/* Tab Navigation */}
+        <PopupTabs activeTab={activeTab} onTabChange={setActiveTab} />
         
-        {/* Blocked sites section (shown first for priority) */}
-        <BlockedSitesSection
-          sites={settings.blockedSites}
-          newSite={siteManager.inputValue}
-          onNewSiteChange={siteManager.setInputValue}
-          onAddSite={siteManager.addItem}
-          onRemoveSite={siteManager.removeItem}
-        />
-
-        {/* Blocked words section */}
-        <BlockedWordsSection
-          words={settings.blockedWords}
-          newWord={wordManager.inputValue}
-          onNewWordChange={wordManager.setInputValue}
-          onAddWord={wordManager.addItem}
-          onRemoveWord={wordManager.removeItem}
-        />
+        {/* Tab Content - scrollable */}
+        <div className="flex-1 overflow-y-auto mt-4 pr-2">
+          {renderTabContent()}
+        </div>
         
-        {/* Preview of random replacement phrase */}
-        <ReplacementPhrasesPreview
-          phrase={previewPhrase}
-          onRefresh={refreshPreviewPhrase}
-        />
-        
-        {/* Import/Export buttons */}
-        <QuickActions
-          onExport={handleExport}
-          onImport={handleImport}
-        />
-        
-        {/* Link to full settings */}
-        <SettingsButton onClick={openSettings} />
-        
-        {/* Footer with version */}
+        {/* Footer */}
         <PopupFooter />
       </div>
+
+      {/* Global Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={confirmation.isOpen}
+        title={confirmation.confirmConfig.title}
+        message={confirmation.confirmConfig.message}
+        confirmText={confirmation.confirmConfig.confirmText}
+        cancelText={confirmation.confirmConfig.cancelText}
+        confirmColor={confirmation.confirmConfig.confirmColor}
+        onConfirm={confirmation.handleConfirm}
+        onCancel={confirmation.handleCancel}
+      />
     </div>
   );
 };
