@@ -4,6 +4,7 @@ import { StatsManager } from './managers/StatsManager';
 import { SettingsManager } from './managers/SettingsManager';
 import { NotificationManager } from './managers/NotificationManager';
 import { NavigationManager } from './managers/NavigationManager';
+import { BlockingManager } from './managers/BlockingManager';
 import { MessageHandler } from './handlers/MessageHandler';
 
 console.log('[Wellness Filter Background] Service worker loaded');
@@ -13,6 +14,11 @@ const badgeManager = new BadgeManager();
 const statsManager = new StatsManager(badgeManager);
 const settingsManager = new SettingsManager();
 const notificationManager = new NotificationManager(settingsManager);
+const blockingManager = new BlockingManager(
+  settingsManager,
+  statsManager,
+  notificationManager
+);
 const navigationManager = new NavigationManager(
   settingsManager,
   statsManager,
@@ -49,6 +55,9 @@ chrome.runtime.onInstalled.addListener(async (details) => {
     
     // Reload settings
     await settingsManager.loadSettings();
+    
+    // Initialize blocking rules
+    await blockingManager.updateBlockingRules();
     
     // Show welcome notification
     await notificationManager.showWelcomeNotification();

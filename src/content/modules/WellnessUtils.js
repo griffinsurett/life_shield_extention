@@ -23,33 +23,6 @@ export class WellnessUtils {
     );
   }
 
-  // NEW METHOD - Check if current page is a blocked site
-  isCurrentSiteBlocked() {
-    const currentUrl = window.location.href.toLowerCase();
-    const currentHost = window.location.hostname.toLowerCase();
-    
-    // Get blocked sites from config (need to add this to config first)
-    if (typeof chrome !== 'undefined' && chrome.storage) {
-      chrome.storage.sync.get(['blockedSites'], (result) => {
-        const blockedSites = result.blockedSites || [];
-        
-        for (const site of blockedSites) {
-          const siteLower = site.toLowerCase();
-          if (currentUrl.includes(siteLower) || currentHost.includes(siteLower)) {
-            this.log(`Current site is blocked: ${site}`);
-            // Notify background script to redirect
-            chrome.runtime.sendMessage({
-              action: 'blockedUrl',
-              url: window.location.href
-            });
-            return true;
-          }
-        }
-      });
-    }
-    return false;
-  }
-
   scrubText(text) {
     let scrubbed = text;
     let foundCount = 0;
@@ -79,10 +52,6 @@ export class WellnessUtils {
     const params = new URLSearchParams(window.location.search);
     const query = params.get('q') || params.get('query') || params.get('p') || '';
 
-    // Check if current site is blocked
-    this.isCurrentSiteBlocked();
-
-    // Check if URL or query contains blocked words
     if (this.containsBlockedWord(url) || this.containsBlockedWord(query)) {
       this.log(`Detected blocked word in URL, notifying background script`);
       if (typeof chrome !== 'undefined' && chrome.runtime) {

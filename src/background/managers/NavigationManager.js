@@ -25,22 +25,9 @@ export class NavigationManager {
     
     const url = details.url;
     
-    // Check for blocked sites FIRST
-    if (this.settingsManager.containsBlockedSite(url)) {
-      console.log('[Navigation Manager] Intercepted navigation to blocked site:', url);
-      
-      await this.statsManager.incrementStats(1);
-      await this.notificationManager.showUrlBlockedNotification();
-      
-      chrome.tabs.update(details.tabId, { 
-        url: this.settingsManager.getRedirectUrl() 
-      });
-      return;
-    }
-    
-    // Then check for blocked words in URL
+    // Check for blocked words in URL (not sites - those are handled by BlockingManager)
     if (this.settingsManager.containsBlockedWord(url)) {
-      console.log('[Navigation Manager] Intercepted navigation to blocked URL:', url);
+      console.log('[Navigation Manager] Intercepted navigation with blocked word:', url);
       
       await this.statsManager.incrementStats(1);
       await this.notificationManager.showUrlBlockedNotification();

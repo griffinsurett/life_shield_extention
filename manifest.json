@@ -1,10 +1,17 @@
 {
   "manifest_version": 3,
-  "name": "Wellness Content Filter",
+  "name": "Wellness Filter",
   "version": "1.0.0",
-  "description": "Filters unwanted content and promotes healthy alternatives",
-  "permissions": ["storage", "webNavigation", "notifications"],
-  "host_permissions": ["<all_urls>"],
+  "description": "Promote healthy browsing habits by filtering unwanted content",
+  "permissions": [
+    "storage",
+    "notifications",
+    "declarativeNetRequest",
+    "webNavigation"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
   "background": {
     "service_worker": "src/background/index.js",
     "type": "module"
@@ -13,8 +20,7 @@
     {
       "matches": ["<all_urls>"],
       "js": ["src/content/index.js"],
-      "run_at": "document_start",
-      "all_frames": true
+      "run_at": "document_start"
     }
   ],
   "action": {
@@ -28,7 +34,6 @@
   "options_page": "src/settings/index.html",
   "icons": {
     "16": "icons/icon16.png",
-    "32": "icons/icon32.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
   }

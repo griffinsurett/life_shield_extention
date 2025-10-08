@@ -3,7 +3,7 @@ import { STORAGE_KEYS } from '../../utils/constants';
 export class SettingsManager {
   constructor() {
     this.blockedWords = [];
-    this.blockedSites = []; // CHANGED
+    this.blockedSites = [];
     this.redirectUrl = '';
     this.showAlerts = false;
     this.init();
@@ -17,19 +17,19 @@ export class SettingsManager {
   async loadSettings() {
     const result = await chrome.storage.sync.get([
       STORAGE_KEYS.BLOCKED_WORDS,
-      STORAGE_KEYS.BLOCKED_SITES, // CHANGED
+      STORAGE_KEYS.BLOCKED_SITES,
       STORAGE_KEYS.REDIRECT_URL,
       STORAGE_KEYS.SHOW_ALERTS
     ]);
 
     this.blockedWords = result.blockedWords || [];
-    this.blockedSites = result.blockedSites || []; // CHANGED
+    this.blockedSites = result.blockedSites || [];
     this.redirectUrl = result.redirectUrl || '';
     this.showAlerts = result.showAlerts || false;
 
     console.log('[Settings Manager] Settings loaded:', {
       blockedWords: this.blockedWords,
-      blockedSites: this.blockedSites, // CHANGED
+      blockedSites: this.blockedSites,
       redirectUrl: this.redirectUrl,
       showAlerts: this.showAlerts
     });
@@ -42,7 +42,7 @@ export class SettingsManager {
           this.blockedWords = changes.blockedWords.newValue || [];
           console.log('[Settings Manager] Blocked words updated:', this.blockedWords);
         }
-        if (changes.blockedSites) { // CHANGED
+        if (changes.blockedSites) {
           this.blockedSites = changes.blockedSites.newValue || [];
           console.log('[Settings Manager] Blocked sites updated:', this.blockedSites);
         }
@@ -64,7 +64,6 @@ export class SettingsManager {
     return this.blockedWords.some(word => lower.includes(word.toLowerCase()));
   }
 
-  // NEW - same pattern as containsBlockedWord
   containsBlockedSite(url) {
     if (!url) return false;
     const lower = url.toLowerCase();
@@ -73,6 +72,10 @@ export class SettingsManager {
 
   getBlockedWords() {
     return this.blockedWords;
+  }
+
+  getBlockedSites() {
+    return this.blockedSites;
   }
 
   getRedirectUrl() {
