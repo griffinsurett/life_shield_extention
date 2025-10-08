@@ -2,30 +2,12 @@
  * Settings Component
  * 
  * Main settings page with tabbed interface.
- * Provides comprehensive configuration options for the extension.
- * 
- * Tabs:
- * - General: Master settings and redirect URL
- * - Blocked Words: Manage word filtering
- * - Replacement Phrases: Manage healthy alternatives
- * - Blocked Sites: Manage site blocking
- * - Statistics: View usage stats
- * - Advanced: Performance tuning and reset
- * - About: Extension information
- * 
- * Features:
- * - Sidebar navigation
- * - Tab-based interface
- * - Responsive layout
- * - Toast notifications
- * - Gradient header
+ * Now uses AppContext instead of prop drilling.
  * 
  * @component
  */
 
 import { useState } from "react";
-import { useSettings } from "../hooks/useSettings";
-import { useStats } from "../hooks/useStats";
 import { useToast } from "../components/ToastContainer";
 import { useConfirmation } from "../hooks/useConfirmation";
 import { ConfirmationModal } from "../components/ConfirmationModal";
@@ -38,12 +20,9 @@ import { AdvancedTab } from "./tabs/AdvancedTab";
 import { AboutTab } from "./tabs/AboutTab";
 
 export const Settings = () => {
-  const { settings, updateSettings } = useSettings();
-  const { stats, resetStats } = useStats();
   const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState("general");
   
-  // Confirmation modal state
   const confirmation = useConfirmation();
 
   const tabs = [
@@ -58,10 +37,6 @@ export const Settings = () => {
 
   const renderTab = () => {
     const props = { 
-      settings, 
-      updateSettings, 
-      stats, 
-      resetStats, 
       showToast,
       showConfirmation: confirmation.showConfirmation
     };
@@ -131,7 +106,6 @@ export const Settings = () => {
         </div>
       </div>
 
-      {/* Global Confirmation Modal */}
       <ConfirmationModal
         isOpen={confirmation.isOpen}
         title={confirmation.confirmConfig.title}

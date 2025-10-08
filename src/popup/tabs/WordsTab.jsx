@@ -2,33 +2,16 @@
  * Words Tab Component
  * 
  * Full blocked words management interface.
- * All add operations require confirmation.
- * 
- * Features:
- * - List of all blocked words
- * - Add new words (with confirmation)
- * - Remove words
- * - Word count
+ * Now significantly simplified using ListManager and AppContext.
  * 
  * @component
  */
 
-import { useListManager } from "../../hooks/useListManager";
-import { AddItemInput } from "../../components/AddItemInput";
-import { ListItem } from "../../components/ListItem";
-import { SectionHeader } from "../../components/SectionHeader";
+import { useApp } from '../../contexts/AppContext';
+import ListManager from '../../components/ListManager';
 
-export const WordsTab = ({ settings, updateSettings, showConfirmation }) => {
-  const wordManager = useListManager(
-    settings.blockedWords,
-    (words) => updateSettings({ blockedWords: words }),
-    { 
-      itemName: "word",
-      requireConfirmation: true,
-      getConfirmMessage: (word) => 
-        `Are you sure you want to block the word "${word}"? This will filter it from all web pages you visit.`
-    }
-  );
+export const WordsTab = ({ wordManager, showConfirmation }) => {
+  const { settings } = useApp();
 
   return (
     <div className="bg-white rounded-2xl shadow-lg p-8 animate-fade-in">
@@ -36,53 +19,19 @@ export const WordsTab = ({ settings, updateSettings, showConfirmation }) => {
         Blocked Words Management
       </h2>
 
-      <div className="mb-8 p-6 bg-gradient-to-r from-primary/5 to-secondary/5 rounded-xl border-2 border-primary/20">
-        <AddItemInput
-          value={wordManager.inputValue}
-          onChange={wordManager.setInputValue}
-          onAdd={() => wordManager.addItem(showConfirmation)}
-          placeholder="Enter word or phrase to block..."
-          buttonText="Add Word"
-        />
-      </div>
-
-      <div>
-        <SectionHeader
-          title="Current Blocked Words"
-          count={settings.blockedWords.length}
-        />
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-96 overflow-y-auto pr-2">
-          {settings.blockedWords.length === 0 ? (
-            <div className="col-span-2 text-center py-12 text-gray-400">
-              <p className="font-medium">No blocked words yet</p>
-              <p className="text-sm mt-1">Add one using the input above</p>
-            </div>
-          ) : (
-            settings.blockedWords.map((word, index) => (
-              <ListItem
-                key={index}
-                onRemove={() => wordManager.removeItem(index)}
-              >
-                {word}
-              </ListItem>
-            ))
-          )}
-        </div>
-      </div>
-
-      <div className="mt-6">
-        <button
-          onClick={() =>
-            wordManager.clearAll(
-              "Are you sure you want to remove all blocked words?"
-            )
-          }
-          className="px-4 py-2 bg-red-500 text-white rounded-xl font-medium hover:bg-red-600 transition-colors"
-        >
-          Clear All
-        </button>
-      </div>
+      <ListManager
+        items={settings.blockedWords}
+        inputValue={wordManager.inputValue}
+        onInputChange={wordManager.setInputValue}
+        onAdd={() => wordManager.addItem(showConfirmation)}
+        onRemove={wordManager.removeItem}
+        onClear={() => wordManager.clearAll("Are you sure you want to remove all blocked words?")}
+        placeholder="Enter word or phrase to block..."
+        buttonText="Add Word"
+        emptyText="No blocked words yet"
+        title="Current Blocked Words"
+        variant="default"
+      />
     </div>
   );
 };

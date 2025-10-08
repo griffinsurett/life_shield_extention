@@ -4,12 +4,6 @@
  * Manages statistics tracking with Chrome local storage.
  * Provides stats state and reset function.
  * 
- * Features:
- * - Loads stats from chrome.storage.local
- * - Auto-refreshes every 5 seconds
- * - Provides reset function
- * - Returns filterCount, todayCount, and installDate
- * 
  * @hook
  * @returns {Object} Object with stats, resetStats, and loadStats functions
  */
@@ -17,6 +11,7 @@
 import { useState, useEffect } from 'react';
 import { storage } from '../utils/storage';
 import { STORAGE_KEYS } from '../utils/constants';
+import { STATS_REFRESH_INTERVAL } from '../utils/timing';
 
 export const useStats = () => {
   const [stats, setStats] = useState({
@@ -30,7 +25,7 @@ export const useStats = () => {
     loadStats();
     
     // Refresh every 5 seconds to stay up-to-date
-    const interval = setInterval(loadStats, 5000);
+    const interval = setInterval(loadStats, STATS_REFRESH_INTERVAL);
     
     // Cleanup
     return () => clearInterval(interval);

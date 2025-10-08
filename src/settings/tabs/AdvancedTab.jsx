@@ -2,38 +2,22 @@
  * Advanced Tab Component
  * 
  * Advanced settings for power users.
- * 
- * Settings:
- * - Scan Interval: How often to check for new content
- * - Mutation Debounce: Delay before processing DOM changes
- * - Reset All: Nuclear option to reset everything
- * 
- * Features:
- * - Range sliders for performance tuning
- * - Real-time value display
- * - Danger zone for destructive actions
- * - Confirmation dialogs
+ * Now uses AppContext instead of props.
  * 
  * @component
- * @param {Object} props
- * @param {Object} props.settings - Current settings
- * @param {Function} props.updateSettings - Update settings function
  */
 
-export const AdvancedTab = ({ settings, updateSettings }) => {
-  /**
-   * Reset all settings and storage
-   * Nuclear option - clears everything
-   * Shows strong confirmation message
-   */
+import { useApp } from "../../contexts/AppContext";
+
+export const AdvancedTab = () => {
+  const { settings, updateSettings } = useApp();
+
   const resetAllSettings = async () => {
     if (!confirm('This will reset ALL settings, words, phrases, and statistics to defaults. Are you sure?')) return;
     
-    // Clear both sync and local storage
     await chrome.storage.sync.clear();
     await chrome.storage.local.clear();
     
-    // Reload page to reinitialize
     window.location.reload();
   };
 
@@ -42,12 +26,10 @@ export const AdvancedTab = ({ settings, updateSettings }) => {
       <h2 className="text-2xl font-bold text-gray-800 mb-6">Advanced Settings</h2>
 
       <div className="space-y-6">
-        {/* Performance tuning section */}
         <div className="p-6 bg-gray-50 rounded-xl">
           <h3 className="font-semibold text-gray-800 mb-4">Performance Tuning</h3>
           
           <div className="space-y-4">
-            {/* Scan interval slider */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Scan Interval: {settings.scanInterval}ms
@@ -64,7 +46,6 @@ export const AdvancedTab = ({ settings, updateSettings }) => {
               <p className="text-xs text-gray-500 mt-1">How often to scan for new content (lower = more aggressive)</p>
             </div>
 
-            {/* Mutation debounce slider */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Mutation Debounce: {settings.mutationDebounce}ms
@@ -83,12 +64,10 @@ export const AdvancedTab = ({ settings, updateSettings }) => {
           </div>
         </div>
 
-        {/* Danger zone */}
         <div className="p-6 bg-red-50 rounded-xl border-2 border-red-200">
           <h3 className="font-semibold text-red-800 mb-4">Danger Zone</h3>
           <p className="text-sm text-red-700 mb-4">These actions cannot be undone</p>
           
-          {/* Reset all button */}
           <button 
             onClick={resetAllSettings}
             className="px-6 py-3 bg-red-600 text-white rounded-xl font-semibold hover:bg-red-700 transition-colors"

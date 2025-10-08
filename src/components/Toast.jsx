@@ -2,30 +2,21 @@
  * Toast Component
  * 
  * Displays temporary notification messages.
- * Auto-dismisses after 3 seconds.
- * 
- * Features:
- * - Success, error, and info variants
- * - Auto-dismiss with timer
- * - Icon for each type
- * - Fade-in animation
+ * Auto-dismisses after configured delay.
  * 
  * @component
- * @param {Object} props
- * @param {string} props.message - Message to display
- * @param {string} props.type - Toast type: 'success', 'error', or 'info' (default)
- * @param {Function} props.onClose - Called when toast should be dismissed
  */
 
 import { useEffect } from 'react';
+import { TOAST_DISMISS_DELAY } from '../utils/timing';
 
 export const Toast = ({ message, type = 'info', onClose }) => {
   /**
-   * Auto-dismiss after 3 seconds
+   * Auto-dismiss after configured delay
    * Cleanup timer on unmount
    */
   useEffect(() => {
-    const timer = setTimeout(onClose, 3000);
+    const timer = setTimeout(onClose, TOAST_DISMISS_DELAY);
     return () => clearTimeout(timer);
   }, [onClose]);
 

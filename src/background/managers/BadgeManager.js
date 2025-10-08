@@ -4,31 +4,15 @@
  * Manages the extension badge (icon badge counter).
  * Updates the badge to show today's filter count.
  * 
- * Features:
- * - Updates badge on initialization
- * - Updates badge every minute to stay current
- * - Shows red badge when count > 0
- * - Clears badge when count = 0
- * - Context validation for all operations
- * 
  * @class BadgeManager
  */
+
+import { isExtensionContextValid, safeChrome, safeChromeAsync } from '../../utils/chrome';
+import { BADGE_UPDATE_INTERVAL } from '../../utils/timing';
+
 export class BadgeManager {
   constructor() {
     this.init();
-  }
-
-  /**
-   * Check if extension context is still valid
-   * 
-   * @returns {boolean} True if context is valid
-   */
-  isContextValid() {
-    try {
-      return !!(chrome && chrome.runtime && chrome.runtime.id);
-    } catch {
-      return false;
-    }
   }
 
   /**
@@ -40,12 +24,11 @@ export class BadgeManager {
     this.updateBadge();
     
     // Update every minute to keep badge current
-    // Uses setInterval which persists across service worker restarts
     setInterval(() => {
-      if (this.isContextValid()) {
+      if (isExtensionContextValid()) {
         this.updateBadge();
       }
-    }, 60000);
+    }, BADGE_UPDATE_INTERVAL);
   }
 
   /**
@@ -57,24 +40,29 @@ export class BadgeManager {
    * @returns {Promise<void>}
    */
   async updateBadge() {
-    // Validate context before proceeding
-    if (!this.isContextValid()) {
+    if (!isExtensionContextValid()) {
       console.log('[Badge Manager] Extension context invalid, skipping badge update');
       return;
     }
 
     try {
       // Get today's count from local storage
-      const result = await chrome.storage.local.get(['todayCount']);
+      const result = await safeChromeAsync(
+        () => chrome.storage.local.get(['todayCount']),
+        { todayCount: 0 }
+      );
+      
       const count = result.todayCount || 0;
 
       // Show count on badge if > 0
       if (count > 0) {
-        chrome.action.setBadgeText({ text: count.toString() });
-        chrome.action.setBadgeBackgroundColor({ color: '#dc2626' }); // Red
+        safeChrome(() => {
+          chrome.action.setBadgeText({ text: count.toString() });
+          chrome.action.setBadgeBackgroundColor({ color: '#dc2626' }); // Red
+        });
       } else {
         // Clear badge if count is 0
-        chrome.action.setBadgeText({ text: '' });
+        safeChrome(() => chrome.action.setBadgeText({ text: '' }));
       }
     } catch (error) {
       console.log('[Badge Manager] Error updating badge:', error);
@@ -90,17 +78,18 @@ export class BadgeManager {
    * @returns {Promise<void>}
    */
   async setBadgeCount(count) {
-    // Validate context before proceeding
-    if (!this.isContextValid()) {
+    if (!isExtensionContextValid()) {
       return;
     }
 
     try {
       if (count > 0) {
-        chrome.action.setBadgeText({ text: count.toString() });
-        chrome.action.setBadgeBackgroundColor({ color: '#dc2626' });
+        safeChrome(() => {
+          chrome.action.setBadgeText({ text: count.toString() });
+          chrome.action.setBadgeBackgroundColor({ color: '#dc2626' });
+        });
       } else {
-        chrome.action.setBadgeText({ text: '' });
+        safeChrome(() => chrome.action.setBadgeText({ text: '' }));
       }
     } catch (error) {
       console.log('[Badge Manager] Error setting badge count:', error);

@@ -4,15 +4,12 @@
  * Manages site-level blocking using Chrome's declarativeNetRequest API.
  * Blocks entire sites by redirecting to a safe URL.
  * 
- * Features:
- * - Dynamic rule updates when blocked sites change
- * - Handles www and non-www variants
- * - Handles subdomains
- * - Updates statistics when sites are blocked
- * - Shows notifications for blocked sites
- * 
  * @class BlockingManager
  */
+
+import { isExtensionContextValid } from '../../utils/chrome';
+import { TAB_BLOCKING_DEBOUNCE } from '../../utils/timing';
+
 export class BlockingManager {
   /**
    * @param {SettingsManager} settingsManager - For accessing blocked sites
@@ -31,19 +28,6 @@ export class BlockingManager {
   }
 
   /**
-   * Check if extension context is still valid
-   * 
-   * @returns {boolean} True if context is valid
-   */
-  isContextValid() {
-    try {
-      return !!(chrome && chrome.runtime && chrome.runtime.id);
-    } catch {
-      return false;
-    }
-  }
-
-  /**
    * Initialize blocking manager
    * Sets up listeners and updates initial rules
    * 
@@ -51,7 +35,7 @@ export class BlockingManager {
    * @returns {Promise<void>}
    */
   async init() {
-    if (!this.isContextValid()) {
+    if (!isExtensionContextValid()) {
       console.log('[Blocking Manager] Extension context invalid, skipping init');
       return;
     }
@@ -59,7 +43,7 @@ export class BlockingManager {
     try {
       // Listen for settings changes
       chrome.storage.onChanged.addListener((changes, namespace) => {
-        if (!this.isContextValid()) return;
+        if (!isExtensionContextValid()) return;
         
         if (namespace === 'sync') {
           // Update rules when blocked sites or redirect URL changes
@@ -87,7 +71,7 @@ export class BlockingManager {
    * @returns {Promise<void>}
    */
   async updateBlockingRules() {
-    if (!this.isContextValid()) return;
+    if (!isExtensionContextValid()) return;
 
     try {
       const blockedSites = this.settingsManager.getBlockedSites();
@@ -187,7 +171,7 @@ export class BlockingManager {
    * Updates statistics when sites are blocked
    */
   setupBlockedRequestListener() {
-    if (!this.isContextValid()) {
+    if (!isExtensionContextValid()) {
       console.log('[Blocking Manager] Extension context invalid, skipping listeners');
       return;
     }
@@ -195,7 +179,7 @@ export class BlockingManager {
     try {
       // Listen for navigation attempts before they happen
       chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
-        if (!this.isContextValid()) return;
+        if (!isExtensionContextValid()) return;
         
         // Only check main frame navigation
         if (details.frameId !== 0) return;
@@ -213,8 +197,8 @@ export class BlockingManager {
             await this.statsManager.incrementStats(1);
             await this.notificationManager.showUrlBlockedNotification();
             
-            // Clear the tab ID after 2 seconds to allow re-blocking
-            setTimeout(() => this.blockedTabIds.delete(tabId), 2000);
+            // Clear the tab ID after debounce period
+            setTimeout(() => this.blockedTabIds.delete(tabId), TAB_BLOCKING_DEBOUNCE);
           }
 
           // Redirect to safe page
@@ -226,7 +210,7 @@ export class BlockingManager {
 
       // Listen for committed navigation (after redirect)
       chrome.webNavigation.onCommitted.addListener(async (details) => {
-        if (!this.isContextValid()) return;
+        if (!isExtensionContextValid()) return;
         
         if (details.frameId !== 0) return;
 
@@ -240,7 +224,7 @@ export class BlockingManager {
           if (!this.blockedTabIds.has(tabId)) {
             this.blockedTabIds.add(tabId);
             await this.statsManager.incrementStats(1);
-            setTimeout(() => this.blockedTabIds.delete(tabId), 2000);
+            setTimeout(() => this.blockedTabIds.delete(tabId), TAB_BLOCKING_DEBOUNCE);
           }
 
           chrome.tabs.update(tabId, {
@@ -251,7 +235,7 @@ export class BlockingManager {
 
       // Listen for server redirects to blocked sites
       chrome.webNavigation.onBeforeRedirect.addListener(async (details) => {
-        if (!this.isContextValid()) return;
+        if (!isExtensionContextValid()) return;
         
         if (details.frameId !== 0) return;
 

@@ -6,15 +6,11 @@
  * - Blocked words in URLs (not entire sites)
  * - Blocked words in search query parameters
  * 
- * Note: Entire site blocking is handled by BlockingManager using declarativeNetRequest.
- * This manager only handles word-based URL filtering.
- * 
- * Events monitored:
- * - onBeforeNavigate: Catches URLs before navigation starts
- * - onCommitted: Catches search query parameters after navigation
- * 
  * @class NavigationManager
  */
+
+import { isExtensionContextValid } from '../../utils/chrome';
+
 export class NavigationManager {
   /**
    * @param {SettingsManager} settingsManager - For checking blocked words
@@ -29,24 +25,11 @@ export class NavigationManager {
   }
 
   /**
-   * Check if extension context is still valid
-   * 
-   * @returns {boolean} True if context is valid
-   */
-  isContextValid() {
-    try {
-      return !!(chrome && chrome.runtime && chrome.runtime.id);
-    } catch {
-      return false;
-    }
-  }
-
-  /**
    * Initialize navigation manager
    * Sets up webNavigation event listeners
    */
   init() {
-    if (!this.isContextValid()) {
+    if (!isExtensionContextValid()) {
       console.log('[Navigation Manager] Extension context invalid, skipping init');
       return;
     }
@@ -59,7 +42,7 @@ export class NavigationManager {
    * Registers handlers for before and after navigation
    */
   setupNavigationListeners() {
-    if (!this.isContextValid()) {
+    if (!isExtensionContextValid()) {
       console.log('[Navigation Manager] Extension context invalid, skipping listeners');
       return;
     }
@@ -67,14 +50,14 @@ export class NavigationManager {
     try {
       // Handle navigation before it starts
       chrome.webNavigation.onBeforeNavigate.addListener((details) => {
-        if (this.isContextValid()) {
+        if (isExtensionContextValid()) {
           this.handleBeforeNavigate(details);
         }
       });
 
       // Handle navigation after it commits (for query parameters)
       chrome.webNavigation.onCommitted.addListener((details) => {
-        if (this.isContextValid()) {
+        if (isExtensionContextValid()) {
           this.handleCommitted(details);
         }
       });
@@ -97,7 +80,7 @@ export class NavigationManager {
    * @returns {Promise<void>}
    */
   async handleBeforeNavigate(details) {
-    if (!this.isContextValid()) return;
+    if (!isExtensionContextValid()) return;
     
     // Only process main frame navigation (not iframes)
     if (details.frameId !== 0) return;
@@ -125,11 +108,6 @@ export class NavigationManager {
    * Handle navigation after it commits
    * Checks search query parameters for blocked words
    * 
-   * Common search parameter names:
-   * - q: Google, Bing, DuckDuckGo
-   * - query: Some search engines
-   * - p: Yahoo
-   * 
    * @async
    * @param {Object} details - Navigation details from webNavigation API
    * @param {number} details.tabId - ID of the tab
@@ -138,7 +116,7 @@ export class NavigationManager {
    * @returns {Promise<void>}
    */
   async handleCommitted(details) {
-    if (!this.isContextValid()) return;
+    if (!isExtensionContextValid()) return;
     
     // Only process main frame
     if (details.frameId !== 0) return;

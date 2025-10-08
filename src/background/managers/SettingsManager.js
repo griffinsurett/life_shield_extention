@@ -4,21 +4,10 @@
  * Manages extension settings and provides access to configuration.
  * Acts as a centralized settings store for the background script.
  * 
- * Settings managed:
- * - blockedWords: Array of words to block
- * - blockedSites: Array of sites to block
- * - redirectUrl: Where to redirect blocked content
- * - showAlerts: Whether to show notifications
- * 
- * Features:
- * - Loads settings from chrome.storage.sync
- * - Real-time updates when settings change
- * - Provides helper methods for checking blocked content
- * - Context validation for all operations
- * 
  * @class SettingsManager
  */
 
+import { isExtensionContextValid, safeChromeAsync } from '../../utils/chrome';
 import { STORAGE_KEYS } from '../../utils/constants';
 
 export class SettingsManager {
@@ -33,19 +22,6 @@ export class SettingsManager {
   }
 
   /**
-   * Check if extension context is still valid
-   * 
-   * @returns {boolean} True if context is valid
-   */
-  isContextValid() {
-    try {
-      return !!(chrome && chrome.runtime && chrome.runtime.id);
-    } catch {
-      return false;
-    }
-  }
-
-  /**
    * Initialize settings manager
    * Loads settings and sets up listeners
    * 
@@ -53,7 +29,7 @@ export class SettingsManager {
    * @returns {Promise<void>}
    */
   async init() {
-    if (!this.isContextValid()) {
+    if (!isExtensionContextValid()) {
       console.log('[Settings Manager] Extension context invalid, using defaults');
       return;
     }
@@ -70,15 +46,18 @@ export class SettingsManager {
    * @returns {Promise<void>}
    */
   async loadSettings() {
-    if (!this.isContextValid()) return;
+    if (!isExtensionContextValid()) return;
 
     try {
-      const result = await chrome.storage.sync.get([
-        STORAGE_KEYS.BLOCKED_WORDS,
-        STORAGE_KEYS.BLOCKED_SITES,
-        STORAGE_KEYS.REDIRECT_URL,
-        STORAGE_KEYS.SHOW_ALERTS
-      ]);
+      const result = await safeChromeAsync(
+        () => chrome.storage.sync.get([
+          STORAGE_KEYS.BLOCKED_WORDS,
+          STORAGE_KEYS.BLOCKED_SITES,
+          STORAGE_KEYS.REDIRECT_URL,
+          STORAGE_KEYS.SHOW_ALERTS
+        ]),
+        {}
+      );
 
       this.blockedWords = result.blockedWords || [];
       this.blockedSites = result.blockedSites || [];
@@ -101,14 +80,14 @@ export class SettingsManager {
    * Updates internal state when storage changes
    */
   setupListeners() {
-    if (!this.isContextValid()) {
+    if (!isExtensionContextValid()) {
       console.log('[Settings Manager] Extension context invalid, skipping listeners');
       return;
     }
 
     try {
       chrome.storage.onChanged.addListener((changes, namespace) => {
-        if (!this.isContextValid()) return;
+        if (!isExtensionContextValid()) return;
 
         if (namespace === 'sync') {
           // Update blocked words

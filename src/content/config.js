@@ -4,25 +4,10 @@
  * Manages configuration for content script.
  * Loads settings from chrome.storage.sync and keeps them in memory.
  * 
- * Settings loaded:
- * - BLOCKED_WORDS: Words to filter from page content
- * - REPLACEMENT_PHRASES: Healthy phrases to replace blocked words
- * - REDIRECT_URL: Where to redirect on blocked content
- * - SHOW_ALERTS: Whether to show notifications
- * - DEBUG_MODE: Enable console logging
- * - BLUR_INSTEAD_OF_HIDE: Blur vs hide blocked content
- * - ENABLED: Master toggle for filtering
- * - SCAN_INTERVAL: How often to scan page for new content
- * - MUTATION_DEBOUNCE: Delay before processing DOM changes
- * 
- * Also includes selector configurations for:
- * - Google search inputs and suggestions
- * - Generic search inputs
- * - Autocomplete suggestions
- * 
  * @class WellnessConfig
  */
 
+import { isExtensionContextValid } from "../utils/chrome";
 import { SELECTORS } from "../utils/constants";
 
 export class WellnessConfig {
@@ -37,9 +22,9 @@ export class WellnessConfig {
     this.REPLACEMENT_PHRASES = [];
     
     // Performance settings
-    this.SCAN_INTERVAL = 2000; // How often to scan page (ms)
-    this.MUTATION_DEBOUNCE = 200; // Delay before processing DOM changes (ms)
-    this.MIN_CLEAN_INTERVAL = 500; // Minimum time between cleaning operations (ms)
+    this.SCAN_INTERVAL = 2000;
+    this.MUTATION_DEBOUNCE = 200;
+    this.MIN_CLEAN_INTERVAL = 500;
     
     // Feature flags
     this.HIDE_ENTIRE_DROPDOWN = true;
@@ -58,19 +43,6 @@ export class WellnessConfig {
   }
 
   /**
-   * Check if extension context is still valid
-   * 
-   * @returns {boolean} True if context is valid
-   */
-  isContextValid() {
-    try {
-      return !!(chrome && chrome.runtime && chrome.runtime.id);
-    } catch {
-      return false;
-    }
-  }
-
-  /**
    * Load configuration from chrome.storage.sync
    * Called on initialization and when settings are reset
    * 
@@ -78,7 +50,7 @@ export class WellnessConfig {
    * @returns {Promise<void>}
    */
   async loadConfig() {
-    if (!this.isContextValid()) {
+    if (!isExtensionContextValid()) {
       console.log("[Wellness Filter Config] Extension context invalid, using defaults");
       return;
     }
@@ -119,7 +91,7 @@ export class WellnessConfig {
    * Also listens for reload messages from background script
    */
   setupListeners() {
-    if (!this.isContextValid()) {
+    if (!isExtensionContextValid()) {
       console.log("[Wellness Filter Config] Extension context invalid, skipping listeners");
       return;
     }

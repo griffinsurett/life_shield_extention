@@ -4,14 +4,11 @@
  * Handles messages from content scripts and popup.
  * Acts as a central router for inter-component communication.
  * 
- * Message types handled:
- * - blockedUrl: Content script detected blocked URL
- * - showNotification: Request to show a notification
- * - contentFiltered: Content was filtered on page
- * - updateBadge: Request to update badge
- * 
  * @class MessageHandler
  */
+
+import { isExtensionContextValid } from '../../utils/chrome';
+
 export class MessageHandler {
   /**
    * @param {SettingsManager} settingsManager - For accessing settings
@@ -28,31 +25,18 @@ export class MessageHandler {
   }
 
   /**
-   * Check if extension context is still valid
-   * 
-   * @returns {boolean} True if context is valid
-   */
-  isContextValid() {
-    try {
-      return !!(chrome && chrome.runtime && chrome.runtime.id);
-    } catch {
-      return false;
-    }
-  }
-
-  /**
    * Initialize message handler
    * Sets up listener for runtime messages
    */
   init() {
-    if (!this.isContextValid()) {
+    if (!isExtensionContextValid()) {
       console.log('[Message Handler] Extension context invalid, skipping init');
       return;
     }
 
     try {
       chrome.runtime.onMessage.addListener((message, sender) => {
-        if (this.isContextValid()) {
+        if (isExtensionContextValid()) {
           this.handleMessage(message, sender);
         }
       });
@@ -72,7 +56,7 @@ export class MessageHandler {
    * @returns {Promise<void>}
    */
   async handleMessage(message, sender) {
-    if (!this.isContextValid()) return;
+    if (!isExtensionContextValid()) return;
 
     console.log('[Message Handler] Message received:', message, 
                 'SHOW_ALERTS:', this.settingsManager.shouldShowAlerts());
@@ -103,11 +87,6 @@ export class MessageHandler {
   /**
    * Handle blocked URL message
    * Sent by content script when it detects a blocked URL
-   * 
-   * Actions:
-   * - Increment statistics
-   * - Show notification
-   * - Redirect tab to safe page
    * 
    * @async
    * @param {Object} message - Message data
@@ -152,10 +131,6 @@ export class MessageHandler {
   /**
    * Handle content filtered message
    * Sent by content script when it filters text on a page
-   * 
-   * Actions:
-   * - Update badge
-   * - Show notification with count
    * 
    * @async
    * @param {Object} message - Message data

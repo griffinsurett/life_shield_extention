@@ -2,27 +2,13 @@
  * Popup Component
  * 
  * Main popup UI with tabbed interface.
- * Now includes confirmation modals for all blocking actions.
- * 
- * Tabs:
- * - Home: Status card and quick actions
- * - Words: Blocked words management
- * - Sites: Blocked sites management
- * - More: Replacement phrases, import/export, settings
- * 
- * Features:
- * - Compact tabbed design (460px wide, ~500px tall)
- * - Gradient purple background
- * - Real-time updates
- * - Toast notifications
- * - Confirmation modals for all blocks
+ * Now uses AppContext instead of prop drilling.
  * 
  * @component
  */
 
 import { useState, useEffect } from 'react';
-import { useSettings } from '../hooks/useSettings';
-import { useStats } from '../hooks/useStats';
+import { useApp } from '../contexts/AppContext';
 import { useListManager } from '../hooks/useListManager';
 import { useFileOperations } from '../hooks/useFileOperations';
 import { useConfirmation } from '../hooks/useConfirmation';
@@ -30,15 +16,15 @@ import { ConfirmationModal } from '../components/ConfirmationModal';
 import { PopupHeader } from './components/PopupHeader';
 import { PopupTabs } from './components/PopupTabs';
 import { HomeTab } from './tabs/HomeTab';
-import { WordsTab as PopupWordsTab } from './tabs/WordsTab';
-import { SitesTab as PopupSitesTab } from './tabs/SitesTab';
+import { WordsTab } from './tabs/WordsTab';
+import { SitesTab } from './tabs/SitesTab';
 import { MoreTab } from './tabs/MoreTab';
 import { PopupFooter } from './components/PopupFooter';
 
 export const Popup = () => {
-  // Load settings and stats
-  const { settings, updateSettings } = useSettings();
-  const { stats } = useStats();
+  // Get global state from context
+  const { settings, updateSettings } = useApp();
+  
   const { exportToFile, importFromFile } = useFileOperations();
   const [previewPhrase, setPreviewPhrase] = useState('');
   const [activeTab, setActiveTab] = useState('home');
@@ -127,9 +113,6 @@ export const Popup = () => {
    */
   const renderTabContent = () => {
     const props = {
-      settings,
-      updateSettings,
-      stats,
       wordManager,
       siteManager,
       previewPhrase,
@@ -144,9 +127,9 @@ export const Popup = () => {
       case 'home':
         return <HomeTab {...props} />;
       case 'words':
-        return <PopupWordsTab {...props} />;
+        return <WordsTab {...props} />;
       case 'sites':
-        return <PopupSitesTab {...props} />;
+        return <SitesTab {...props} />;
       case 'more':
         return <MoreTab {...props} />;
       default:

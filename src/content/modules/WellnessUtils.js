@@ -4,18 +4,11 @@
  * Core utility functions used throughout the content script.
  * Provides text checking, scrubbing, statistics, and notifications.
  * 
- * Features:
- * - Blocked word detection
- * - Text scrubbing (replacement)
- * - Random replacement phrase selection
- * - Statistics tracking
- * - URL checking
- * - Notification requests
- * - Debug logging
- * - Extension context validation
- * 
  * @class WellnessUtils
  */
+
+import { isExtensionContextValid } from '../../utils/chrome';
+
 export class WellnessUtils {
   /**
    * @param {WellnessConfig} config - Configuration object
@@ -25,22 +18,6 @@ export class WellnessUtils {
     
     // Track total filtered in this session (not persisted)
     this.sessionFilterCount = 0;
-  }
-
-  /**
-   * Check if extension context is still valid
-   * Returns false if extension was reloaded/updated
-   * 
-   * @returns {boolean} True if context is valid
-   */
-  isContextValid() {
-    try {
-      // Try to access chrome.runtime
-      // This will throw if extension context is invalidated
-      return !!(chrome && chrome.runtime && chrome.runtime.id);
-    } catch {
-      return false;
-    }
   }
 
   /**
@@ -130,7 +107,7 @@ export class WellnessUtils {
    */
   checkURL() {
     // Check if extension context is valid
-    if (!this.isContextValid()) {
+    if (!isExtensionContextValid()) {
       this.log('Extension context invalidated, skipping URL check');
       return;
     }
@@ -165,7 +142,7 @@ export class WellnessUtils {
    */
   updateFilterStats(count) {
     // Check if extension context is valid
-    if (!this.isContextValid()) {
+    if (!isExtensionContextValid()) {
       this.log('Extension context invalidated, skipping stats update');
       return;
     }
@@ -224,7 +201,7 @@ export class WellnessUtils {
    */
   notifyContentFiltered(count) {
     // Check if extension context is valid
-    if (!this.isContextValid()) {
+    if (!isExtensionContextValid()) {
       return;
     }
 
