@@ -74,7 +74,7 @@ export const Popup = () => {
   };
 
   return (
-    <div className="w-[360px] min-h-[500px] m-0 p-0 bg-gradient-to-br from-primary via-purple-600 to-secondary overflow-x-hidden">
+    <div className="w-[460px] min-h-[500px] m-0 p-0 bg-gradient-to-br from-primary via-purple-600 to-secondary overflow-x-hidden">
       <div className="p-6 text-white">
         <PopupHeader onSettingsClick={openSettings} />
         

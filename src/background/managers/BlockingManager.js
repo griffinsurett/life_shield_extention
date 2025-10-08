@@ -3,6 +3,7 @@ export class BlockingManager {
     this.settingsManager = settingsManager;
     this.statsManager = statsManager;
     this.notificationManager = notificationManager;
+    this.blockedTabIds = new Set(); // Track tabs we've already blocked to avoid duplicates
     this.init();
   }
 
@@ -71,9 +72,8 @@ export class BlockingManager {
       }
 
       // Rule 3: Block any subdomain (for cases like about.gitlab.com)
-      // Only add if the site doesn't already have a subdomain
       const parts = cleanSite.split('.');
-      if (parts.length === 2) { // e.g., "gitlab.com"
+      if (parts.length === 2) {
         newRules.push({
           id: ruleId++,
           priority: 1,
@@ -111,48 +111,84 @@ export class BlockingManager {
       });
 
       console.log('[Blocking Manager] Updated blocking rules:', newRules.length, 'rules active');
-      console.log('[Blocking Manager] Rules:', newRules);
     } catch (error) {
       console.error('[Blocking Manager] Error updating rules:', error);
     }
   }
 
   setupBlockedRequestListener() {
-    // Track when navigation happens to blocked sites
+    // FIRST LINE OF DEFENSE: Catch BEFORE navigation even starts
     chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
       if (details.frameId !== 0) return;
 
       const url = details.url;
+      const tabId = details.tabId;
       
       // Check if this URL matches a blocked site
       if (this.settingsManager.containsBlockedSite(url)) {
-        console.log('[Blocking Manager] Blocked site navigation detected:', url);
+        console.log('[Blocking Manager] BEFORE navigate - Blocked site detected:', url);
         
-        // Update stats
-        await this.statsManager.incrementStats(1);
+        // Prevent duplicate notifications for same tab
+        if (!this.blockedTabIds.has(tabId)) {
+          this.blockedTabIds.add(tabId);
+          
+          // Update stats
+          await this.statsManager.incrementStats(1);
+          
+          // Show notification
+          await this.notificationManager.showUrlBlockedNotification();
+          
+          // Clear from set after a delay
+          setTimeout(() => this.blockedTabIds.delete(tabId), 2000);
+        }
         
-        // Show notification
-        await this.notificationManager.showUrlBlockedNotification();
+        // Immediately redirect
+        chrome.tabs.update(tabId, { 
+          url: this.settingsManager.getRedirectUrl() || 'https://griffinswebservices.com'
+        });
       }
     });
 
-    // Also listen for completed navigations to catch redirects
+    // SECOND LINE OF DEFENSE: Catch after navigation commits (for redirects that slip through)
     chrome.webNavigation.onCommitted.addListener(async (details) => {
       if (details.frameId !== 0) return;
 
       const url = details.url;
+      const tabId = details.tabId;
       
       // Check if this URL matches a blocked site
       if (this.settingsManager.containsBlockedSite(url)) {
-        console.log('[Blocking Manager] Blocked site detected after redirect:', url);
+        console.log('[Blocking Manager] COMMITTED - Blocked site detected after redirect:', url);
         
-        // Update stats
-        await this.statsManager.incrementStats(1);
+        // Prevent duplicate notifications for same tab
+        if (!this.blockedTabIds.has(tabId)) {
+          this.blockedTabIds.add(tabId);
+          
+          // Update stats
+          await this.statsManager.incrementStats(1);
+          
+          // Clear from set after a delay
+          setTimeout(() => this.blockedTabIds.delete(tabId), 2000);
+        }
         
         // Force redirect
-        chrome.tabs.update(details.tabId, { 
+        chrome.tabs.update(tabId, { 
           url: this.settingsManager.getRedirectUrl() || 'https://griffinswebservices.com'
         });
+      }
+    });
+
+    // THIRD LINE OF DEFENSE: Catch server-side redirects
+    chrome.webNavigation.onBeforeRedirect.addListener(async (details) => {
+      if (details.frameId !== 0) return;
+
+      const url = details.url;
+      const redirectUrl = details.redirectUrl;
+      
+      // Check if redirect target is blocked
+      if (this.settingsManager.containsBlockedSite(redirectUrl)) {
+        console.log('[Blocking Manager] Server redirect to blocked site detected:', redirectUrl);
+        // The onBeforeNavigate or onCommitted will catch this next
       }
     });
   }
