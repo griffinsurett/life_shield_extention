@@ -2,24 +2,13 @@
  * Add Item Input Component
  * 
  * Reusable input with button for adding items to lists.
- * Used for adding blocked words, sites, and phrases.
- * 
- * Features:
- * - Text input with Enter key support
- * - Styled button with icon
- * - Configurable colors (primary, green, orange)
- * - Keyboard accessibility
  * 
  * @component
- * @param {Object} props
- * @param {string} props.value - Current input value
- * @param {Function} props.onChange - Called when input changes
- * @param {Function} props.onAdd - Called when add button clicked or Enter pressed
- * @param {string} props.placeholder - Input placeholder text
- * @param {string} props.buttonText - Button text (default: 'Add')
- * @param {string} props.buttonColor - Button color scheme (default: 'primary')
  */
-export const AddItemInput = ({ 
+
+import { memo, useCallback } from 'react';
+
+const AddItemInput = memo(({ 
   value, 
   onChange, 
   onAdd, 
@@ -34,6 +23,13 @@ export const AddItemInput = ({
     orange: 'bg-orange-500 hover:bg-orange-600'
   };
 
+  // Memoized key press handler
+  const handleKeyPress = useCallback((e) => {
+    if (e.key === 'Enter') {
+      onAdd();
+    }
+  }, [onAdd]);
+
   return (
     <div className="flex gap-3">
       {/* Text input */}
@@ -41,9 +37,9 @@ export const AddItemInput = ({
         type="text" 
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        onKeyPress={(e) => e.key === 'Enter' && onAdd()} // Support Enter key
+        onKeyPress={handleKeyPress}
         placeholder={placeholder}
-        className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-primary focus:outline-none transition-colors"
+        className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-primary focus:outline-none transition-colors text-gray-900"
       />
       
       {/* Add button with icon */}
@@ -59,4 +55,8 @@ export const AddItemInput = ({
       </button>
     </div>
   );
-};
+});
+
+AddItemInput.displayName = 'AddItemInput';
+
+export { AddItemInput };

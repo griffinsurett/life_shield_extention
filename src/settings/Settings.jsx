@@ -2,12 +2,12 @@
  * Settings Component
  * 
  * Main settings page with tabbed interface.
- * Now uses AppContext instead of prop drilling.
+ * Now with optimized re-renders using useCallback.
  * 
  * @component
  */
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useToast } from "../components/ToastContainer";
 import { useConfirmation } from "../hooks/useConfirmation";
 import { ConfirmationModal } from "../components/ConfirmationModal";
@@ -35,7 +35,8 @@ export const Settings = () => {
     { id: "about", name: "About", icon: "ℹ️" },
   ];
 
-  const renderTab = () => {
+  // Memoized tab renderer
+  const renderTab = useCallback(() => {
     const props = { 
       showToast,
       showConfirmation: confirmation.showConfirmation
@@ -59,7 +60,7 @@ export const Settings = () => {
       default:
         return null;
     }
-  };
+  }, [activeTab, showToast, confirmation.showConfirmation]);
 
   return (
     <div className="bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">

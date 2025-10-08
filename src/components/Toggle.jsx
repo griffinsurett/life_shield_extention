@@ -2,22 +2,19 @@
  * Toggle Component
  * 
  * Styled toggle switch with label and description.
- * Used for boolean settings.
- * 
- * Features:
- * - Animated toggle switch
- * - Label and optional description
- * - Accessible (uses native checkbox)
- * - Keyboard support
+ * Now memoized to prevent unnecessary re-renders.
  * 
  * @component
- * @param {Object} props
- * @param {boolean} props.checked - Current state
- * @param {Function} props.onChange - Called when toggled
- * @param {string} props.label - Toggle label
- * @param {string} props.description - Optional description text
  */
-export const Toggle = ({ checked, onChange, label, description }) => {
+
+import { memo, useCallback } from 'react';
+
+const Toggle = memo(({ checked, onChange, label, description }) => {
+  // Memoized change handler
+  const handleChange = useCallback((e) => {
+    onChange(e.target.checked);
+  }, [onChange]);
+
   return (
     <div className="flex items-center justify-between p-6 bg-gray-50 rounded-xl">
       {/* Label and description */}
@@ -33,7 +30,7 @@ export const Toggle = ({ checked, onChange, label, description }) => {
           type="checkbox"
           className="sr-only peer"
           checked={checked}
-          onChange={(e) => onChange(e.target.checked)}
+          onChange={handleChange}
         />
         
         {/* Custom toggle visual */}
@@ -41,4 +38,8 @@ export const Toggle = ({ checked, onChange, label, description }) => {
       </label>
     </div>
   );
-};
+});
+
+Toggle.displayName = 'Toggle';
+
+export { Toggle };

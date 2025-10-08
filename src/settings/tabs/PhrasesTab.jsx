@@ -2,57 +2,67 @@
  * Phrases Tab Component
  * 
  * Tab for managing replacement phrases.
- * These are healthy alternatives that replace blocked words.
- * 
- * Features:
- * - Add new phrases
- * - List of current phrases
- * - Remove individual phrases
- * - Reset to defaults button
- * - Italic display for phrases
- * - Scrollable list
+ * Now uses confirmation modal instead of window.confirm.
  * 
  * @component
- * @param {Object} props
- * @param {Object} props.settings - Current settings
- * @param {Function} props.updateSettings - Update settings function
- * @param {Function} props.showToast - Show toast notification
  */
 
+import { useCallback } from "react";
+import { useApp } from "../../contexts/AppContext";
 import { useListManager } from "../../hooks/useListManager";
-import { AddItemInput } from "../../components/AddItemInput";
-import { ListItem } from "../../components/ListItem";
-import { SectionHeader } from "../../components/SectionHeader";
+import ListManager from "../../components/ListManager";
 import { DEFAULT_SETTINGS } from "../../utils/constants";
 
-export const PhrasesTab = ({ settings, updateSettings, showToast }) => {
-  /**
-   * Use list manager hook for phrase operations
-   * Only trims input (no lowercase transform)
-   */
+export const PhrasesTab = ({ showToast, showConfirmation }) => {
+  const { settings, updateSettings } = useApp();
+  
   const phraseManager = useListManager(
     settings.replacementPhrases,
     (phrases) => updateSettings({ replacementPhrases: phrases }),
     {
       itemName: "phrase",
-      transform: (val) => val.trim(), // Just trim, keep case
+      transform: (val) => val.trim(),
       duplicateCheck: true,
     }
   );
 
   /**
-   * Reset phrases to default list
-   * Shows confirmation dialog first
+   * Reset phrases to default list with confirmation
    */
-  const resetPhrases = async () => {
-    if (!confirm("Reset all phrases to defaults?")) return;
-    
-    await updateSettings({
-      replacementPhrases: DEFAULT_SETTINGS.replacementPhrases,
+  const resetPhrases = useCallback(() => {
+    showConfirmation({
+      title: "Reset All Phrases?",
+      message: "Are you sure you want to reset all replacement phrases to defaults? Your custom phrases will be lost.",
+      confirmText: "Yes, Reset to Defaults",
+      cancelText: "Cancel",
+      confirmColor: "orange",
+      onConfirm: async () => {
+        await updateSettings({
+          replacementPhrases: DEFAULT_SETTINGS.replacementPhrases,
+        });
+        showToast("Phrases reset to defaults", "success");
+      }
     });
-    
-    showToast("Phrases reset to defaults", "success");
-  };
+  }, [showConfirmation, updateSettings, showToast]);
+
+  // Memoized custom item renderer for italic phrases
+  const renderPhrase = useCallback((phrase, index, onRemove) => (
+    <div 
+      key={index}
+      className="inline-flex items-center gap-2 bg-green-50 hover:bg-green-100 px-3 py-2 m-1 rounded-lg text-xs font-medium transition-all group"
+    >
+      <span className="italic">&quot;{phrase}&quot;</span>
+      <button 
+        onClick={() => onRemove(index)}
+        className="opacity-60 hover:opacity-100 hover:bg-red-500/30 rounded-full p-0.5 transition-all"
+        title="Remove"
+      >
+        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+  ), []);
 
   return (
     <div className="bg-white rounded-2xl shadow-lg p-8 animate-fade-in">
@@ -63,42 +73,20 @@ export const PhrasesTab = ({ settings, updateSettings, showToast }) => {
         These healthy phrases replace blocked words when detected
       </p>
 
-      {/* Add phrase section with green theme */}
-      <div className="mb-8 p-6 bg-gradient-to-r from-green-50 to-blue-50 rounded-xl border-2 border-green-200">
-        <AddItemInput
-          value={phraseManager.inputValue}
-          onChange={phraseManager.setInputValue}
-          onAdd={phraseManager.addItem}
-          placeholder="Enter a healthy replacement phrase..."
-          buttonText="Add Phrase"
-          buttonColor="green"
-        />
-      </div>
+      <ListManager
+        items={settings.replacementPhrases}
+        inputValue={phraseManager.inputValue}
+        onInputChange={phraseManager.setInputValue}
+        onAdd={phraseManager.addItem}
+        onRemove={phraseManager.removeItem}
+        placeholder="Enter a healthy replacement phrase..."
+        buttonText="Add Phrase"
+        emptyText="No replacement phrases"
+        title="Current Phrases"
+        variant="success"
+        renderItem={renderPhrase}
+      />
 
-      {/* Phrases list */}
-      <div>
-        <SectionHeader
-          title="Current Phrases"
-          count={settings.replacementPhrases.length}
-          countColor="green"
-        />
-
-        {/* Scrollable list */}
-        <div className="space-y-2 max-h-96 overflow-y-auto pr-2">
-          {settings.replacementPhrases.map((phrase, index) => (
-            <ListItem
-              key={index}
-              onRemove={() => phraseManager.removeItem(index)}
-              bgColor="green"
-            >
-              {/* Display phrase in italic with quotes */}
-              <span className="italic">&quot;{phrase}&quot;</span>
-            </ListItem>
-          ))}
-        </div>
-      </div>
-
-      {/* Reset to defaults button */}
       <div className="mt-6">
         <button
           onClick={resetPhrases}

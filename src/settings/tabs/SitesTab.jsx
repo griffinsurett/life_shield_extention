@@ -2,11 +2,12 @@
  * Sites Tab Component
  * 
  * Tab for managing blocked sites.
- * Now significantly simplified using ListManager and AppContext.
+ * Now uses confirmation modal for clear all.
  * 
  * @component
  */
 
+import { useCallback } from "react";
 import { useApp } from "../../contexts/AppContext";
 import { useListManager } from "../../hooks/useListManager";
 import ListManager from "../../components/ListManager";
@@ -32,6 +33,11 @@ export const SitesTab = ({ showConfirmation }) => {
     }
   );
 
+  // Memoized add handler
+  const handleAdd = useCallback(() => {
+    siteManager.addItem(showConfirmation);
+  }, [siteManager, showConfirmation]);
+
   return (
     <div className="bg-white rounded-2xl shadow-lg p-8 animate-fade-in">
       <h2 className="text-2xl font-bold text-gray-800 mb-6">Blocked Sites</h2>
@@ -41,7 +47,7 @@ export const SitesTab = ({ showConfirmation }) => {
         items={settings.blockedSites}
         inputValue={siteManager.inputValue}
         onInputChange={siteManager.setInputValue}
-        onAdd={() => siteManager.addItem(showConfirmation)}
+        onAdd={handleAdd}
         onRemove={siteManager.removeItem}
         placeholder="Enter domain (e.g., example.com)..."
         buttonText="Block Site"

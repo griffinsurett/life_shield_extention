@@ -2,12 +2,12 @@
  * Popup Component
  * 
  * Main popup UI with tabbed interface.
- * Now uses AppContext instead of prop drilling.
+ * Now with optimized re-renders using useCallback.
  * 
  * @component
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useApp } from '../contexts/AppContext';
 import { useListManager } from '../hooks/useListManager';
 import { useFileOperations } from '../hooks/useFileOperations';
@@ -70,48 +70,48 @@ export const Popup = () => {
   /**
    * Select and display a random replacement phrase
    */
-  const refreshPreviewPhrase = () => {
+  const refreshPreviewPhrase = useCallback(() => {
     if (settings.replacementPhrases.length > 0) {
       const phrase = settings.replacementPhrases[
         Math.floor(Math.random() * settings.replacementPhrases.length)
       ];
       setPreviewPhrase(phrase);
     }
-  };
+  }, [settings.replacementPhrases]);
 
   // Initialize preview phrase
   useEffect(() => {
     refreshPreviewPhrase();
-  }, [settings.replacementPhrases]);
+  }, [refreshPreviewPhrase]);
 
   /**
    * Export blocked words to JSON file
    */
-  const handleExport = () => {
+  const handleExport = useCallback(() => {
     exportToFile(settings.blockedWords, 'wellness-filter-words.json', 'words');
-  };
+  }, [settings.blockedWords, exportToFile]);
 
   /**
    * Import blocked words from JSON file
    */
-  const handleImport = async () => {
+  const handleImport = useCallback(async () => {
     await importFromFile(async (importedWords) => {
       const mergedWords = [...new Set([...settings.blockedWords, ...importedWords])];
       await updateSettings({ blockedWords: mergedWords });
     }, 'words');
-  };
+  }, [settings.blockedWords, updateSettings, importFromFile]);
 
   /**
    * Open full settings page
    */
-  const openSettings = () => {
+  const openSettings = useCallback(() => {
     chrome.runtime.openOptionsPage();
-  };
+  }, []);
 
   /**
    * Render active tab content
    */
-  const renderTabContent = () => {
+  const renderTabContent = useCallback(() => {
     const props = {
       wordManager,
       siteManager,
@@ -135,7 +135,7 @@ export const Popup = () => {
       default:
         return <HomeTab {...props} />;
     }
-  };
+  }, [activeTab, wordManager, siteManager, previewPhrase, refreshPreviewPhrase, handleExport, handleImport, openSettings, confirmation.showConfirmation]);
 
   return (
     <div className="w-[460px] h-[580px] m-0 p-0 bg-gradient-to-br from-primary via-purple-600 to-secondary overflow-hidden flex flex-col">

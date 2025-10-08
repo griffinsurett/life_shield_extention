@@ -1,24 +1,13 @@
 /**
  * List Manager Component
  * 
- * Reusable component for managing lists of items (words, sites, phrases).
- * Combines input, list display, and actions into one component.
+ * Reusable component for managing lists of items.
+ * Now with optimized re-renders using useCallback.
  * 
  * @component
- * @param {Object} props
- * @param {Array} props.items - Current items in the list
- * @param {Function} props.onAdd - Called when item should be added
- * @param {Function} props.onRemove - Called when item should be removed
- * @param {Function} props.onClear - Optional, called when clear all clicked
- * @param {string} props.placeholder - Input placeholder text
- * @param {string} props.buttonText - Add button text
- * @param {string} props.emptyText - Text to show when list is empty
- * @param {string} props.variant - Color variant: 'default', 'danger', 'success'
- * @param {Function} props.renderItem - Optional custom item renderer
- * @param {string} props.itemIcon - Optional icon for items
  */
 
-import { memo } from 'react';
+import { memo, useCallback } from 'react';
 import Badge from './Badge';
 import { AddItemInput } from './AddItemInput';
 import { SectionHeader } from './SectionHeader';
@@ -60,6 +49,11 @@ const ListManager = memo(({
 
   const colors = variants[variant];
 
+  // Memoized remove handler factory
+  const createRemoveHandler = useCallback((index) => {
+    return () => onRemove(index);
+  }, [onRemove]);
+
   return (
     <div className="space-y-6">
       {/* Add input section */}
@@ -100,8 +94,8 @@ const ListManager = memo(({
                 renderItem(item, index, onRemove)
               ) : (
                 <Badge
-                  key={index}
-                  onRemove={() => onRemove(index)}
+                  key={`${item}-${index}`}
+                  onRemove={createRemoveHandler(index)}
                   variant={colors.badge}
                   icon={itemIcon}
                 >

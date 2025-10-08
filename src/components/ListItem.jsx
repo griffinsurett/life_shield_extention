@@ -2,21 +2,14 @@
  * List Item Component
  * 
  * Reusable list item with remove button.
- * Used for displaying blocked words, sites, and phrases.
- * 
- * Features:
- * - Hover effect to show remove button
- * - Configurable background color
- * - Smooth transitions
- * - Accessible remove button
+ * Now memoized to prevent unnecessary re-renders.
  * 
  * @component
- * @param {Object} props
- * @param {React.ReactNode} props.children - Content to display
- * @param {Function} props.onRemove - Called when remove button clicked
- * @param {string} props.bgColor - Background color scheme (default: 'gray')
  */
-export const ListItem = ({ children, onRemove, bgColor = 'gray' }) => {
+
+import { memo } from 'react';
+
+const ListItem = memo(({ children, onRemove, bgColor = 'gray' }) => {
   // Background color classes
   const bgClasses = {
     gray: 'bg-gray-50 hover:bg-gray-100',
@@ -42,4 +35,8 @@ export const ListItem = ({ children, onRemove, bgColor = 'gray' }) => {
       </button>
     </div>
   );
-};
+});
+
+ListItem.displayName = 'ListItem';
+
+export { ListItem };

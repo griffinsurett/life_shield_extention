@@ -2,20 +2,12 @@
  * Settings Hook
  * 
  * Manages extension settings with Chrome storage sync.
- * Provides settings state and update function.
- * 
- * Features:
- * - Loads settings from chrome.storage.sync
- * - Provides default values
- * - Auto-reloads when storage changes
- * - Sends reload message to content scripts on update
- * - Loading state
+ * Now with optimized dependency arrays.
  * 
  * @hook
- * @returns {Object} Object with settings, updateSettings, and loading state
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { storage, sendMessageToTabs } from '../utils/storage';
 import { DEFAULT_SETTINGS, STORAGE_KEYS } from '../utils/constants';
 
@@ -23,39 +15,14 @@ export const useSettings = () => {
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    // Load initial settings
-    loadSettings();
-
-    /**
-     * Listen for storage changes
-     * Reload settings when they change in storage
-     */
-    const listener = (changes, namespace) => {
-      if (namespace === 'sync') {
-        loadSettings();
-      }
-    };
-
-    storage.onChanged(listener);
-    
-    // Cleanup
-    return () => chrome.storage.onChanged.removeListener(listener);
-  }, []);
-
-  /**
-   * Load settings from storage
-   * Merges with defaults to ensure all settings exist
-   */
-  const loadSettings = async () => {
-    // Get all setting keys except statistics
+  // Memoized loadSettings function
+  const loadSettings = useCallback(async () => {
     const keys = Object.values(STORAGE_KEYS).filter(k => 
       !['filterCount', 'todayCount', 'installDate', 'lastResetDate'].includes(k)
     );
     
     const result = await storage.get(keys);
     
-    // Merge with defaults using nullish coalescing
     setSettings({
       blockedWords: result.blockedWords ?? DEFAULT_SETTINGS.blockedWords,
       blockedSites: result.blockedSites ?? DEFAULT_SETTINGS.blockedSites,
@@ -70,24 +37,34 @@ export const useSettings = () => {
     });
     
     setLoading(false);
-  };
+  }, []); // No dependencies - uses constants
+
+  useEffect(() => {
+    // Load initial settings
+    loadSettings();
+
+    // Listen for storage changes
+    const listener = (changes, namespace) => {
+      if (namespace === 'sync') {
+        loadSettings();
+      }
+    };
+
+    storage.onChanged(listener);
+    
+    // Cleanup
+    return () => chrome.storage.onChanged.removeListener(listener);
+  }, [loadSettings]);
 
   /**
    * Update settings in storage
-   * Also updates local state and notifies content scripts
-   * 
-   * @param {Object} updates - Settings to update
+   * Memoized to prevent unnecessary re-renders
    */
-  const updateSettings = async (updates) => {
-    // Save to storage
+  const updateSettings = useCallback(async (updates) => {
     await storage.set(updates);
-    
-    // Update local state
     setSettings(prev => ({ ...prev, ...updates }));
-    
-    // Notify all tabs to reload config
     await sendMessageToTabs({ action: 'reloadConfig' });
-  };
+  }, []);
 
   return { settings, updateSettings, loading };
 };

@@ -2,13 +2,12 @@
  * Stats Hook
  * 
  * Manages statistics tracking with Chrome local storage.
- * Provides stats state and reset function.
+ * Now with optimized dependency arrays.
  * 
  * @hook
- * @returns {Object} Object with stats, resetStats, and loadStats functions
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { storage } from '../utils/storage';
 import { STORAGE_KEYS } from '../utils/constants';
 import { STATS_REFRESH_INTERVAL } from '../utils/timing';
@@ -20,21 +19,11 @@ export const useStats = () => {
     installDate: new Date().toLocaleDateString()
   });
 
-  useEffect(() => {
-    // Load initial stats
-    loadStats();
-    
-    // Refresh every 5 seconds to stay up-to-date
-    const interval = setInterval(loadStats, STATS_REFRESH_INTERVAL);
-    
-    // Cleanup
-    return () => clearInterval(interval);
-  }, []);
-
   /**
    * Load statistics from local storage
+   * Memoized to prevent unnecessary re-creation
    */
-  const loadStats = async () => {
+  const loadStats = useCallback(async () => {
     const result = await storage.getLocal([
       STORAGE_KEYS.FILTER_COUNT,
       STORAGE_KEYS.TODAY_COUNT,
@@ -46,13 +35,24 @@ export const useStats = () => {
       todayCount: result.todayCount ?? 0,
       installDate: result.installDate ?? new Date().toLocaleDateString()
     });
-  };
+  }, []); // No dependencies - uses constants
+
+  useEffect(() => {
+    // Load initial stats
+    loadStats();
+    
+    // Refresh every 5 seconds to stay up-to-date
+    const interval = setInterval(loadStats, STATS_REFRESH_INTERVAL);
+    
+    // Cleanup
+    return () => clearInterval(interval);
+  }, [loadStats]);
 
   /**
    * Reset all statistics to zero
-   * Keeps installDate but resets counts
+   * Memoized to prevent unnecessary re-renders
    */
-  const resetStats = async () => {
+  const resetStats = useCallback(async () => {
     await storage.setLocal({
       filterCount: 0,
       todayCount: 0,
@@ -61,7 +61,7 @@ export const useStats = () => {
     
     // Reload to reflect changes
     loadStats();
-  };
+  }, [loadStats]);
 
   return { stats, resetStats, loadStats };
 };

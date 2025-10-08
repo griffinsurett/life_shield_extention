@@ -2,20 +2,14 @@
  * Section Header Component
  * 
  * Displays a section title with optional count badge.
- * Used to show counts of blocked words, sites, phrases, etc.
- * 
- * Features:
- * - Title with optional count
- * - Color-coded count badges
- * - Responsive layout
+ * Now memoized to prevent unnecessary re-renders.
  * 
  * @component
- * @param {Object} props
- * @param {string} props.title - Section title text
- * @param {number} props.count - Optional count to display
- * @param {string} props.countColor - Badge color scheme (default: 'primary')
  */
-export const SectionHeader = ({ title, count, countColor = 'primary' }) => {
+
+import { memo } from 'react';
+
+const SectionHeader = memo(({ title, count, countColor = 'primary' }) => {
   // Color classes for count badge
   const colorClasses = {
     primary: 'bg-primary/10 text-primary',
@@ -36,4 +30,8 @@ export const SectionHeader = ({ title, count, countColor = 'primary' }) => {
       )}
     </div>
   );
-};
+});
+
+SectionHeader.displayName = 'SectionHeader';
+
+export { SectionHeader };

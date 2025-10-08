@@ -3,31 +3,12 @@
  * 
  * Generic hook for managing lists of items (words, sites, phrases).
  * Handles adding, removing, and clearing items with validation.
- * Now supports optional confirmation before adding.
- * 
- * Features:
- * - Input state management
- * - Add with validation and duplicate checking
- * - Optional confirmation modal before adding
- * - Remove by index
- * - Clear all with confirmation
- * - Toast notifications
- * - Configurable transforms and validation
+ * Now supports optional confirmation before adding AND clearing.
  * 
  * @hook
- * @param {Array} items - Current items array
- * @param {Function} updateItems - Function to update items
- * @param {Object} options - Configuration options
- * @param {string} options.itemName - Name of item type (for messages)
- * @param {Function} options.transform - Function to transform input value
- * @param {Function} options.validate - Function to validate input value
- * @param {boolean} options.duplicateCheck - Whether to check for duplicates
- * @param {boolean} options.requireConfirmation - Whether to require confirmation before adding
- * @param {Function} options.getConfirmMessage - Function to get confirmation message
- * @returns {Object} Object with input state and management functions
  */
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useToast } from "../components/ToastContainer";
 
 export const useListManager = (items = [], updateItems, options = {}) => {
@@ -51,7 +32,7 @@ export const useListManager = (items = [], updateItems, options = {}) => {
    * 
    * @param {Function} onConfirm - Optional callback for confirmation flow
    */
-  const addItem = async (onConfirm) => {
+  const addItem = useCallback(async (onConfirm) => {
     // Transform input
     const newItem = transform(inputValue);
 
@@ -86,33 +67,33 @@ export const useListManager = (items = [], updateItems, options = {}) => {
 
     // Otherwise add immediately
     await performAdd(newItem);
-  };
+  }, [inputValue, items, transform, validate, duplicateCheck, requireConfirmation, itemName, getConfirmMessage, showToast]);
 
   /**
    * Confirm and add the pending item
    * Called after user confirms in modal
    */
-  const confirmAdd = async (item) => {
+  const confirmAdd = useCallback(async (item) => {
     await performAdd(item || pendingItem);
     setPendingItem(null);
-  };
+  }, [pendingItem, updateItems, showToast]);
 
   /**
    * Actually perform the add operation
    * Internal method called after validation/confirmation
    */
-  const performAdd = async (item) => {
+  const performAdd = useCallback(async (item) => {
     await updateItems([...items, item]);
     setInputValue("");
     showToast(`Added "${item}"`, "success");
-  };
+  }, [items, updateItems, showToast]);
 
   /**
    * Remove item from list by index
    * 
    * @param {number} index - Index of item to remove
    */
-  const removeItem = async (index) => {
+  const removeItem = useCallback(async (index) => {
     const item = items[index];
     const newItems = [...items];
     newItems.splice(index, 1);
@@ -120,21 +101,33 @@ export const useListManager = (items = [], updateItems, options = {}) => {
     await updateItems(newItems);
     
     showToast(`Removed "${item}"`, "success");
-  };
+  }, [items, updateItems, showToast]);
 
   /**
    * Clear all items from list
-   * Shows confirmation dialog first
+   * Now uses confirmation callback instead of window.confirm
    * 
-   * @param {string} confirmMessage - Optional custom confirmation message
+   * @param {Function} onConfirm - Confirmation callback
+   * @param {string} customMessage - Optional custom confirmation message
    */
-  const clearAll = async (confirmMessage) => {
-    if (!confirm(confirmMessage || `Remove all ${itemName}s?`)) return;
-    
-    await updateItems([]);
-    
-    showToast(`All ${itemName}s cleared`, "success");
-  };
+  const clearAll = useCallback((onConfirm, customMessage) => {
+    if (!onConfirm) {
+      console.error('clearAll requires onConfirm callback');
+      return;
+    }
+
+    onConfirm({
+      title: `Clear All ${itemName}s?`,
+      message: customMessage || `Are you sure you want to remove all ${itemName}s? This action cannot be undone.`,
+      confirmText: `Yes, Clear All`,
+      cancelText: "Cancel",
+      confirmColor: "red",
+      onConfirm: async () => {
+        await updateItems([]);
+        showToast(`All ${itemName}s cleared`, "success");
+      }
+    });
+  }, [itemName, updateItems, showToast]);
 
   return {
     inputValue,
