@@ -1,128 +1,148 @@
 /**
  * Background Script Entry Point
  * 
- * Main background service worker for the Wellness Filter extension.
- * Coordinates all background operations and managers.
- * 
- * Managers initialized:
- * - BadgeManager: Updates extension badge with today's count
- * - StatsManager: Tracks filtering statistics
- * - SettingsManager: Manages extension settings
- * - NotificationManager: Shows browser notifications
- * - BlockingManager: Handles site-level blocking
- * - NavigationManager: Intercepts navigation to blocked content
- * - MessageHandler: Routes messages from content scripts
- * 
- * This is a service worker, so it may be terminated and restarted by Chrome.
- * All state must be stored in chrome.storage, not in memory.
+ * Fully converted to functional services.
+ * Clean, maintainable architecture with proper logging.
  * 
  * @module background/index
  */
 
-import { BadgeManager } from './managers/BadgeManager';
-import { StatsManager } from './managers/StatsManager';
-import { SettingsManager } from './managers/SettingsManager';
-import { NotificationManager } from './managers/NotificationManager';
-import { NavigationManager } from './managers/NavigationManager';
-import { BlockingManager } from './managers/BlockingManager';
-import { MessageHandler } from './handlers/MessageHandler';
+import { isExtensionContextValid } from '../utils/chrome';
+import { createLogger, setLogLevel } from '../utils/logger';
 import { DEFAULT_SETTINGS } from '../utils/constants';
+import { STARTUP_NOTIFICATION_DELAY } from '../utils/timing';
+
+// Import all functional services
+import { initBadge, updateBadge } from './services/badge';
+import { initStats, initializeStats } from './services/stats';
+import { initSettings } from './services/settings';
+import { initBlocking } from './services/blocking';
+import { initNavigation } from './services/navigation';
+import { initMessages } from './services/messages';
+import { 
+  showStartupNotification, 
+  showWelcomeNotification 
+} from './services/notifications';
+
+const logger = createLogger('Background');
+
+// Set log level based on environment
+// Use 'info' for production, 'debug' for development
+setLogLevel('debug');
 
 /**
- * Check if extension context is still valid
- * Returns false if extension was reloaded/updated
+ * Initialize all services
  * 
- * @returns {boolean} True if context is valid
+ * @async
+ * @returns {Promise<void>}
  */
-function isContextValid() {
-  try {
-    return !!(chrome && chrome.runtime && chrome.runtime.id);
-  } catch {
-    return false;
-  }
-}
-
-/**
- * Safe initialization wrapper
- * Ensures chrome API is available before initializing
- */
-async function safeInitialize() {
-  // Validate context before starting
-  if (!isContextValid()) {
-    console.log('[Background] Extension context invalid, cannot initialize');
+async function initializeServices() {
+  if (!isExtensionContextValid()) {
+    logger.error('Extension context invalid, cannot initialize');
     return;
   }
 
   try {
-    console.log('[Wellness Filter Background] Service worker loaded');
+    logger.info('🚀 Service worker loaded - starting initialization');
 
-    // Initialize managers in order of dependency
-    const badgeManager = new BadgeManager();
-    const statsManager = new StatsManager(badgeManager);
-    const settingsManager = new SettingsManager();
-    const notificationManager = new NotificationManager(settingsManager);
-    const blockingManager = new BlockingManager(settingsManager, statsManager, notificationManager);
+    // Initialize core services first
+    await initSettings();
+    logger.info('✅ Settings service initialized');
     
-    // Initialize navigation and message handlers
-    new NavigationManager(settingsManager, statsManager, notificationManager);
-    new MessageHandler(settingsManager, statsManager, notificationManager, badgeManager);
+    await initStats();
+    logger.info('✅ Stats service initialized');
+    
+    initBadge();
+    logger.info('✅ Badge service initialized');
 
-    // Show startup notification after short delay
-    // Delay ensures managers are fully initialized
+    // Initialize feature services
+    await initBlocking();
+    logger.info('✅ Blocking service initialized');
+    
+    initNavigation();
+    logger.info('✅ Navigation service initialized');
+    
+    initMessages();
+    logger.info('✅ Messages service initialized');
+
+    // Show startup notification after delay
     setTimeout(() => {
-      if (isContextValid()) {
-        notificationManager.showStartupNotification();
+      if (isExtensionContextValid()) {
+        showStartupNotification();
       }
-    }, 1000);
+    }, STARTUP_NOTIFICATION_DELAY);
 
-    /**
-     * Listen for badge count changes
-     * Updates badge when todayCount changes in storage
-     * Wrapped in context validation
-     */
-    if (isContextValid()) {
+    // Listen for badge count changes
+    if (isExtensionContextValid()) {
       chrome.storage.onChanged.addListener((changes, namespace) => {
-        if (!isContextValid()) return;
+        if (!isExtensionContextValid()) return;
         
         if (namespace === 'local' && changes.todayCount) {
-          badgeManager.updateBadge();
+          updateBadge();
         }
       });
     }
 
-    /**
-     * Handle extension installation and updates
-     * Sets up default settings on first install
-     */
-    if (isContextValid()) {
-      chrome.runtime.onInstalled.addListener(async (details) => {
-        if (!isContextValid()) return;
-
-        try {
-          // On first install, set up defaults
-          if (details.reason === 'install') {
-            await chrome.storage.sync.set(DEFAULT_SETTINGS);
-            console.log('[Background] Default settings initialized');
-            
-            await statsManager.initializeStats();
-            await settingsManager.loadSettings();
-            await blockingManager.updateBlockingRules();
-            await notificationManager.showWelcomeNotification();
-          }
-          
-          // Always update badge on install/update
-          await badgeManager.updateBadge();
-        } catch (error) {
-          console.error('[Background] Error in onInstalled handler:', error);
-        }
-      });
-    }
-
-    console.log('[Wellness Filter Background] Initialization complete');
+    logger.info('🎉 All services initialized successfully');
   } catch (error) {
-    console.error('[Background] Fatal initialization error:', error);
+    logger.error('❌ Fatal initialization error', error);
   }
 }
 
-// Start initialization
-safeInitialize();
+/**
+ * Handle extension installation and updates
+ */
+function setupInstallListener() {
+  if (!isExtensionContextValid()) return;
+
+  try {
+    chrome.runtime.onInstalled.addListener(async (details) => {
+      if (!isExtensionContextValid()) return;
+
+      try {
+        if (details.reason === 'install') {
+          logger.info('📦 Extension installed - setting up defaults');
+          
+          // Set default settings
+          await chrome.storage.sync.set(DEFAULT_SETTINGS);
+          logger.info('Default settings initialized');
+          
+          // Initialize stats
+          await initializeStats();
+          
+          // Show welcome notification
+          await showWelcomeNotification();
+        } else if (details.reason === 'update') {
+          logger.info(`📦 Extension updated to version ${chrome.runtime.getManifest().version}`);
+        }
+        
+        // Update badge regardless of reason
+        await updateBadge();
+      } catch (error) {
+        logger.error('Error in onInstalled handler', error);
+      }
+    });
+  } catch (error) {
+    logger.safeError('Error setting up install listener', error);
+  }
+}
+
+/**
+ * Main initialization
+ */
+async function main() {
+  try {
+    // Set up install listener first
+    setupInstallListener();
+    
+    // Initialize all services
+    await initializeServices();
+    
+    logger.info('✨ Background script ready');
+  } catch (error) {
+    logger.error('💥 Critical error in main initialization', error);
+  }
+}
+
+// Start the extension
+main();

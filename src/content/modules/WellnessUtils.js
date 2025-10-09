@@ -2,12 +2,15 @@
  * Wellness Utils Module
  * 
  * Core utility functions used throughout the content script.
- * Provides text checking, scrubbing, statistics, and notifications.
+ * Now with proper logging.
  * 
  * @class WellnessUtils
  */
 
 import { isExtensionContextValid } from '../../utils/chrome';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('WellnessUtils');
 
 export class WellnessUtils {
   /**
@@ -21,19 +24,19 @@ export class WellnessUtils {
   }
 
   /**
-   * Log message to console if debug mode is enabled
+   * Log message if debug mode is enabled
+   * Now uses proper logger
    * 
    * @param {string} msg - Message to log
    */
   log(msg) {
     if (this.config.DEBUG_MODE) {
-      console.log(`[Wellness Filter] ${msg}`);
+      logger.debug(msg);
     }
   }
 
   /**
    * Get a random replacement phrase
-   * Selects randomly from configured replacement phrases
    * 
    * @returns {string} Random healthy phrase
    */
@@ -47,7 +50,6 @@ export class WellnessUtils {
 
   /**
    * Check if text contains any blocked words
-   * Case-insensitive search
    * 
    * @param {string} text - Text to check
    * @returns {boolean} True if text contains a blocked word
@@ -61,9 +63,7 @@ export class WellnessUtils {
   }
 
   /**
-   * Scrub text by replacing blocked words with healthy alternatives
-   * Uses regex for case-insensitive replacement
-   * Updates statistics for each replacement
+   * Scrub text by replacing blocked words
    * 
    * @param {string} text - Text to scrub
    * @returns {string} Scrubbed text with replacements
@@ -74,19 +74,14 @@ export class WellnessUtils {
     
     // Replace each blocked word
     this.config.BLOCKED_WORDS.forEach(word => {
-      // Create regex that matches word case-insensitively
-      // Escape special regex characters in word
       const regex = new RegExp(
         word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 
-        'gi' // global, case-insensitive
+        'gi'
       );
       
-      // Count matches
       const matches = scrubbed.match(regex);
       if (matches) {
         foundCount += matches.length;
-        
-        // Replace all matches with random healthy phrase
         scrubbed = scrubbed.replace(regex, this.getRandomReplacement());
       }
     });
@@ -95,6 +90,7 @@ export class WellnessUtils {
     if (foundCount > 0) {
       this.sessionFilterCount += foundCount;
       this.updateFilterStats(foundCount);
+      logger.debug(`Scrubbed ${foundCount} words`);
     }
     
     return scrubbed;
@@ -102,105 +98,88 @@ export class WellnessUtils {
 
   /**
    * Check URL for blocked content
-   * Checks both the URL itself and query parameters
-   * Sends message to background script if blocked content found
    */
   checkURL() {
-    // Check if extension context is valid
     if (!isExtensionContextValid()) {
-      this.log('Extension context invalidated, skipping URL check');
+      logger.debug('Extension context invalidated, skipping URL check');
       return;
     }
 
     const url = window.location.href;
     const params = new URLSearchParams(window.location.search);
     
-    // Check common search parameter names
     const query = params.get('q') || params.get('query') || params.get('p') || '';
 
-    // If URL or query contains blocked words, notify background
     if (this.containsBlockedWord(url) || this.containsBlockedWord(query)) {
-      this.log(`Detected blocked word in URL, notifying background script`);
+      logger.info(`Detected blocked word in URL, notifying background`);
       
       try {
         chrome.runtime.sendMessage({
           action: 'blockedUrl',
           url: window.location.href
         });
-      } catch {
-        this.log('Failed to send message: Extension context may be invalidated');
+      } catch (error) {
+        logger.safeError('Failed to send message', error);
       }
     }
   }
 
   /**
    * Update filter statistics
-   * Increments counters in local storage and updates badge
-   * Handles extension context invalidation gracefully
    * 
    * @param {number} count - Number of items filtered
    */
   updateFilterStats(count) {
-    // Check if extension context is valid
     if (!isExtensionContextValid()) {
-      this.log('Extension context invalidated, skipping stats update');
+      logger.debug('Extension context invalidated, skipping stats update');
       return;
     }
 
-    console.log('[WellnessUtils] Updating stats with count:', count);
+    logger.debug(`Updating stats with count: ${count}`);
     
-    // Update local storage stats
     try {
       chrome.storage.local.get(['filterCount', 'todayCount'], (result) => {
-        // Check for chrome.runtime.lastError
         if (chrome.runtime.lastError) {
-          console.log('[WellnessUtils] Error reading stats:', chrome.runtime.lastError);
+          logger.safeError('Error reading stats', chrome.runtime.lastError);
           return;
         }
 
-        // Calculate new counts
         const newFilterCount = (result.filterCount || 0) + count;
         const newTodayCount = (result.todayCount || 0) + count;
         
-        console.log('[WellnessUtils] New counts:', { newFilterCount, newTodayCount });
+        logger.debug(`New counts: filter=${newFilterCount}, today=${newTodayCount}`);
         
-        // Save updated counts
         chrome.storage.local.set({
           filterCount: newFilterCount,
           todayCount: newTodayCount
         }, () => {
-          // Check for errors
           if (chrome.runtime.lastError) {
-            console.log('[WellnessUtils] Error saving stats:', chrome.runtime.lastError);
+            logger.safeError('Error saving stats', chrome.runtime.lastError);
             return;
           }
 
-          console.log('[WellnessUtils] Stats saved, sending updateBadge message');
+          logger.debug('Stats saved, sending updateBadge message');
           
-          // Notify background to update badge
           try {
             chrome.runtime.sendMessage({
               action: 'updateBadge'
             });
-          } catch {
-            console.log('[WellnessUtils] Failed to send updateBadge message');
+          } catch (error) {
+            logger.safeError('Failed to send updateBadge message', error);
           }
         });
       });
     } catch (error) {
-      console.log('[WellnessUtils] Error in updateFilterStats:', error);
+      logger.safeError('Error in updateFilterStats', error);
     }
   }
 
   /**
    * Notify background script that content was filtered
-   * Sends message with count of filtered items
-   * Background script shows notification and updates stats
    * 
    * @param {number} count - Number of items filtered
    */
   notifyContentFiltered(count) {
-    // Check if extension context is valid
     if (!isExtensionContextValid()) {
       return;
     }
@@ -211,8 +190,8 @@ export class WellnessUtils {
           action: 'contentFiltered',
           count: count
         });
-      } catch {
-        this.log('Failed to send notification: Extension context may be invalidated');
+      } catch (error) {
+        logger.safeError('Failed to send notification', error);
       }
     }
   }

@@ -12,7 +12,7 @@ import { useApp } from "../../contexts/AppContext";
 import { useListManager } from "../../hooks/useListManager";
 import ListManager from "../../components/ListManager";
 
-export const SitesTab = ({ showConfirmation }) => {
+const SitesTab = ({ showConfirmation }) => {
   const { settings, updateSettings } = useApp();
   
   const siteManager = useListManager(
@@ -59,3 +59,5 @@ export const SitesTab = ({ showConfirmation }) => {
     </div>
   );
 };
+
+export default SitesTab;

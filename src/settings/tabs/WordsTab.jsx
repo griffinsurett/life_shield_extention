@@ -12,7 +12,7 @@ import { useApp } from "../../contexts/AppContext";
 import { useListManager } from "../../hooks/useListManager";
 import ListManager from "../../components/ListManager";
 
-export const WordsTab = ({ showConfirmation }) => {
+const WordsTab = ({ showConfirmation }) => {
   const { settings, updateSettings } = useApp();
   
   const wordManager = useListManager(
@@ -62,3 +62,5 @@ export const WordsTab = ({ showConfirmation }) => {
     </div>
   );
 };
+
+export default WordsTab;

@@ -2,12 +2,13 @@
  * Content Script Entry Point
  * 
  * Main content script that runs on every page.
- * Coordinates all filtering operations.
+ * Now with proper logging.
  * 
  * @module content/index
  */
 
 import { isExtensionContextValid } from '../utils/chrome';
+import { createLogger } from '../utils/logger';
 import { 
   EARLY_SCAN_DELAYS, 
   INPUT_SCAN_INTERVAL 
@@ -20,13 +21,14 @@ import { InputHandler } from './modules/InputHandler';
 import { SiteHandlers } from './modules/SiteHandlers';
 import { EventListeners } from './modules/EventListeners';
 
+const logger = createLogger('ContentScript');
+
 // =============================================================================
 // CRITICAL: Error handlers MUST be first - before any imports
 // =============================================================================
 
 /**
  * Global error handler for extension context invalidation
- * Catches and completely suppresses "Extension context invalidated" errors
  */
 window.addEventListener('error', (event) => {
   if (event.error && 
@@ -85,7 +87,7 @@ window.addEventListener('unhandledrejection', (event) => {
   // Initialize utility helpers
   const utils = new WellnessUtils(config);
 
-  utils.log(`Active on: ${window.location.hostname}`);
+  logger.info(`Active on: ${window.location.hostname}`);
 
   // Initialize functional modules
   const textScrubber = new TextScrubber(utils);
@@ -103,13 +105,13 @@ window.addEventListener('unhandledrejection', (event) => {
 
   /**
    * Throttled cleaning function
-   * Performs all filtering operations on a container
    */
   function throttledClean(container = document.body) {
     if (isShuttingDown) return;
 
     if (!isExtensionContextValid()) {
       isShuttingDown = true;
+      logger.warn('Extension context invalidated, shutting down');
       return;
     }
 
@@ -127,7 +129,7 @@ window.addEventListener('unhandledrejection', (event) => {
         const inputCount = inputHandler.attachToInputs(container);
         
         if (textCount > 0 || inputCount > 0) {
-          utils.log(`Cleaned ${textCount} text nodes, ${inputCount} new inputs`);
+          logger.debug(`Cleaned ${textCount} text nodes, ${inputCount} new inputs`);
           totalFilteredThisPage += textCount;
           
           if (!hasNotifiedThisPage && totalFilteredThisPage >= 5) {
@@ -136,11 +138,11 @@ window.addEventListener('unhandledrejection', (event) => {
           }
         }
       } catch (error) {
+        logger.safeError('Error during cleaning', error);
         if (error.message?.includes('Extension context invalidated')) {
           isShuttingDown = true;
           return;
         }
-        utils.log('Error during cleaning: ' + error.message);
       }
     }
     
@@ -168,17 +170,19 @@ window.addEventListener('unhandledrejection', (event) => {
         throttledClean();
       }
       
+      // Early scans for dynamic inputs
       EARLY_SCAN_DELAYS.forEach(delay => {
         setTimeout(() => {
           if (isShuttingDown || !isExtensionContextValid()) return;
           
           const newInputs = inputHandler.attachToInputs(document);
           if (newInputs > 0) {
-            utils.log(`Early scan found ${newInputs} inputs at ${delay}ms`);
+            logger.debug(`Early scan found ${newInputs} inputs at ${delay}ms`);
           }
         }, delay);
       });
 
+      // Mutation observer
       const observer = new MutationObserver((mutations) => {
         if (isShuttingDown || !isExtensionContextValid()) {
           observer.disconnect();
@@ -219,6 +223,7 @@ window.addEventListener('unhandledrejection', (event) => {
         });
       }
 
+      // Regular scan interval
       const scanInterval = setInterval(() => {
         if (isShuttingDown || !isExtensionContextValid()) {
           clearInterval(scanInterval);
@@ -228,6 +233,7 @@ window.addEventListener('unhandledrejection', (event) => {
         throttledClean();
       }, config.SCAN_INTERVAL);
 
+      // Input safety net
       const inputScanInterval = setInterval(() => {
         if (isShuttingDown || !isExtensionContextValid()) {
           clearInterval(inputScanInterval);
@@ -237,20 +243,20 @@ window.addEventListener('unhandledrejection', (event) => {
         
         const missedInputs = inputHandler.attachToInputs(document);
         if (missedInputs > 0) {
-          utils.log(`Safety net caught ${missedInputs} missed inputs`);
+          logger.debug(`Safety net caught ${missedInputs} missed inputs`);
         }
       }, INPUT_SCAN_INTERVAL);
 
       eventListeners.init();
       siteHandlers.init();
 
-      utils.log('Wellness filter active!');
+      logger.info('Wellness filter active!');
     } catch (error) {
+      logger.safeError('Error during initialization', error);
       if (error.message?.includes('Extension context invalidated')) {
         isShuttingDown = true;
         return;
       }
-      console.log('[Wellness Filter] Error during initialization:', error);
     }
   }
 

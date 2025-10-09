@@ -1,23 +1,38 @@
 /**
  * Settings Component
  * 
- * Main settings page with tabbed interface.
- * Now with optimized re-renders using useCallback.
+ * Main settings page with code splitting.
+ * Tabs are lazy-loaded to reduce initial bundle size.
  * 
  * @component
  */
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, lazy, Suspense } from "react";
 import { useToast } from "../components/ToastContainer";
 import { useConfirmation } from "../hooks/useConfirmation";
 import { ConfirmationModal } from "../components/ConfirmationModal";
-import { GeneralTab } from "./tabs/GeneralTab";
-import { WordsTab } from "./tabs/WordsTab";
-import { PhrasesTab } from "./tabs/PhrasesTab";
-import { SitesTab } from "./tabs/SitesTab";
-import { StatsTab } from "./tabs/StatsTab";
-import { AdvancedTab } from "./tabs/AdvancedTab";
-import { AboutTab } from "./tabs/AboutTab";
+import { SimpleErrorBoundary } from "../components/ErrorBoundary";
+
+// Lazy load all tab components
+const GeneralTab = lazy(() => import("./tabs/GeneralTab"));
+const WordsTab = lazy(() => import("./tabs/WordsTab"));
+const PhrasesTab = lazy(() => import("./tabs/PhrasesTab"));
+const SitesTab = lazy(() => import("./tabs/SitesTab"));
+const StatsTab = lazy(() => import("./tabs/StatsTab"));
+const AdvancedTab = lazy(() => import("./tabs/AdvancedTab"));
+const AboutTab = lazy(() => import("./tabs/AboutTab"));
+
+/**
+ * Loading spinner component
+ */
+const TabLoader = () => (
+  <div className="bg-white rounded-2xl shadow-lg p-8 animate-fade-in flex items-center justify-center min-h-[400px]">
+    <div className="text-center">
+      <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <p className="mt-4 text-gray-600">Loading...</p>
+    </div>
+  </div>
+);
 
 export const Settings = () => {
   const { showToast } = useToast();
@@ -26,41 +41,36 @@ export const Settings = () => {
   const confirmation = useConfirmation();
 
   const tabs = [
-    { id: "general", name: "General", icon: "⚙️" },
-    { id: "words", name: "Blocked Words", icon: "📝" },
-    { id: "phrases", name: "Replacement Phrases", icon: "💬" },
-    { id: "sites", name: "Blocked Sites", icon: "🚫" },
-    { id: "stats", name: "Statistics", icon: "📊" },
-    { id: "advanced", name: "Advanced", icon: "⚡" },
-    { id: "about", name: "About", icon: "ℹ️" },
+    { id: "general", name: "General", icon: "⚙️", component: GeneralTab },
+    { id: "words", name: "Blocked Words", icon: "📝", component: WordsTab },
+    { id: "phrases", name: "Replacement Phrases", icon: "💬", component: PhrasesTab },
+    { id: "sites", name: "Blocked Sites", icon: "🚫", component: SitesTab },
+    { id: "stats", name: "Statistics", icon: "📊", component: StatsTab },
+    { id: "advanced", name: "Advanced", icon: "⚡", component: AdvancedTab },
+    { id: "about", name: "About", icon: "ℹ️", component: AboutTab },
   ];
 
-  // Memoized tab renderer
+  // Get active tab component
+  const activeTabData = tabs.find(tab => tab.id === activeTab);
+  const TabComponent = activeTabData?.component;
+
+  // Memoized tab renderer with lazy loading
   const renderTab = useCallback(() => {
+    if (!TabComponent) return null;
+
     const props = { 
       showToast,
       showConfirmation: confirmation.showConfirmation
     };
 
-    switch (activeTab) {
-      case "general":
-        return <GeneralTab {...props} />;
-      case "words":
-        return <WordsTab {...props} />;
-      case "phrases":
-        return <PhrasesTab {...props} />;
-      case "sites":
-        return <SitesTab {...props} />;
-      case "stats":
-        return <StatsTab {...props} />;
-      case "advanced":
-        return <AdvancedTab {...props} />;
-      case "about":
-        return <AboutTab />;
-      default:
-        return null;
-    }
-  }, [activeTab, showToast, confirmation.showConfirmation]);
+    return (
+      <SimpleErrorBoundary>
+        <Suspense fallback={<TabLoader />}>
+          <TabComponent {...props} />
+        </Suspense>
+      </SimpleErrorBoundary>
+    );
+  }, [TabComponent, showToast, confirmation.showConfirmation]);
 
   return (
     <div className="bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">

@@ -2,13 +2,16 @@
  * Wellness Config
  * 
  * Manages configuration for content script.
- * Loads settings from chrome.storage.sync and keeps them in memory.
+ * Now with proper logging instead of console.log.
  * 
  * @class WellnessConfig
  */
 
 import { isExtensionContextValid } from "../utils/chrome";
 import { SELECTORS } from "../utils/constants";
+import { createLogger } from "../utils/logger";
+
+const logger = createLogger('WellnessConfig');
 
 export class WellnessConfig {
   constructor() {
@@ -44,14 +47,13 @@ export class WellnessConfig {
 
   /**
    * Load configuration from chrome.storage.sync
-   * Called on initialization and when settings are reset
    * 
    * @async
    * @returns {Promise<void>}
    */
   async loadConfig() {
     if (!isExtensionContextValid()) {
-      console.log("[Wellness Filter Config] Extension context invalid, using defaults");
+      logger.warn("Extension context invalid, using defaults");
       return;
     }
 
@@ -79,20 +81,18 @@ export class WellnessConfig {
       this.MUTATION_DEBOUNCE = result.mutationDebounce || 200;
       this.ENABLED = result.enableFilter !== false;
 
-      console.log("[Wellness Filter Config] Settings loaded from storage");
+      logger.info("Settings loaded from storage");
     } catch (error) {
-      console.log("[Wellness Filter Config] Error loading config:", error);
+      logger.safeError("Error loading config", error);
     }
   }
 
   /**
    * Set up listeners for configuration changes
-   * Updates config in real-time when storage changes
-   * Also listens for reload messages from background script
    */
   setupListeners() {
     if (!isExtensionContextValid()) {
-      console.log("[Wellness Filter Config] Extension context invalid, skipping listeners");
+      logger.warn("Extension context invalid, skipping listeners");
       return;
     }
 
@@ -101,7 +101,7 @@ export class WellnessConfig {
       chrome.runtime.onMessage.addListener((message) => {
         if (message.action === "reloadConfig") {
           this.loadConfig();
-          console.log("[Wellness Filter Config] Config reloaded");
+          logger.info("Config reloaded");
         }
       });
 
@@ -111,56 +111,66 @@ export class WellnessConfig {
           // Update blocked words
           if (changes.blockedWords) {
             this.BLOCKED_WORDS = changes.blockedWords.newValue || [];
+            logger.debug("Blocked words updated");
           }
           
           // Update replacement phrases
           if (changes.replacementPhrases) {
             this.REPLACEMENT_PHRASES = changes.replacementPhrases.newValue || [];
+            logger.debug("Replacement phrases updated");
           }
           
           // Update redirect URL
           if (changes.redirectUrl) {
             this.REDIRECT_URL = changes.redirectUrl.newValue || "";
+            logger.debug("Redirect URL updated");
           }
           
           // Update debug mode
           if (changes.debugMode !== undefined) {
             this.DEBUG_MODE = changes.debugMode.newValue;
+            logger.debug(`Debug mode: ${this.DEBUG_MODE}`);
           }
           
           // Update show alerts
           if (changes.showAlerts !== undefined) {
             this.SHOW_ALERTS = changes.showAlerts.newValue;
+            logger.debug(`Show alerts: ${this.SHOW_ALERTS}`);
           }
           
           // Update blur setting
           if (changes.blurInsteadOfHide !== undefined) {
             this.BLUR_INSTEAD_OF_HIDE = changes.blurInsteadOfHide.newValue;
+            logger.debug(`Blur instead of hide: ${this.BLUR_INSTEAD_OF_HIDE}`);
           }
           
           // Update scan interval
           if (changes.scanInterval) {
             this.SCAN_INTERVAL = changes.scanInterval.newValue;
+            logger.debug(`Scan interval: ${this.SCAN_INTERVAL}ms`);
           }
           
           // Update mutation debounce
           if (changes.mutationDebounce) {
             this.MUTATION_DEBOUNCE = changes.mutationDebounce.newValue;
+            logger.debug(`Mutation debounce: ${this.MUTATION_DEBOUNCE}ms`);
           }
           
           // Update enabled state
           if (changes.enableFilter !== undefined) {
             this.ENABLED = changes.enableFilter.newValue;
             if (!changes.enableFilter.newValue) {
-              console.log("[Wellness Filter] Filter disabled");
+              logger.info("Filter disabled");
+            } else {
+              logger.info("Filter enabled");
             }
           }
           
-          console.log("[Wellness Filter Config] Settings updated in real-time");
+          logger.debug("Settings updated in real-time");
         }
       });
     } catch (error) {
-      console.log("[Wellness Filter Config] Error setting up listeners:", error);
+      logger.safeError("Error setting up listeners", error);
     }
   }
 }

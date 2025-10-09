@@ -1,20 +1,16 @@
 /**
  * Text Scrubber Module
  * 
- * Responsible for finding and replacing blocked words in text nodes.
- * Uses TreeWalker API for efficient text node traversal.
- * 
- * Features:
- * - Walks through all text nodes in container
- * - Checks each text node for blocked words
- * - Replaces blocked words with healthy alternatives
- * - Returns count of scrubbed nodes for statistics
- * 
- * This is the core text filtering functionality that cleans
- * visible text content on web pages.
+ * Handles text node scrubbing and replacement.
+ * Now with proper logging.
  * 
  * @class TextScrubber
  */
+
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('TextScrubber');
+
 export class TextScrubber {
   /**
    * @param {WellnessUtils} utils - Utility functions
@@ -24,55 +20,74 @@ export class TextScrubber {
   }
 
   /**
-   * Scrub text nodes in container
-   * Walks through all text nodes and replaces blocked words
+   * Scrub text nodes in a container
    * 
-   * Uses two-pass approach:
-   * 1. First pass: Collect nodes that need scrubbing
-   * 2. Second pass: Scrub collected nodes
-   * 
-   * This prevents issues with DOM mutation during traversal.
-   * 
-   * @param {HTMLElement} element - Container to scrub
-   * @returns {number} Number of text nodes scrubbed
+   * @param {Element} container - Container to search
+   * @returns {number} Number of nodes scrubbed
    */
-  scrubTextNodesIn(element) {
-    if (!element) return 0;
-    
-    // Create TreeWalker for efficient text node traversal
-    // TreeWalker is faster than recursively walking the DOM
-    const walker = document.createTreeWalker(
-      element,
-      NodeFilter.SHOW_TEXT, // Only text nodes
-      null,
-      false
-    );
+  scrubTextNodesIn(container) {
+    if (!container) return 0;
 
     let count = 0;
-    const nodesToScrub = [];
+    const walker = document.createTreeWalker(
+      container,
+      NodeFilter.SHOW_TEXT,
+      {
+        acceptNode: (node) => {
+          // Skip script and style tags
+          if (node.parentElement?.tagName === 'SCRIPT' ||
+              node.parentElement?.tagName === 'STYLE') {
+            return NodeFilter.FILTER_REJECT;
+          }
+          
+          // Skip empty nodes
+          if (!node.textContent?.trim()) {
+            return NodeFilter.FILTER_REJECT;
+          }
+          
+          return NodeFilter.FILTER_ACCEPT;
+        }
+      }
+    );
 
-    // First pass: Collect nodes that need scrubbing
-    while (walker.nextNode()) {
-      const node = walker.currentNode;
-      
-      // Check if text node has content and contains blocked words
-      if (node.nodeValue && node.nodeValue.trim() && this.utils.containsBlockedWord(node.nodeValue)) {
-        nodesToScrub.push(node);
+    const nodesToProcess = [];
+    let node;
+    while (node = walker.nextNode()) {
+      nodesToProcess.push(node);
+    }
+
+    for (const textNode of nodesToProcess) {
+      try {
+        const original = textNode.textContent;
+        
+        if (this.utils.containsBlockedWord(original)) {
+          const scrubbed = this.utils.scrubText(original);
+          textNode.textContent = scrubbed;
+          count++;
+          logger.debug(`Scrubbed text node: "${original.substring(0, 30)}..."`);
+        }
+      } catch (error) {
+        logger.safeError('Error scrubbing text node', error);
       }
     }
 
-    // Second pass: Scrub collected nodes
-    nodesToScrub.forEach(node => {
-      const original = node.nodeValue;
-      const scrubbed = this.utils.scrubText(original);
-      
-      // Only update if text changed
-      if (scrubbed !== original) {
-        node.nodeValue = scrubbed;
-        count++;
-      }
-    });
+    if (count > 0) {
+      logger.debug(`Scrubbed ${count} text nodes`);
+    }
 
     return count;
+  }
+
+  /**
+   * Check if element should be processed
+   * 
+   * @param {Element} element - Element to check
+   * @returns {boolean}
+   */
+  shouldProcessElement(element) {
+    if (!element || !element.tagName) return false;
+
+    const skipTags = ['SCRIPT', 'STYLE', 'NOSCRIPT', 'IFRAME'];
+    return !skipTags.includes(element.tagName);
   }
 }

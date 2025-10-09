@@ -13,7 +13,7 @@ import { useListManager } from "../../hooks/useListManager";
 import ListManager from "../../components/ListManager";
 import { DEFAULT_SETTINGS } from "../../utils/constants";
 
-export const PhrasesTab = ({ showToast, showConfirmation }) => {
+const PhrasesTab = ({ showToast, showConfirmation }) => {
   const { settings, updateSettings } = useApp();
   
   const phraseManager = useListManager(
@@ -98,3 +98,5 @@ export const PhrasesTab = ({ showToast, showConfirmation }) => {
     </div>
   );
 };
+
+export default PhrasesTab;

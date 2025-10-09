@@ -3,9 +3,21 @@
  * 
  * Centralized utilities for Chrome extension APIs.
  * Provides safe wrappers and validation for extension context.
+ * Now with lazy logger initialization.
  * 
  * @module utils/chrome
  */
+
+import { createLogger } from './logger';
+
+// Lazy-initialize logger to avoid issues during test setup
+let logger = null;
+function getLogger() {
+  if (!logger) {
+    logger = createLogger('ChromeAPI');
+  }
+  return logger;
+}
 
 /**
  * Check if Chrome extension context is still valid
@@ -40,7 +52,7 @@ export function safeChrome(fn, fallbackValue = null) {
   try {
     return fn();
   } catch (error) {
-    console.error('[Chrome API Error]', error);
+    getLogger().safeError('Chrome API call failed', error);
     return fallbackValue;
   }
 }
@@ -67,7 +79,7 @@ export async function safeChromeAsync(fn, fallbackValue = null) {
   try {
     return await fn();
   } catch (error) {
-    console.error('[Chrome API Error]', error);
+    getLogger().safeError('Chrome API async call failed', error);
     return fallbackValue;
   }
 }

@@ -10,7 +10,7 @@
 import { useCallback } from "react";
 import { useApp } from "../../contexts/AppContext";
 
-export const AdvancedTab = ({ showConfirmation }) => {
+const AdvancedTab = ({ showConfirmation }) => {
   const { settings, updateSettings } = useApp();
 
   /**
@@ -94,3 +94,5 @@ export const AdvancedTab = ({ showConfirmation }) => {
     </div>
   );
 };
+
+export default AdvancedTab;

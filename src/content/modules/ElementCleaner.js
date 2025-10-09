@@ -1,110 +1,109 @@
 /**
  * Element Cleaner Module
  * 
- * Responsible for hiding and removing DOM elements that contain blocked content.
- * Primarily targets autocomplete suggestions and search dropdowns.
- * 
- * Features:
- * - Searches for elements matching suggestion selectors
- * - Checks element text content for blocked words
- * - Removes matching elements from DOM
- * - Tracks processed elements to avoid duplicate processing
- * - Injects custom styles for blur effect (if enabled)
- * 
- * Used for:
- * - Search autocomplete suggestions
- * - Dropdown menus
- * - Search result previews
- * - Any element that might show blocked content
+ * Handles hiding/blurring of blocked elements.
+ * Now with proper logging.
  * 
  * @class ElementCleaner
  */
+
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('ElementCleaner');
+
 export class ElementCleaner {
   /**
-   * @param {WellnessConfig} config - Configuration object
+   * @param {WellnessConfig} config - Configuration
    * @param {WellnessUtils} utils - Utility functions
    */
   constructor(config, utils) {
     this.config = config;
     this.utils = utils;
-    
-    // Track elements we've already processed to avoid duplicate work
-    // WeakSet allows garbage collection of removed elements
     this.processedElements = new WeakSet();
   }
 
   /**
-   * Hide elements that contain blocked content
-   * Searches container for suggestion elements and removes those with blocked words
-   * 
-   * @param {HTMLElement} container - Container to search (default: document.body)
-   */
-  hideBlockedElements(container = document.body) {
-    // Get all suggestion selectors from config
-    const targetSelectors = this.config.SUGGESTION_SELECTORS;
-    
-    // Find all matching elements
-    let elements = Array.from(container.querySelectorAll(targetSelectors.join(',')));
-    
-    // If container itself matches a selector, include it
-    if (container !== document.body && container.nodeType === 1) {
-      if (container.matches && targetSelectors.some(sel => container.matches(sel))) {
-        elements.push(container);
-      }
-    }
-
-    let removedCount = 0;
-    
-    // Check each element for blocked content
-    elements.forEach(element => {
-      // Skip if already processed
-      if (this.processedElements.has(element)) return;
-
-      // Get text content from multiple sources
-      const text = element.textContent || element.innerText ||
-                  element.getAttribute('data-query') ||
-                  element.getAttribute('aria-label') || '';
-
-      // If contains blocked word, remove it
-      if (text && this.utils.containsBlockedWord(text)) {
-        element.style.display = 'none'; // Hide first (faster)
-        element.remove(); // Then remove from DOM
-        removedCount++;
-        
-        // Mark as processed
-        this.processedElements.add(element);
-      }
-    });
-
-    // Log if anything was removed
-    if (removedCount > 0) {
-      this.utils.log(`Removed ${removedCount} suggestion elements`);
-    }
-  }
-
-  /**
-   * Inject custom styles for blur effect
-   * Adds CSS to page if blur mode is enabled
-   * Called once during initialization
+   * Inject CSS styles for hiding/blurring
    */
   injectStyles() {
+    if (document.getElementById('wellness-filter-styles')) {
+      logger.debug('Styles already injected');
+      return;
+    }
+
     const style = document.createElement('style');
-    
-    // Apply blur if setting is enabled
+    style.id = 'wellness-filter-styles';
     style.textContent = `
-      [data-scrubbed="true"] {
-        ${this.config.BLUR_INSTEAD_OF_HIDE ? 'filter: blur(5px) !important;' : ''}
+      .wellness-filter-hidden {
+        display: none !important;
+      }
+      
+      .wellness-filter-blurred {
+        filter: blur(10px) !important;
+        pointer-events: none !important;
+        user-select: none !important;
       }
     `;
     
-    // Inject into page head
-    if (document.head) {
-      document.head.appendChild(style);
-    } else {
-      // If head not ready yet, wait for DOMContentLoaded
-      document.addEventListener('DOMContentLoaded', () => {
-        if (document.head) document.head.appendChild(style);
-      });
+    document.head.appendChild(style);
+    logger.info('Styles injected');
+  }
+
+  /**
+   * Hide or blur blocked elements
+   * 
+   * @param {Element} container - Container to search
+   * @returns {number} Number of elements hidden
+   */
+  hideBlockedElements(container) {
+    if (!container) return 0;
+
+    let count = 0;
+    const elements = container.querySelectorAll('a, button, [role="button"], [role="link"]');
+
+    for (const element of elements) {
+      // Skip if already processed
+      if (this.processedElements.has(element)) {
+        continue;
+      }
+
+      try {
+        const text = element.textContent || '';
+        const href = element.href || '';
+        const title = element.title || '';
+        
+        const combinedText = `${text} ${href} ${title}`;
+
+        if (this.utils.containsBlockedWord(combinedText)) {
+          if (this.config.BLUR_INSTEAD_OF_HIDE) {
+            element.classList.add('wellness-filter-blurred');
+            logger.debug(`Blurred element: ${element.tagName}`);
+          } else {
+            element.classList.add('wellness-filter-hidden');
+            logger.debug(`Hidden element: ${element.tagName}`);
+          }
+          
+          this.processedElements.add(element);
+          count++;
+        }
+      } catch (error) {
+        logger.safeError('Error processing element', error);
+      }
     }
+
+    if (count > 0) {
+      logger.debug(`Processed ${count} elements`);
+    }
+
+    return count;
+  }
+
+  /**
+   * Clean up processed elements tracking
+   * Call this when page changes significantly
+   */
+  reset() {
+    this.processedElements = new WeakSet();
+    logger.debug('Element tracking reset');
   }
 }

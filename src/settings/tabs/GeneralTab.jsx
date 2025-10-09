@@ -10,7 +10,7 @@
 import { useApp } from "../../contexts/AppContext";
 import { Toggle } from "../../components/Toggle";
 
-export const GeneralTab = ({ showToast }) => {
+const GeneralTab = ({ showToast }) => { 
   const { settings, updateSettings } = useApp();
 
   const saveSettings = async (updates) => {
@@ -105,3 +105,5 @@ export const GeneralTab = ({ showToast }) => {
     </div>
   );
 };
+
+export default GeneralTab;

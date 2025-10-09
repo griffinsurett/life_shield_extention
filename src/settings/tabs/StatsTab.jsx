@@ -10,7 +10,7 @@
 import { useCallback } from "react";
 import { useApp } from "../../contexts/AppContext";
 
-export const StatsTab = ({ showToast, showConfirmation }) => {
+const StatsTab = ({ showToast, showConfirmation }) => {
   const { stats, resetStats } = useApp();
 
   /**
@@ -68,3 +68,5 @@ export const StatsTab = ({ showToast, showConfirmation }) => {
     </div>
   );
 };
+
+export default StatsTab;

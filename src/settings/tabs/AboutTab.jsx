@@ -13,7 +13,7 @@
  * @component
  */
 
-export const AboutTab = () => {
+const AboutTab = () => {
   return (
     <div className="bg-white rounded-2xl shadow-lg p-8 animate-fade-in">
       {/* Header section */}
@@ -48,3 +48,5 @@ export const AboutTab = () => {
     </div>
   );
 };
+
+export default AboutTab;
