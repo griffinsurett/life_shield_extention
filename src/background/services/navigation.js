@@ -9,7 +9,7 @@
 
 import { isExtensionContextValid } from '../../utils/chrome';
 import { createLogger } from '../../utils/logger';
-import { containsBlockedWord, getRedirectUrl } from './settings';
+import { containsBlockedWord, getRedirectUrl, isFilterEnabled } from './settings';
 import { incrementStats } from './stats';
 import { showUrlBlockedNotification, showSearchBlockedNotification } from './notifications';
 
@@ -68,6 +68,9 @@ function setupNavigationListeners() {
 async function handleBeforeNavigate(details) {
   if (!isExtensionContextValid()) return;
   
+  // CHECK IF FILTER IS ENABLED
+  if (!isFilterEnabled()) return;
+  
   // Only process main frame
   if (details.frameId !== 0) return;
   
@@ -100,6 +103,9 @@ async function handleBeforeNavigate(details) {
  */
 async function handleCommitted(details) {
   if (!isExtensionContextValid()) return;
+  
+  // CHECK IF FILTER IS ENABLED
+  if (!isFilterEnabled()) return;
   
   // Only process main frame
   if (details.frameId !== 0) return;

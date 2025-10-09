@@ -1,8 +1,8 @@
 /**
  * Element Cleaner Module
  * 
- * Handles hiding/blurring of blocked elements.
- * Now with proper logging.
+ * Handles hiding blocked elements.
+ * Simplified - blur mode removed for better recovery focus.
  * 
  * @class ElementCleaner
  */
@@ -20,13 +20,14 @@ export class ElementCleaner {
     this.config = config;
     this.utils = utils;
     this.processedElements = new WeakSet();
+    this.stylesInjected = false;
   }
 
   /**
-   * Inject CSS styles for hiding/blurring
+   * Inject CSS styles for hiding
    */
   injectStyles() {
-    if (document.getElementById('wellness-filter-styles')) {
+    if (this.stylesInjected) {
       logger.debug('Styles already injected');
       return;
     }
@@ -37,20 +38,15 @@ export class ElementCleaner {
       .wellness-filter-hidden {
         display: none !important;
       }
-      
-      .wellness-filter-blurred {
-        filter: blur(10px) !important;
-        pointer-events: none !important;
-        user-select: none !important;
-      }
     `;
     
     document.head.appendChild(style);
+    this.stylesInjected = true;
     logger.info('Styles injected');
   }
 
   /**
-   * Hide or blur blocked elements
+   * Hide blocked elements
    * 
    * @param {Element} container - Container to search
    * @returns {number} Number of elements hidden
@@ -75,16 +71,10 @@ export class ElementCleaner {
         const combinedText = `${text} ${href} ${title}`;
 
         if (this.utils.containsBlockedWord(combinedText)) {
-          if (this.config.BLUR_INSTEAD_OF_HIDE) {
-            element.classList.add('wellness-filter-blurred');
-            logger.debug(`Blurred element: ${element.tagName}`);
-          } else {
-            element.classList.add('wellness-filter-hidden');
-            logger.debug(`Hidden element: ${element.tagName}`);
-          }
-          
+          element.classList.add('wellness-filter-hidden');
           this.processedElements.add(element);
           count++;
+          logger.debug(`Hidden element: ${element.tagName}`);
         }
       } catch (error) {
         logger.safeError('Error processing element', error);
@@ -92,7 +82,7 @@ export class ElementCleaner {
     }
 
     if (count > 0) {
-      logger.debug(`Processed ${count} elements`);
+      logger.debug(`Hidden ${count} elements`);
     }
 
     return count;

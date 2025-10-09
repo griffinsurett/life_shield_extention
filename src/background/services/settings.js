@@ -19,6 +19,7 @@ let state = {
   blockedSites: [],
   redirectUrl: '',
   showAlerts: false,
+  enableFilter: true, // ADD THIS
 };
 
 /**
@@ -53,7 +54,8 @@ async function loadSettings() {
         STORAGE_KEYS.BLOCKED_WORDS,
         STORAGE_KEYS.BLOCKED_SITES,
         STORAGE_KEYS.REDIRECT_URL,
-        STORAGE_KEYS.SHOW_ALERTS
+        STORAGE_KEYS.SHOW_ALERTS,
+        STORAGE_KEYS.ENABLE_FILTER, // ADD THIS
       ]),
       {}
     );
@@ -62,10 +64,12 @@ async function loadSettings() {
     state.blockedSites = result.blockedSites || [];
     state.redirectUrl = result.redirectUrl || '';
     state.showAlerts = result.showAlerts || false;
+    state.enableFilter = result.enableFilter !== false; // ADD THIS
 
     logger.info('Settings loaded', {
       words: state.blockedWords.length,
-      sites: state.blockedSites.length
+      sites: state.blockedSites.length,
+      enabled: state.enableFilter // ADD THIS
     });
   } catch (error) {
     logger.safeError('Failed to load settings', error);
@@ -105,6 +109,12 @@ function setupListeners() {
           state.showAlerts = changes.showAlerts.newValue;
           logger.debug('Show alerts updated');
         }
+
+        // ADD THIS BLOCK
+        if (changes.enableFilter !== undefined) {
+          state.enableFilter = changes.enableFilter.newValue;
+          logger.info(`Filter ${state.enableFilter ? 'enabled' : 'disabled'}`);
+        }
       }
     });
   } catch (error) {
@@ -119,7 +129,7 @@ function setupListeners() {
  * @returns {boolean}
  */
 export function containsBlockedWord(text) {
-  if (!text) return false;
+  if (!text || !state.enableFilter) return false; // ADD enableFilter check
   const lower = text.toLowerCase();
   return state.blockedWords.some(word => lower.includes(word.toLowerCase()));
 }
@@ -131,7 +141,7 @@ export function containsBlockedWord(text) {
  * @returns {boolean}
  */
 export function containsBlockedSite(url) {
-  if (!url) return false;
+  if (!url || !state.enableFilter) return false; // ADD enableFilter check
   const lower = url.toLowerCase();
   return state.blockedSites.some(site => lower.includes(site.toLowerCase()));
 }
@@ -170,4 +180,14 @@ export function getRedirectUrl() {
  */
 export function shouldShowAlerts() {
   return state.showAlerts;
+}
+
+/**
+ * Check if filter is enabled
+ * ADD THIS FUNCTION
+ * 
+ * @returns {boolean}
+ */
+export function isFilterEnabled() {
+  return state.enableFilter;
 }

@@ -2,32 +2,31 @@
  * Wellness Config
  * 
  * Manages configuration for content script.
- * Now with proper logging instead of console.log.
+ * Performance settings are now hardcoded for simplicity.
+ * Blur mode removed for better recovery focus.
  * 
  * @class WellnessConfig
  */
 
 import { isExtensionContextValid } from "../utils/chrome";
-import { SELECTORS } from "../utils/constants";
+import { SELECTORS, PERFORMANCE } from "../utils/constants";
 import { createLogger } from "../utils/logger";
 
 const logger = createLogger('WellnessConfig');
 
 export class WellnessConfig {
   constructor() {
-    // Core settings
+    // Core settings (user-configurable)
     this.BLOCKED_WORDS = [];
     this.REDIRECT_URL = "";
     this.SHOW_ALERTS = false;
-    this.DEBUG_MODE = false;
-    this.BLUR_INSTEAD_OF_HIDE = false;
     this.ENABLED = true;
     this.REPLACEMENT_PHRASES = [];
     
-    // Performance settings
-    this.SCAN_INTERVAL = 2000;
-    this.MUTATION_DEBOUNCE = 200;
-    this.MIN_CLEAN_INTERVAL = 500;
+    // Performance settings (HARDCODED - not user-configurable)
+    this.SCAN_INTERVAL = PERFORMANCE.SCAN_INTERVAL;
+    this.MUTATION_DEBOUNCE = PERFORMANCE.MUTATION_DEBOUNCE;
+    this.MIN_CLEAN_INTERVAL = PERFORMANCE.MIN_CLEAN_INTERVAL;
     
     // Feature flags
     this.HIDE_ENTIRE_DROPDOWN = true;
@@ -62,11 +61,7 @@ export class WellnessConfig {
         "blockedWords",
         "redirectUrl",
         "showAlerts",
-        "debugMode",
-        "blurInsteadOfHide",
         "replacementPhrases",
-        "scanInterval",
-        "mutationDebounce",
         "enableFilter",
       ]);
 
@@ -74,11 +69,7 @@ export class WellnessConfig {
       this.BLOCKED_WORDS = result.blockedWords || [];
       this.REDIRECT_URL = result.redirectUrl || "";
       this.SHOW_ALERTS = result.showAlerts || false;
-      this.DEBUG_MODE = result.debugMode || false;
-      this.BLUR_INSTEAD_OF_HIDE = result.blurInsteadOfHide || false;
       this.REPLACEMENT_PHRASES = result.replacementPhrases || [];
-      this.SCAN_INTERVAL = result.scanInterval || 2000;
-      this.MUTATION_DEBOUNCE = result.mutationDebounce || 200;
       this.ENABLED = result.enableFilter !== false;
 
       logger.info("Settings loaded from storage");
@@ -126,34 +117,10 @@ export class WellnessConfig {
             logger.debug("Redirect URL updated");
           }
           
-          // Update debug mode
-          if (changes.debugMode !== undefined) {
-            this.DEBUG_MODE = changes.debugMode.newValue;
-            logger.debug(`Debug mode: ${this.DEBUG_MODE}`);
-          }
-          
           // Update show alerts
           if (changes.showAlerts !== undefined) {
             this.SHOW_ALERTS = changes.showAlerts.newValue;
             logger.debug(`Show alerts: ${this.SHOW_ALERTS}`);
-          }
-          
-          // Update blur setting
-          if (changes.blurInsteadOfHide !== undefined) {
-            this.BLUR_INSTEAD_OF_HIDE = changes.blurInsteadOfHide.newValue;
-            logger.debug(`Blur instead of hide: ${this.BLUR_INSTEAD_OF_HIDE}`);
-          }
-          
-          // Update scan interval
-          if (changes.scanInterval) {
-            this.SCAN_INTERVAL = changes.scanInterval.newValue;
-            logger.debug(`Scan interval: ${this.SCAN_INTERVAL}ms`);
-          }
-          
-          // Update mutation debounce
-          if (changes.mutationDebounce) {
-            this.MUTATION_DEBOUNCE = changes.mutationDebounce.newValue;
-            logger.debug(`Mutation debounce: ${this.MUTATION_DEBOUNCE}ms`);
           }
           
           // Update enabled state

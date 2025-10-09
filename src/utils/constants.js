@@ -4,15 +4,14 @@
  * Central location for all extension constants.
  * Includes default settings, storage keys, and CSS selectors.
  * 
- * This file is imported by both background and content scripts
- * to ensure consistent configuration across the extension.
+ * Performance settings are now HARDCODED (not user-configurable)
+ * to keep the UI simple and user-focused.
  * 
  * @module utils/constants
  */
 
 /**
  * Default settings for new installations
- * These values are written to storage on first install
  * 
  * @constant {Object}
  */
@@ -29,20 +28,8 @@ export const DEFAULT_SETTINGS = {
   // Filter is enabled by default
   enableFilter: true,
   
-  // Debug mode on for development (should be false in production)
-  debugMode: true,
-  
   // Notifications disabled by default (can be annoying)
   showAlerts: false,
-  
-  // Hide content by default (blur is less effective)
-  blurInsteadOfHide: false,
-  
-  // Scan every 2 seconds (balance between performance and coverage)
-  scanInterval: 2000,
-  
-  // Wait 200ms after DOM changes before processing
-  mutationDebounce: 200,
   
   /**
    * Default healthy replacement phrases
@@ -62,9 +49,25 @@ export const DEFAULT_SETTINGS = {
 };
 
 /**
+ * Performance Settings (HARDCODED - Not user-configurable)
+ * These are optimized defaults that work well for 99.9% of users
+ * 
+ * @constant {Object}
+ */
+export const PERFORMANCE = {
+  // Scan every 2 seconds (balance between performance and coverage)
+  SCAN_INTERVAL: 2000,
+  
+  // Wait 200ms after DOM changes before processing
+  MUTATION_DEBOUNCE: 200,
+  
+  // Minimum interval between cleaning operations (ms)
+  MIN_CLEAN_INTERVAL: 500,
+};
+
+/**
  * Storage keys
  * Centralized key names for chrome.storage
- * Prevents typos and makes refactoring easier
  * 
  * @constant {Object}
  */
@@ -74,11 +77,7 @@ export const STORAGE_KEYS = {
   BLOCKED_SITES: 'blockedSites',
   REDIRECT_URL: 'redirectUrl',
   ENABLE_FILTER: 'enableFilter',
-  DEBUG_MODE: 'debugMode',
   SHOW_ALERTS: 'showAlerts',
-  BLUR_INSTEAD_OF_HIDE: 'blurInsteadOfHide',
-  SCAN_INTERVAL: 'scanInterval',
-  MUTATION_DEBOUNCE: 'mutationDebounce',
   REPLACEMENT_PHRASES: 'replacementPhrases',
   
   // Statistics (stored in local storage)

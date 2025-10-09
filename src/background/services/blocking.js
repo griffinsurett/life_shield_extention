@@ -10,7 +10,7 @@
 import { isExtensionContextValid } from '../../utils/chrome';
 import { TAB_BLOCKING_DEBOUNCE } from '../../utils/timing';
 import { createLogger } from '../../utils/logger';
-import { getBlockedSites, getRedirectUrl, containsBlockedSite } from './settings';
+import { getBlockedSites, getRedirectUrl, containsBlockedSite, isFilterEnabled } from './settings';
 import { incrementStats } from './stats';
 import { showUrlBlockedNotification } from './notifications';
 
@@ -39,7 +39,7 @@ export async function initBlocking() {
       if (!isExtensionContextValid()) return;
       
       if (namespace === 'sync') {
-        if (changes.blockedSites || changes.redirectUrl) {
+        if (changes.blockedSites || changes.redirectUrl || changes.enableFilter) {
           updateBlockingRules();
         }
       }
@@ -67,6 +67,23 @@ export async function updateBlockingRules() {
   if (!isExtensionContextValid()) return;
 
   try {
+    // CHECK IF FILTER IS ENABLED
+    if (!isFilterEnabled()) {
+      logger.info('Filter disabled, clearing all blocking rules');
+      
+      // Get existing rules and remove them all
+      const existingRules = await chrome.declarativeNetRequest.getDynamicRules();
+      const existingRuleIds = existingRules.map(rule => rule.id);
+      
+      await chrome.declarativeNetRequest.updateDynamicRules({
+        removeRuleIds: existingRuleIds,
+        addRules: []
+      });
+      
+      logger.info('All blocking rules cleared');
+      return;
+    }
+
     const blockedSites = getBlockedSites();
     const redirectUrl = getRedirectUrl() || 'https://griffinswebservices.com';
     
@@ -171,6 +188,9 @@ function setupBlockedRequestListener() {
     chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
       if (!isExtensionContextValid()) return;
       
+      // CHECK IF FILTER IS ENABLED
+      if (!isFilterEnabled()) return;
+      
       // Only check main frame
       if (details.frameId !== 0) return;
 
@@ -202,6 +222,9 @@ function setupBlockedRequestListener() {
     chrome.webNavigation.onCommitted.addListener(async (details) => {
       if (!isExtensionContextValid()) return;
       
+      // CHECK IF FILTER IS ENABLED
+      if (!isFilterEnabled()) return;
+      
       if (details.frameId !== 0) return;
 
       const url = details.url;
@@ -226,6 +249,9 @@ function setupBlockedRequestListener() {
     // Listen for server redirects
     chrome.webNavigation.onBeforeRedirect.addListener(async (details) => {
       if (!isExtensionContextValid()) return;
+      
+      // CHECK IF FILTER IS ENABLED
+      if (!isFilterEnabled()) return;
       
       if (details.frameId !== 0) return;
 

@@ -24,18 +24,6 @@ export class WellnessUtils {
   }
 
   /**
-   * Log message if debug mode is enabled
-   * Now uses proper logger
-   * 
-   * @param {string} msg - Message to log
-   */
-  log(msg) {
-    if (this.config.DEBUG_MODE) {
-      logger.debug(msg);
-    }
-  }
-
-  /**
    * Get a random replacement phrase
    * 
    * @returns {string} Random healthy phrase

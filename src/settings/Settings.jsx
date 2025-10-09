@@ -1,16 +1,17 @@
+// src/settings/Settings.jsx
 /**
  * Settings Component
  * 
  * Main settings page with code splitting.
  * Tabs are lazy-loaded to reduce initial bundle size.
  * 
+ * SIMPLIFIED: Removed advanced technical settings for better UX
+ * 
  * @component
  */
 
 import { useState, useCallback, lazy, Suspense } from "react";
 import { useToast } from "../components/ToastContainer";
-import { useConfirmation } from "../hooks/useConfirmation";
-import { ConfirmationModal } from "../components/ConfirmationModal";
 import { SimpleErrorBoundary } from "../components/ErrorBoundary";
 
 // Lazy load all tab components
@@ -19,7 +20,6 @@ const WordsTab = lazy(() => import("./tabs/WordsTab"));
 const PhrasesTab = lazy(() => import("./tabs/PhrasesTab"));
 const SitesTab = lazy(() => import("./tabs/SitesTab"));
 const StatsTab = lazy(() => import("./tabs/StatsTab"));
-const AdvancedTab = lazy(() => import("./tabs/AdvancedTab"));
 const AboutTab = lazy(() => import("./tabs/AboutTab"));
 
 /**
@@ -37,8 +37,6 @@ const TabLoader = () => (
 export const Settings = () => {
   const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState("general");
-  
-  const confirmation = useConfirmation();
 
   const tabs = [
     { id: "general", name: "General", icon: "⚙️", component: GeneralTab },
@@ -46,7 +44,6 @@ export const Settings = () => {
     { id: "phrases", name: "Replacement Phrases", icon: "💬", component: PhrasesTab },
     { id: "sites", name: "Blocked Sites", icon: "🚫", component: SitesTab },
     { id: "stats", name: "Statistics", icon: "📊", component: StatsTab },
-    { id: "advanced", name: "Advanced", icon: "⚡", component: AdvancedTab },
     { id: "about", name: "About", icon: "ℹ️", component: AboutTab },
   ];
 
@@ -58,10 +55,7 @@ export const Settings = () => {
   const renderTab = useCallback(() => {
     if (!TabComponent) return null;
 
-    const props = { 
-      showToast,
-      showConfirmation: confirmation.showConfirmation
-    };
+    const props = { showToast };
 
     return (
       <SimpleErrorBoundary>
@@ -70,7 +64,7 @@ export const Settings = () => {
         </Suspense>
       </SimpleErrorBoundary>
     );
-  }, [TabComponent, showToast, confirmation.showConfirmation]);
+  }, [TabComponent, showToast]);
 
   return (
     <div className="bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
@@ -116,17 +110,6 @@ export const Settings = () => {
           <main className="lg:col-span-3">{renderTab()}</main>
         </div>
       </div>
-
-      <ConfirmationModal
-        isOpen={confirmation.isOpen}
-        title={confirmation.confirmConfig.title}
-        message={confirmation.confirmConfig.message}
-        confirmText={confirmation.confirmConfig.confirmText}
-        cancelText={confirmation.confirmConfig.cancelText}
-        confirmColor={confirmation.confirmConfig.confirmColor}
-        onConfirm={confirmation.handleConfirm}
-        onCancel={confirmation.handleCancel}
-      />
     </div>
   );
 };

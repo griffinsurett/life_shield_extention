@@ -2,7 +2,8 @@
  * Settings Hook
  * 
  * Manages extension settings with Chrome storage sync.
- * Now with optimized dependency arrays.
+ * Performance settings removed - now hardcoded for simplicity.
+ * Blur mode removed for better recovery focus.
  * 
  * @hook
  */
@@ -28,11 +29,7 @@ export const useSettings = () => {
       blockedSites: result.blockedSites ?? DEFAULT_SETTINGS.blockedSites,
       redirectUrl: result.redirectUrl ?? DEFAULT_SETTINGS.redirectUrl,
       enableFilter: result.enableFilter ?? DEFAULT_SETTINGS.enableFilter,
-      debugMode: result.debugMode ?? DEFAULT_SETTINGS.debugMode,
       showAlerts: result.showAlerts ?? DEFAULT_SETTINGS.showAlerts,
-      blurInsteadOfHide: result.blurInsteadOfHide ?? DEFAULT_SETTINGS.blurInsteadOfHide,
-      scanInterval: result.scanInterval ?? DEFAULT_SETTINGS.scanInterval,
-      mutationDebounce: result.mutationDebounce ?? DEFAULT_SETTINGS.mutationDebounce,
       replacementPhrases: result.replacementPhrases ?? DEFAULT_SETTINGS.replacementPhrases,
     });
     
@@ -58,11 +55,37 @@ export const useSettings = () => {
 
   /**
    * Update settings in storage
-   * Memoized to prevent unnecessary re-renders
+   * Now with immediate filter state broadcast
    */
   const updateSettings = useCallback(async (updates) => {
+    // Save to storage
     await storage.set(updates);
     setSettings(prev => ({ ...prev, ...updates }));
+    
+    // If filter state changed, broadcast immediately to all tabs
+    if ('enableFilter' in updates) {
+      try {
+        const tabs = await chrome.tabs.query({});
+        
+        // Send immediate filter state change message
+        const broadcastPromises = tabs.map(tab =>
+          chrome.tabs.sendMessage(tab.id, {
+            action: 'filterStateChanged',
+            enabled: updates.enableFilter,
+            timestamp: Date.now()
+          }).catch(() => {
+            // Ignore errors - some tabs don't have content scripts
+            // (chrome:// pages, extension pages, etc.)
+          })
+        );
+        
+        await Promise.allSettled(broadcastPromises);
+      } catch (error) {
+        console.warn('Error broadcasting filter state:', error);
+      }
+    }
+    
+    // Still send generic reload for other settings
     await sendMessageToTabs({ action: 'reloadConfig' });
   }, []);
 

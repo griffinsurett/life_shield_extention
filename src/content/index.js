@@ -2,7 +2,7 @@
  * Content Script Entry Point
  * 
  * Main content script that runs on every page.
- * Now with proper logging.
+ * Now with proper logging and enableFilter check.
  * 
  * @module content/index
  */
@@ -109,6 +109,11 @@ window.addEventListener('unhandledrejection', (event) => {
   function throttledClean(container = document.body) {
     if (isShuttingDown) return;
 
+    // CHECK IF FILTER IS ENABLED
+    if (!config.ENABLED) {
+      return; // Skip all filtering if disabled
+    }
+
     if (!isExtensionContextValid()) {
       isShuttingDown = true;
       logger.warn('Extension context invalidated, shutting down');
@@ -159,12 +164,18 @@ window.addEventListener('unhandledrejection', (event) => {
    * Initialize content script
    */
   function initialize() {
+    // CHECK IF FILTER IS ENABLED BEFORE INITIALIZING
+    if (!config.ENABLED) {
+      logger.info('Content filter is disabled, not initializing');
+      return;
+    }
+
     try {
       elementCleaner.injectStyles();
       
       if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => {
-          if (!isShuttingDown) throttledClean();
+          if (!isShuttingDown && config.ENABLED) throttledClean();
         });
       } else {
         throttledClean();
@@ -173,7 +184,7 @@ window.addEventListener('unhandledrejection', (event) => {
       // Early scans for dynamic inputs
       EARLY_SCAN_DELAYS.forEach(delay => {
         setTimeout(() => {
-          if (isShuttingDown || !isExtensionContextValid()) return;
+          if (isShuttingDown || !isExtensionContextValid() || !config.ENABLED) return;
           
           const newInputs = inputHandler.attachToInputs(document);
           if (newInputs > 0) {
@@ -184,8 +195,9 @@ window.addEventListener('unhandledrejection', (event) => {
 
       // Mutation observer
       const observer = new MutationObserver((mutations) => {
-        if (isShuttingDown || !isExtensionContextValid()) {
+        if (isShuttingDown || !isExtensionContextValid() || !config.ENABLED) {
           observer.disconnect();
+          if (!config.ENABLED) logger.info('Filter disabled, disconnecting observer');
           isShuttingDown = true;
           return;
         }
@@ -206,7 +218,7 @@ window.addEventListener('unhandledrejection', (event) => {
         if (addedNodes.length === 0) return;
 
         mutationTimer = setTimeout(() => {
-          if (isShuttingDown) return;
+          if (isShuttingDown || !config.ENABLED) return;
           
           addedNodes.forEach(node => {
             if (node.nodeType === 1) {
@@ -225,7 +237,7 @@ window.addEventListener('unhandledrejection', (event) => {
 
       // Regular scan interval
       const scanInterval = setInterval(() => {
-        if (isShuttingDown || !isExtensionContextValid()) {
+        if (isShuttingDown || !isExtensionContextValid() || !config.ENABLED) {
           clearInterval(scanInterval);
           isShuttingDown = true;
           return;
@@ -235,7 +247,7 @@ window.addEventListener('unhandledrejection', (event) => {
 
       // Input safety net
       const inputScanInterval = setInterval(() => {
-        if (isShuttingDown || !isExtensionContextValid()) {
+        if (isShuttingDown || !isExtensionContextValid() || !config.ENABLED) {
           clearInterval(inputScanInterval);
           isShuttingDown = true;
           return;

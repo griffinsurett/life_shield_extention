@@ -1,8 +1,9 @@
+// src/background/services/badge.js
 /**
  * Badge Service
  * 
  * Manages the extension badge (icon badge counter).
- * Functional module pattern - no classes.
+ * Now respects the showAlerts setting.
  * 
  * @module background/services/badge
  */
@@ -10,6 +11,7 @@
 import { isExtensionContextValid, safeChrome, safeChromeAsync } from '../../utils/chrome';
 import { BADGE_UPDATE_INTERVAL } from '../../utils/timing';
 import { createLogger } from '../../utils/logger';
+import { shouldShowAlerts } from './settings';
 
 const logger = createLogger('BadgeService');
 
@@ -29,10 +31,19 @@ export function initBadge() {
       updateBadge();
     }
   }, BADGE_UPDATE_INTERVAL);
+
+  // Listen for showAlerts changes to immediately update badge
+  chrome.storage.onChanged.addListener((changes, namespace) => {
+    if (namespace === 'sync' && changes.showAlerts !== undefined) {
+      logger.info(`Show alerts changed, updating badge`);
+      updateBadge();
+    }
+  });
 }
 
 /**
  * Update badge with current today count
+ * Now checks showAlerts setting before displaying
  * 
  * @async
  * @returns {Promise<void>}
@@ -44,6 +55,17 @@ export async function updateBadge() {
   }
 
   try {
+    // Check if alerts should be shown
+    const showAlerts = shouldShowAlerts();
+    
+    // If alerts are disabled, clear the badge
+    if (!showAlerts) {
+      safeChrome(() => chrome.action.setBadgeText({ text: '' }));
+      logger.debug('Alerts disabled, badge cleared');
+      return;
+    }
+
+    // Alerts are enabled, show the count
     logger.chromeAPI('storage.local.get', ['todayCount']);
     const result = await safeChromeAsync(
       () => chrome.storage.local.get(['todayCount']),
@@ -60,7 +82,7 @@ export async function updateBadge() {
       logger.debug(`Badge updated: ${count}`);
     } else {
       safeChrome(() => chrome.action.setBadgeText({ text: '' }));
-      logger.debug('Badge cleared');
+      logger.debug('Badge cleared (count is 0)');
     }
   } catch (error) {
     logger.safeError('Failed to update badge', error);
@@ -69,6 +91,7 @@ export async function updateBadge() {
 
 /**
  * Set badge to specific count
+ * Respects showAlerts setting
  * 
  * @async
  * @param {number} count - Count to display
@@ -80,6 +103,16 @@ export async function setBadgeCount(count) {
   }
 
   try {
+    // Check if alerts should be shown
+    const showAlerts = shouldShowAlerts();
+    
+    if (!showAlerts) {
+      // Alerts disabled, don't show badge
+      safeChrome(() => chrome.action.setBadgeText({ text: '' }));
+      return;
+    }
+
+    // Alerts enabled, show the count
     if (count > 0) {
       safeChrome(() => {
         chrome.action.setBadgeText({ text: count.toString() });
