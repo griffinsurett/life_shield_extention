@@ -10,7 +10,7 @@ import { Popup } from "./Popup";
 import { AppProvider } from "../contexts/AppContext";
 import { ToastProvider } from "../components/ToastContainer";
 import { ErrorBoundary } from "../components/ErrorBoundary";
-import "../App.css";
+import "../index.css";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
