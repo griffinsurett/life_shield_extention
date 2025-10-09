@@ -1,4 +1,6 @@
 // src/components/PageWrapper.jsx
+import { AuthProvider } from '../contexts/AuthContext'; // Add this import
+
 /**
  * Page Wrapper Component
  * 
@@ -25,16 +27,17 @@ export const PageWrapper = ({
   if (withProviders) {
     return (
       <ErrorBoundary showDetails={showErrorDetails}>
-        <AppProvider>
-          <ToastProvider>
-            {children}
-          </ToastProvider>
-        </AppProvider>
+        <AuthProvider>  {/* Add this */}
+          <AppProvider>
+            <ToastProvider>
+              {children}
+            </ToastProvider>
+          </AppProvider>
+        </AuthProvider>  {/* Add this */}
       </ErrorBoundary>
     );
   }
 
-  // For simple pages like blocked page that don't need full context
   return (
     <ErrorBoundary showDetails={showErrorDetails}>
       {children}

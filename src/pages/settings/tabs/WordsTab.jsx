@@ -1,28 +1,28 @@
 /**
  * Words Tab Component
- * 
+ *
  * Tab for managing blocked words.
  * Now uses confirmation modal for clear all.
- * 
+ *
  * @component
  */
 
 import { useCallback } from "react";
-import { useApp } from "../../contexts/AppContext";
-import { useListManager } from "../../hooks/useListManager";
-import ListManager from "../../components/ListManager";
+import { useApp } from "../../../contexts/AppContext";
+import { useListManager } from "../../../hooks/useListManager";
+import ListManager from "../../../components/ListManager";
 
 const WordsTab = ({ showConfirmation }) => {
   const { settings, updateSettings } = useApp();
-  
+
   const wordManager = useListManager(
     settings.blockedWords,
     (words) => updateSettings({ blockedWords: words }),
-    { 
+    {
       itemName: "word",
       requireConfirmation: true,
-      getConfirmMessage: (word) => 
-        `Are you sure you want to block the word "${word}"? This will filter it from all web pages you visit.`
+      getConfirmMessage: (word) =>
+        `Are you sure you want to block the word "${word}"? This will filter it from all web pages you visit.`,
     }
   );
 

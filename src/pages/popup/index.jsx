@@ -1,17 +1,16 @@
-// src/settings/index.jsx
 /**
- * Settings Entry Point
+ * Popup Entry Point
  */
 
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { Settings } from "./Settings";
-import { PageWrapper } from "../components/PageWrapper";
+import { Popup } from "./Popup";
+import { PageWrapper } from "../../components/PageWrapper";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <PageWrapper>
-      <Settings />
+      <Popup />
     </PageWrapper>
   </React.StrictMode>
 );

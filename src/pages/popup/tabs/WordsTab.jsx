@@ -1,15 +1,15 @@
 /**
  * Words Tab Component
- * 
+ *
  * Full blocked words management interface.
  * Now uses confirmation modal for clear all.
- * 
+ *
  * @component
  */
 
-import { useCallback } from 'react';
-import { useApp } from '../../contexts/AppContext';
-import ListManager from '../../components/ListManager';
+import { useCallback } from "react";
+import { useApp } from "../../../contexts/AppContext";
+import ListManager from "../../../components/ListManager";
 
 export const WordsTab = ({ wordManager, showConfirmation }) => {
   const { settings } = useApp();

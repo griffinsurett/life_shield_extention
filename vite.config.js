@@ -12,10 +12,10 @@ export default defineConfig({
   ],
   build: {
     rollupOptions: {
-      input: {
-        popup: 'src/popup/index.html',
-        settings: 'src/settings/index.html',
-        blocked: 'src/blocked/index.html'
+     input: {
+        popup: 'src/pages/popup/index.html',
+        settings: 'src/pages/settings/index.html',
+        blocked: 'src/pages/blocked/index.html'
       }
     }
   }

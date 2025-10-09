@@ -1,16 +1,11 @@
-/**
- * Home Tab Component
- * 
- * Main dashboard showing status and quick add functionality.
- * Now uses AppContext for cleaner code.
- * 
- * @component
- */
-
+// src/pages/popup/tabs/HomeTab.jsx
+import { useState, useEffect } from 'react';
 import { StatusCard } from '../components/StatusCard';
 import { QuickBlockCurrent } from '../components/QuickBlockCurrent';
-import { useToast } from '../../components/ToastContainer';
-import { useApp } from '../../contexts/AppContext';
+import { useToast } from '../../../components/ToastContainer';
+import { useApp } from '../../../contexts/AppContext';
+import { useAuth } from '../../../contexts/AuthContext';
+import { supabase } from '../../../services/supabase';
 
 export const HomeTab = ({ 
   wordManager, 
@@ -19,10 +14,12 @@ export const HomeTab = ({
 }) => {
   const { showToast } = useToast();
   const { settings, updateSettings, stats } = useApp();
+  const { user } = useAuth();
+  const [checkingVerification, setCheckingVerification] = useState(false);
 
-  /**
-   * Handle blocking current site
-   */
+  // Check if email is verified
+  const isEmailVerified = user?.email_confirmed_at || user?.confirmed_at;
+
   const handleBlockCurrentSite = async (domain) => {
     const cleanDomain = domain
       .trim()
@@ -50,8 +47,93 @@ export const HomeTab = ({
     });
   };
 
+  const handleCheckVerification = async () => {
+    setCheckingVerification(true);
+    try {
+      // Refresh the session to get latest user data
+      const { data: { session }, error } = await supabase.auth.refreshSession();
+      
+      if (error) throw error;
+      
+      if (session?.user?.email_confirmed_at) {
+        showToast('Email verified! You\'re all set! 🎉', 'success');
+      } else {
+        showToast('Email not verified yet. Check your inbox!', 'info');
+      }
+    } catch (error) {
+      showToast('Could not check verification status', 'error');
+    } finally {
+      setCheckingVerification(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    if (!user?.email) return;
+    
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: user.email,
+        options: {
+          emailRedirectTo: chrome.runtime.getURL('src/pages/settings/index.html')
+        }
+      });
+
+      if (error) throw error;
+      
+      showToast('Verification email sent! Check your inbox.', 'success');
+    } catch (error) {
+      showToast(error.message || 'Failed to send email', 'error');
+    }
+  };
+
   return (
     <div className="space-y-4">
+      {/* Email Verification Banner (if logged in but unverified) */}
+      {user && !isEmailVerified && (
+        <div className="p-4 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-xl text-white shadow-lg animate-fade-in">
+          <div className="flex items-start gap-3">
+            <span className="text-2xl">📧</span>
+            <div className="flex-1">
+              <h3 className="font-bold text-sm mb-1">Verify Your Email</h3>
+              <p className="text-xs text-white/90 mb-3">
+                Check your inbox and click the verification link to complete setup.
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleCheckVerification}
+                  disabled={checkingVerification}
+                  className="px-3 py-1.5 bg-white/20 hover:bg-white/30 rounded-lg text-xs font-semibold transition-colors disabled:opacity-50"
+                >
+                  {checkingVerification ? 'Checking...' : 'I Verified ✓'}
+                </button>
+                <button
+                  onClick={handleResendVerification}
+                  className="px-3 py-1.5 bg-white/20 hover:bg-white/30 rounded-lg text-xs font-semibold transition-colors"
+                >
+                  Resend Email
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Email Verified Success (show briefly after verification) */}
+      {user && isEmailVerified && (
+        <div className="p-4 bg-gradient-to-r from-green-400 to-green-500 rounded-xl text-white shadow-lg animate-fade-in">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">✅</span>
+            <div>
+              <h3 className="font-bold text-sm">Email Verified!</h3>
+              <p className="text-xs text-white/90">
+                Your account is fully set up and syncing.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <QuickBlockCurrent 
         onBlockSite={handleBlockCurrentSite}
         showConfirmation={showConfirmation}

@@ -1,15 +1,15 @@
 /**
  * Sites Tab Component
- * 
+ *
  * Full blocked sites management interface.
  * Now uses confirmation modal for clear all.
- * 
+ *
  * @component
  */
 
-import { useCallback } from 'react';
-import { useApp } from '../../contexts/AppContext';
-import ListManager from '../../components/ListManager';
+import { useCallback } from "react";
+import { useApp } from "../../../contexts/AppContext";
+import ListManager from "../../../components/ListManager";
 
 export const SitesTab = ({ siteManager, showConfirmation }) => {
   const { settings } = useApp();
@@ -22,7 +22,9 @@ export const SitesTab = ({ siteManager, showConfirmation }) => {
   return (
     <div className="bg-white rounded-2xl shadow-lg p-8 animate-fade-in">
       <h2 className="text-2xl font-bold text-gray-800 mb-6">Blocked Sites</h2>
-      <p className="text-gray-600 mb-6">Sites that will be blocked and redirect to your chosen URL</p>
+      <p className="text-gray-600 mb-6">
+        Sites that will be blocked and redirect to your chosen URL
+      </p>
 
       <ListManager
         items={settings.blockedSites}

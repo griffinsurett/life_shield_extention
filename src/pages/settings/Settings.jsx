@@ -1,21 +1,22 @@
 // src/settings/Settings.jsx
 /**
  * Settings Component
- * 
+ *
  * Main settings page with code splitting.
  * Tabs are lazy-loaded to reduce initial bundle size.
- * 
+ *
  * SIMPLIFIED: Removed advanced technical settings for better UX
- * 
+ *
  * @component
  */
 
 import { useState, useCallback, lazy, Suspense } from "react";
-import { useToast } from "../components/ToastContainer";
-import { SimpleErrorBoundary } from "../components/ErrorBoundary";
+import { useToast } from "../../components/ToastContainer";
+import { SimpleErrorBoundary } from "../../components/ErrorBoundary";
 
 // Lazy load all tab components
 const GeneralTab = lazy(() => import("./tabs/GeneralTab"));
+const AccountTab = lazy(() => import("./tabs/AccountTab"));
 const WordsTab = lazy(() => import("./tabs/WordsTab"));
 const PhrasesTab = lazy(() => import("./tabs/PhrasesTab"));
 const SitesTab = lazy(() => import("./tabs/SitesTab"));
@@ -40,15 +41,21 @@ export const Settings = () => {
 
   const tabs = [
     { id: "general", name: "General", icon: "⚙️", component: GeneralTab },
+    { id: "account", name: "Account", icon: "👤", component: AccountTab },
     { id: "words", name: "Blocked Words", icon: "📝", component: WordsTab },
-    { id: "phrases", name: "Replacement Phrases", icon: "💬", component: PhrasesTab },
+    {
+      id: "phrases",
+      name: "Replacement Phrases",
+      icon: "💬",
+      component: PhrasesTab,
+    },
     { id: "sites", name: "Blocked Sites", icon: "🚫", component: SitesTab },
     { id: "stats", name: "Statistics", icon: "📊", component: StatsTab },
     { id: "about", name: "About", icon: "ℹ️", component: AboutTab },
   ];
 
   // Get active tab component
-  const activeTabData = tabs.find(tab => tab.id === activeTab);
+  const activeTabData = tabs.find((tab) => tab.id === activeTab);
   const TabComponent = activeTabData?.component;
 
   // Memoized tab renderer with lazy loading
