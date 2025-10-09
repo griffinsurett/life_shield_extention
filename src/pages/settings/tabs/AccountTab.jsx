@@ -1,4 +1,4 @@
-// src/settings/tabs/AccountTab.jsx
+// src/pages/settings/tabs/AccountTab.jsx
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { AuthModal } from '../../../components/AuthModal';
@@ -7,36 +7,20 @@ const AccountTab = ({ showToast }) => {
   const { user, signOut, loading } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
 
-  // Check if user just verified their email
+  // Check for verification success flag
   useEffect(() => {
-    chrome.storage.local.get(['emailVerified'], (result) => {
-      if (result.emailVerified) {
-        showToast('Email verified successfully! Welcome! 🎉', 'success');
-        // Clear the flag
-        chrome.storage.local.remove(['emailVerified']);
+    chrome.storage.local.get(['verificationSuccessful'], (result) => {
+      if (result.verificationSuccessful && user) {
+        // Clear the URL hash
+        if (window.location.hash) {
+          window.history.replaceState(null, '', window.location.pathname);
+        }
+        
+        showToast('🎉 Email verified! Welcome to Wellness Filter!', 'success');
+        chrome.storage.local.remove(['verificationSuccessful', 'emailJustVerified']);
       }
     });
-  }, [showToast]);
-
-  // Check URL hash for auth errors
-  useEffect(() => {
-    const hash = window.location.hash;
-    if (hash.includes('error=')) {
-      const params = new URLSearchParams(hash.substring(1));
-      const error = params.get('error_description') || params.get('error');
-      
-      if (error) {
-        if (error.includes('expired')) {
-          showToast('Verification link expired. Please sign up again.', 'error');
-        } else {
-          showToast(`Error: ${error}`, 'error');
-        }
-      }
-      
-      // Clear the hash
-      window.history.replaceState(null, '', window.location.pathname);
-    }
-  }, [showToast]);
+  }, [user, showToast]);
 
   const handleSignOut = async () => {
     const { error } = await signOut();
@@ -66,14 +50,16 @@ const AccountTab = ({ showToast }) => {
         {user ? (
           // Signed in state
           <div className="space-y-6">
-            {/* Success banner if just logged in */}
             <div className="p-6 bg-gradient-to-r from-green-50 to-green-100 rounded-xl border-2 border-green-200">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center text-white text-xl font-bold">
                   {user.email?.[0]?.toUpperCase()}
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-800">Signed In</h3>
+                  <h3 className="font-semibold text-gray-800 flex items-center gap-2">
+                    Signed In
+                    <span className="text-green-500 text-lg">✓</span>
+                  </h3>
                   <p className="text-sm text-gray-600">{user.email}</p>
                 </div>
               </div>
@@ -88,7 +74,6 @@ const AccountTab = ({ showToast }) => {
               </div>
             </div>
 
-            {/* Sign Out Button */}
             <button
               onClick={handleSignOut}
               className="w-full px-6 py-3 bg-red-600 text-white rounded-xl font-semibold hover:bg-red-700 transition-colors"
@@ -122,7 +107,6 @@ const AccountTab = ({ showToast }) => {
               </ul>
             </div>
 
-            {/* Sign In Button */}
             <button
               onClick={() => setShowAuthModal(true)}
               className="w-full px-6 py-3 bg-primary text-white rounded-xl font-semibold hover:bg-secondary transition-colors"
@@ -133,7 +117,6 @@ const AccountTab = ({ showToast }) => {
         )}
       </div>
 
-      {/* Auth Modal */}
       <AuthModal 
         isOpen={showAuthModal} 
         onClose={() => setShowAuthModal(false)} 

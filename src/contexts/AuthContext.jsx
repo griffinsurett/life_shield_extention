@@ -3,11 +3,14 @@
  * Auth Context
  * 
  * Manages authentication state across the extension.
- * Provides login, signup, logout, and user info.
- * Polls for email verification status when user is unverified.
+ * Handles email verification auto-login by manually processing URL tokens.
  * 
- * Note: Email confirmation is disabled in Supabase for better UX.
- * Users are immediately logged in after signup but encouraged to verify.
+ * Flow:
+ * 1. User signs up → Supabase sends verification email
+ * 2. User clicks link → Redirects to extension with tokens in URL hash
+ * 3. processUrlHash() extracts and validates tokens
+ * 4. setSession() creates authenticated session
+ * 5. User is automatically logged in ✅
  */
 
 import { createContext, useContext, useState, useEffect } from 'react';
@@ -23,139 +26,154 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    /**
+     * Process authentication tokens from URL hash
+     * Called when user arrives via email verification link
+     * 
+     * @returns {Promise<boolean>} True if tokens were successfully processed
+     */
+    const processUrlHash = async () => {
+      const hash = window.location.hash;
+      
+      // Check if we have tokens in the URL
+      if (!hash.includes('access_token=')) {
+        return false;
+      }
+
+      logger.info('📧 Found auth tokens in URL, processing...');
+      
+      try {
+        // Parse hash parameters
+        const params = new URLSearchParams(hash.substring(1));
+        const access_token = params.get('access_token');
+        const refresh_token = params.get('refresh_token');
+        const type = params.get('type');
+        
+        // Validate required tokens
+        if (!access_token || !refresh_token) {
+          logger.warn('Missing required tokens in URL hash');
+          return false;
+        }
+
+        logger.debug('Token details:', { 
+          hasAccessToken: !!access_token,
+          hasRefreshToken: !!refresh_token,
+          type: type
+        });
+
+        // Set session with tokens from URL
+        const { data, error } = await supabase.auth.setSession({
+          access_token,
+          refresh_token
+        });
+
+        if (error) {
+          logger.error('Failed to set session from URL tokens', error);
+          
+          // Clear invalid hash
+          window.history.replaceState(null, '', window.location.pathname);
+          return false;
+        }
+
+        // Success!
+        logger.info('✅ Successfully authenticated from email verification!', {
+          email: data.user?.email,
+          verified: !!(data.user?.email_confirmed_at || data.user?.confirmed_at)
+        });
+
+        // Set flag for UI to show success message
+        chrome.storage.local.set({ 
+          emailJustVerified: true,
+          verificationSuccessful: true
+        });
+
+        // Clean up URL hash
+        window.history.replaceState(null, '', window.location.pathname);
+
+        return true;
+      } catch (error) {
+        logger.error('Error processing URL hash', error);
+        
+        // Clean up on error
+        window.history.replaceState(null, '', window.location.pathname);
+        return false;
+      }
+    };
+
+    /**
+     * Initialize authentication state
+     * 1. Process any URL tokens first (email verification)
+     * 2. Then get existing session if any
+     */
+    const initializeAuth = async () => {
+      // Try to process URL tokens first
+      const processedFromUrl = await processUrlHash();
+      
+      // Get current session (either from URL or existing)
+      const { data: { session }, error } = await supabase.auth.getSession();
+      
+      if (error) {
+        logger.error('Error getting session', error);
+      }
+      
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
       
       if (session?.user) {
         const isVerified = !!(session.user.email_confirmed_at || session.user.confirmed_at);
-        logger.info('Initial session loaded', { 
+        logger.info('Session initialized', { 
           authenticated: true,
-          emailVerified: isVerified
+          emailVerified: isVerified,
+          email: session.user.email,
+          source: processedFromUrl ? 'email_verification' : 'existing_session'
         });
       } else {
-        logger.info('Initial session loaded', 'Not authenticated');
+        logger.info('Session initialized', { authenticated: false });
       }
-    });
+    };
 
-    // Listen for auth changes
+    initializeAuth();
+
+    // Listen for auth state changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      logger.info('Auth state changed', event);
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      logger.info('🔔 Auth event:', event, {
+        hasSession: !!session,
+        userEmail: session?.user?.email
+      });
       
-      const previousUser = user;
       setSession(session);
       setUser(session?.user ?? null);
 
-      // Handle signup - user is now logged in!
-      if (event === 'SIGNED_IN' && session?.user) {
-        const wasJustCreated = !previousUser && session.user;
-        const isVerified = !!(session.user.email_confirmed_at || session.user.confirmed_at);
-        
-        logger.info('User signed in', { 
-          wasJustCreated,
-          emailVerified: isVerified
-        });
-        
-        // If account just created and unverified, set flag to show verification UI
-        if (wasJustCreated && !isVerified) {
-          chrome.storage.local.set({ 
-            showVerificationPrompt: true,
-            userJustSignedUp: true 
-          });
-        }
-        
-        // Check if this was from email verification
-        if (window.location.hash.includes('type=signup') || 
-            window.location.hash.includes('type=email')) {
-          chrome.storage.local.set({ emailJustVerified: true });
-          logger.info('Email verification detected from URL');
-        }
-      }
-
-      // Handle token refresh - check if email was just verified
-      if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
-        if (session?.user) {
-          const wasUnverified = !(previousUser?.email_confirmed_at || previousUser?.confirmed_at);
-          const nowVerified = !!(session.user.email_confirmed_at || session.user.confirmed_at);
-          
-          if (wasUnverified && nowVerified) {
-            chrome.storage.local.set({ emailJustVerified: true });
-            logger.info('✅ Email verification detected via token refresh');
-          }
-        }
-      }
-
-      // Handle sign out
+      // Handle sign out - clean up storage
       if (event === 'SIGNED_OUT') {
-        chrome.storage.local.remove(['showVerificationPrompt', 'userJustSignedUp', 'emailJustVerified']);
-        logger.info('User signed out, cleared verification flags');
+        chrome.storage.local.remove([
+          'emailJustVerified',
+          'verificationSuccessful'
+        ]);
+        logger.info('Signed out - cleared storage flags');
       }
     });
 
-    return () => subscription.unsubscribe();
-  }, [user]);
-
-  // Poll for email verification when user is logged in but unverified
-  useEffect(() => {
-    let pollInterval;
-    
-    const isUnverified = user && !(user.email_confirmed_at || user.confirmed_at);
-    
-    if (isUnverified) {
-      logger.info('Starting email verification polling (user is unverified)');
-      
-      pollInterval = setInterval(async () => {
-        try {
-          logger.debug('Polling: Checking email verification status...');
-          const { data: { session }, error } = await supabase.auth.refreshSession();
-          
-          if (error) {
-            logger.error('Error refreshing session during poll', error);
-            return;
-          }
-          
-          const nowVerified = !!(session?.user?.email_confirmed_at || session?.user?.confirmed_at);
-          
-          if (nowVerified) {
-            logger.info('✅ Email verified detected via polling!');
-            chrome.storage.local.set({ 
-              emailJustVerified: true,
-              showVerificationPrompt: false 
-            });
-            // Stop polling
-            if (pollInterval) {
-              clearInterval(pollInterval);
-              logger.info('Stopped polling - email now verified');
-            }
-          }
-        } catch (error) {
-          logger.safeError('Error in verification polling', error);
-        }
-      }, 30000); // Check every 30 seconds
-    }
-
     return () => {
-      if (pollInterval) {
-        clearInterval(pollInterval);
-        logger.debug('Stopped email verification polling (cleanup)');
-      }
+      subscription.unsubscribe();
     };
-  }, [user]);
+  }, []); // Run once on mount
 
   /**
    * Sign up with email and password
-   * With email confirmation disabled, user gets immediate session
+   * Sends verification email if confirmation is enabled in Supabase
    * 
    * @param {string} email - User email
-   * @param {string} password - User password
+   * @param {string} password - User password (min 6 characters)
    * @returns {Promise<{data: object|null, error: object|null}>}
    */
   const signUp = async (email, password) => {
     try {
+      logger.info('Attempting sign up...', { email });
+      
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -168,17 +186,16 @@ export function AuthProvider({ children }) {
 
       const hasSession = !!data.session;
       const hasUser = !!data.user;
-      const isVerified = !!(data.user?.email_confirmed_at || data.user?.confirmed_at);
 
       logger.info('Sign up successful', { 
         hasSession,
         hasUser,
-        isVerified
+        email: data.user?.email,
+        needsVerification: hasUser && !hasSession
       });
 
-      // If user created but no session, email confirmation might still be enabled
       if (hasUser && !hasSession) {
-        logger.warn('User created but no session - email confirmation may be enabled in Supabase');
+        logger.info('📧 Verification email sent to:', data.user.email);
       }
       
       return { data, error: null };
@@ -197,6 +214,8 @@ export function AuthProvider({ children }) {
    */
   const signIn = async (email, password) => {
     try {
+      logger.info('Attempting sign in...', { email });
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -204,8 +223,10 @@ export function AuthProvider({ children }) {
 
       if (error) throw error;
 
-      const isVerified = !!(data.user?.email_confirmed_at || data.user?.confirmed_at);
-      logger.info('Sign in successful', { emailVerified: isVerified });
+      logger.info('Sign in successful', { 
+        email: data.user?.email,
+        verified: !!(data.user?.email_confirmed_at || data.user?.confirmed_at)
+      });
       
       return { data, error: null };
     } catch (error) {
@@ -216,15 +237,18 @@ export function AuthProvider({ children }) {
 
   /**
    * Sign out current user
+   * Clears session and removes all auth-related storage
    * 
    * @returns {Promise<{error: object|null}>}
    */
   const signOut = async () => {
     try {
+      logger.info('Signing out...');
+      
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
 
-      logger.info('Sign out successful');
+      logger.info('✅ Signed out successfully');
       return { error: null };
     } catch (error) {
       logger.error('Sign out failed', error);
@@ -240,13 +264,15 @@ export function AuthProvider({ children }) {
    */
   const resetPassword = async (email) => {
     try {
+      logger.info('Sending password reset email...', { email });
+      
       const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: chrome.runtime.getURL('src/pages/settings/index.html'),
       });
 
       if (error) throw error;
 
-      logger.info('Password reset email sent');
+      logger.info('✅ Password reset email sent');
       return { data, error: null };
     } catch (error) {
       logger.error('Password reset failed', error);
@@ -256,12 +282,15 @@ export function AuthProvider({ children }) {
 
   /**
    * Resend verification email
+   * Useful if user didn't receive the first email
    * 
-   * @param {string} email - User email  
+   * @param {string} email - User email
    * @returns {Promise<{error: object|null}>}
    */
   const resendVerification = async (email) => {
     try {
+      logger.info('Resending verification email...', { email });
+      
       const { error } = await supabase.auth.resend({
         type: 'signup',
         email: email,
@@ -272,40 +301,11 @@ export function AuthProvider({ children }) {
 
       if (error) throw error;
 
-      logger.info('Verification email resent');
+      logger.info('✅ Verification email resent');
       return { error: null };
     } catch (error) {
       logger.error('Resend verification failed', error);
       return { error };
-    }
-  };
-
-  /**
-   * Manually refresh session to check for email verification
-   * 
-   * @returns {Promise<{verified: boolean, error: object|null}>}
-   */
-  const checkEmailVerification = async () => {
-    try {
-      const { data: { session }, error } = await supabase.auth.refreshSession();
-      
-      if (error) throw error;
-
-      const verified = !!(session?.user?.email_confirmed_at || session?.user?.confirmed_at);
-      
-      logger.info('Email verification check', { verified });
-      
-      if (verified) {
-        chrome.storage.local.set({ 
-          emailJustVerified: true,
-          showVerificationPrompt: false 
-        });
-      }
-      
-      return { verified, error: null };
-    } catch (error) {
-      logger.error('Email verification check failed', error);
-      return { verified: false, error };
     }
   };
 
@@ -318,7 +318,6 @@ export function AuthProvider({ children }) {
     signOut,
     resetPassword,
     resendVerification,
-    checkEmailVerification,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -326,9 +325,13 @@ export function AuthProvider({ children }) {
 
 /**
  * Hook to access auth context
+ * Must be used within AuthProvider
  * 
- * @returns {object} Auth context value
+ * @returns {object} Auth context value with user, session, and auth methods
  * @throws {Error} If used outside AuthProvider
+ * 
+ * @example
+ * const { user, signIn, signOut } = useAuth();
  */
 export function useAuth() {
   const context = useContext(AuthContext);

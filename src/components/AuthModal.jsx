@@ -4,12 +4,14 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from './ToastContainer';
 
 export const AuthModal = ({ isOpen, onClose }) => {
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, resendVerification } = useAuth();
   const { showToast } = useToast();
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showEmailVerification, setShowEmailVerification] = useState(false);
+  const [pendingEmail, setPendingEmail] = useState('');
 
   if (!isOpen) return null;
 
@@ -24,18 +26,20 @@ export const AuthModal = ({ isOpen, onClose }) => {
         if (error) {
           showToast(error.message, 'error');
         } else {
-          // User is now logged in (but email unverified)
-          showToast('Account created! Please verify your email.', 'success');
-          onClose(); // Close modal - they're logged in!
+          // With confirmation enabled, data.session will be null
+          // User needs to verify email before they can sign in
+          setPendingEmail(email);
+          setShowEmailVerification(true);
+          
+          // Don't close modal - show verification screen instead
         }
       } else {
         // Sign in
         const { error } = await signIn(email, password);
         
         if (error) {
-          // Better error message for unverified email
           if (error.message.includes('Email not confirmed')) {
-            showToast('Please verify your email before signing in. Check your inbox!', 'error');
+            showToast('Please verify your email first. Check your inbox!', 'error');
           } else {
             showToast(error.message, 'error');
           }
@@ -51,6 +55,110 @@ export const AuthModal = ({ isOpen, onClose }) => {
     }
   };
 
+  const handleResend = async () => {
+    try {
+      const { error } = await resendVerification(pendingEmail);
+      if (error) {
+        showToast(error.message, 'error');
+      } else {
+        showToast('Verification email sent!', 'success');
+      }
+    } catch (err) {
+      showToast('Failed to resend email', 'error');
+    }
+  };
+
+  // Email Verification Screen
+  if (showEmailVerification) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in">
+        <div 
+          className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+          onClick={onClose}
+        />
+        
+        <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full animate-slide-up">
+          {/* Header */}
+          <div className="bg-gradient-to-r from-green-500 to-green-600 p-6 rounded-t-2xl text-center">
+            <div className="text-6xl mb-3">📧</div>
+            <h2 className="text-2xl font-bold text-white">Check Your Email</h2>
+            <p className="text-white/90 text-sm mt-2">
+              One click away from getting started!
+            </p>
+          </div>
+          
+          {/* Body */}
+          <div className="p-6 space-y-6">
+            <div className="text-center">
+              <p className="text-gray-700 mb-2">
+                We sent a verification link to:
+              </p>
+              <div className="bg-gray-50 rounded-lg p-3 mb-4">
+                <p className="text-primary font-semibold break-all">
+                  {pendingEmail}
+                </p>
+              </div>
+              
+              {/* What happens next */}
+              <div className="text-left bg-gradient-to-br from-blue-50 to-purple-50 border-2 border-blue-200 rounded-xl p-4 space-y-3">
+                <p className="font-semibold text-blue-900 flex items-center gap-2">
+                  <span className="text-2xl">✨</span> What happens next:
+                </p>
+                <ol className="space-y-2 text-sm text-gray-700">
+                  <li className="flex items-start gap-2">
+                    <span className="font-bold text-blue-600 flex-shrink-0">1.</span>
+                    <span>Check your email inbox (and spam folder)</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="font-bold text-blue-600 flex-shrink-0">2.</span>
+                    <span>Click the verification link</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="font-bold text-purple-600 flex-shrink-0">3.</span>
+                    <span><strong>You'll be automatically logged in!</strong> 🎉</span>
+                  </li>
+                </ol>
+              </div>
+            </div>
+            
+            {/* Actions */}
+            <div className="space-y-3">
+              <button
+                onClick={onClose}
+                className="w-full px-4 py-3 bg-primary hover:bg-secondary text-white rounded-xl font-semibold transition-colors"
+              >
+                Got it!
+              </button>
+              
+              <button
+                onClick={() => {
+                  setShowEmailVerification(false);
+                  setIsSignUp(false);
+                  setPassword('');
+                }}
+                className="w-full px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-medium transition-colors"
+              >
+                Back to Sign In
+              </button>
+            </div>
+
+            {/* Resend link */}
+            <p className="text-center text-xs text-gray-500">
+              Didn't receive the email?{' '}
+              <button 
+                onClick={handleResend}
+                className="text-primary hover:text-secondary underline font-medium"
+              >
+                Resend
+              </button>
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Sign In / Sign Up Form
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in">
       <div 
