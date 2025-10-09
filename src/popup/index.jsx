@@ -1,25 +1,17 @@
+// src/popup/index.jsx
 /**
  * Popup Entry Point
- * 
- * Now wrapped with error boundary for better error handling.
  */
 
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { Popup } from "./Popup";
-import { AppProvider } from "../contexts/AppContext";
-import { ToastProvider } from "../components/ToastContainer";
-import { ErrorBoundary } from "../components/ErrorBoundary";
-import "../index.css";
+import { PageWrapper } from "../components/PageWrapper";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <ErrorBoundary showDetails={true}>
-      <AppProvider>
-        <ToastProvider>
-          <Popup />
-        </ToastProvider>
-      </AppProvider>
-    </ErrorBoundary>
+    <PageWrapper>
+      <Popup />
+    </PageWrapper>
   </React.StrictMode>
 );
