@@ -2,7 +2,7 @@
  * Input Handler Module
  * 
  * Handles input field interception and filtering.
- * Now with proper logging.
+ * Now with proper logging and immediate text replacement.
  * 
  * @class InputHandler
  */
@@ -57,12 +57,12 @@ export class InputHandler {
    */
   attachInputListener(input) {
     try {
-      // Handle input event
+      // Handle input event (fires on every keystroke)
       input.addEventListener('input', (e) => {
         this.handleInputChange(e.target);
       }, { passive: true });
 
-      // Handle change event
+      // Handle change event (fires when input loses focus)
       input.addEventListener('change', (e) => {
         this.handleInputChange(e.target);
       }, { passive: true });
@@ -70,6 +70,14 @@ export class InputHandler {
       // Handle keyup for immediate feedback
       input.addEventListener('keyup', (e) => {
         this.handleInputChange(e.target);
+      }, { passive: true });
+
+      // Handle paste events
+      input.addEventListener('paste', (e) => {
+        // Small delay to let the paste complete
+        setTimeout(() => {
+          this.handleInputChange(e.target);
+        }, 10);
       }, { passive: true });
 
       logger.debug(`Listeners attached to input: ${input.name || input.id || 'unknown'}`);
@@ -84,16 +92,33 @@ export class InputHandler {
    * @param {HTMLInputElement} input - Input element
    */
   handleInputChange(input) {
+    if (!this.config.ENABLED) return; // Don't process if filter is disabled
+
     try {
       const value = input.value;
       
       if (this.utils.containsBlockedWord(value)) {
         const scrubbed = this.utils.scrubText(value);
-        input.value = scrubbed;
-        logger.debug('Input value scrubbed');
         
-        // Trigger input event for frameworks
-        input.dispatchEvent(new Event('input', { bubbles: true }));
+        // Only update if the value actually changed
+        if (scrubbed !== value) {
+          // Save cursor position
+          const cursorPos = input.selectionStart;
+          const lengthDiff = scrubbed.length - value.length;
+          
+          // Update value
+          input.value = scrubbed;
+          
+          // Restore cursor position (adjusted for length change)
+          const newPos = Math.max(0, cursorPos + lengthDiff);
+          input.setSelectionRange(newPos, newPos);
+          
+          logger.debug(`Input value scrubbed: "${value}" -> "${scrubbed}"`);
+          
+          // Trigger input event for frameworks (React, Vue, etc.)
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+          input.dispatchEvent(new Event('change', { bubbles: true }));
+        }
       }
     } catch (error) {
       logger.safeError('Error handling input change', error);

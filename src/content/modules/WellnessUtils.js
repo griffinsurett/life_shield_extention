@@ -44,6 +44,8 @@ export class WellnessUtils {
    */
   containsBlockedWord(text) {
     if (!text) return false;
+    if (!this.config.ENABLED) return false; // Check if filter is enabled
+    
     const lower = text.toLowerCase();
     return this.config.BLOCKED_WORDS.some(word => 
       lower.includes(word.toLowerCase())
@@ -57,6 +59,9 @@ export class WellnessUtils {
    * @returns {string} Scrubbed text with replacements
    */
   scrubText(text) {
+    if (!text) return text;
+    if (!this.config.ENABLED) return text; // Don't scrub if disabled
+    
     let scrubbed = text;
     let foundCount = 0;
     
@@ -70,7 +75,8 @@ export class WellnessUtils {
       const matches = scrubbed.match(regex);
       if (matches) {
         foundCount += matches.length;
-        scrubbed = scrubbed.replace(regex, this.getRandomReplacement());
+        // Replace each occurrence with a different random phrase
+        scrubbed = scrubbed.replace(regex, () => this.getRandomReplacement());
       }
     });
     
@@ -78,7 +84,7 @@ export class WellnessUtils {
     if (foundCount > 0) {
       this.sessionFilterCount += foundCount;
       this.updateFilterStats(foundCount);
-      logger.debug(`Scrubbed ${foundCount} words`);
+      logger.debug(`Scrubbed ${foundCount} words in text`);
     }
     
     return scrubbed;
@@ -92,6 +98,8 @@ export class WellnessUtils {
       logger.debug('Extension context invalidated, skipping URL check');
       return;
     }
+
+    if (!this.config.ENABLED) return; // Don't check if disabled
 
     const url = window.location.href;
     const params = new URLSearchParams(window.location.search);

@@ -2,7 +2,7 @@
  * Site Handlers Module
  * 
  * Site-specific handling for Google, Yahoo, etc.
- * Now with proper logging.
+ * Now with enhanced Google New Tab page support.
  * 
  * @class SiteHandlers
  */
@@ -48,21 +48,100 @@ export class SiteHandlers {
 
     // More aggressive setup for Google's dynamic UI
     const setupInterval = setInterval(() => {
-      const searchBox = document.querySelector('input[name="q"]');
-      if (searchBox) {
-        this.inputHandler.attachToInputs(document);
-        logger.debug('Google search box found and attached');
+      // Find all possible Google search inputs
+      const searchBoxes = document.querySelectorAll([
+        'input[name="q"]',
+        'textarea[name="q"]',
+        'input[type="text"][title*="Search"]',
+        'input[aria-label*="Search"]',
+        'textarea[aria-label*="Search"]',
+        '[role="combobox"][name="q"]',
+        'textarea[aria-controls*="Alh6id"]',
+        // New Tab page specific selectors
+        'input[jsname]',
+        'textarea[jsname]',
+        '.gLFyf', // Google's search input class
+        'input.gLFyf',
+        'textarea.gLFyf',
+        // Additional fallbacks
+        'form[role="search"] input',
+        'form[role="search"] textarea'
+      ].join(', '));
+
+      if (searchBoxes.length > 0) {
+        let attached = 0;
+        searchBoxes.forEach(box => {
+          if (!box.getAttribute('data-filter-attached')) {
+            this.inputHandler.attachInputListener(box);
+            this.inputHandler.attachedInputs.add(box);
+            attached++;
+          }
+        });
+        
+        if (attached > 0) {
+          logger.info(`Google: Attached to ${attached} search boxes`);
+        }
       }
     }, GOOGLE_SETUP_INTERVAL);
 
-    // Clean up after 10 seconds
+    // Clean up after 30 seconds (increased from 10)
     setTimeout(() => {
       clearInterval(setupInterval);
       logger.debug('Google setup interval cleared');
-    }, 10000);
+    }, 30000);
 
     // Hide blocked suggestions
     this.hideGoogleSuggestions();
+    
+    // Add special handler for Google New Tab page
+    this.setupGoogleNewTabHandler();
+  }
+
+  /**
+   * Set up special handler for Google New Tab page
+   */
+  setupGoogleNewTabHandler() {
+    // Check if this is the Google homepage (often used as new tab)
+    if (window.location.pathname === '/' || window.location.pathname === '') {
+      logger.info('Detected Google homepage - setting up new tab handler');
+
+      // Very aggressive scanning for the search input
+      let scanCount = 0;
+      const aggressiveScan = setInterval(() => {
+        scanCount++;
+        
+        // Try every possible selector
+        const inputs = document.querySelectorAll('input, textarea, [contenteditable="true"]');
+        
+        inputs.forEach(input => {
+          // Check if it looks like a search input
+          const isSearchInput = 
+            input.name === 'q' ||
+            input.getAttribute('aria-label')?.toLowerCase().includes('search') ||
+            input.getAttribute('title')?.toLowerCase().includes('search') ||
+            input.className?.includes('gLFyf') ||
+            input.getAttribute('jsname');
+
+          if (isSearchInput && !input.getAttribute('data-filter-attached')) {
+            logger.info(`Found Google search input (scan #${scanCount}):`, {
+              tag: input.tagName,
+              name: input.name,
+              class: input.className,
+              jsname: input.getAttribute('jsname')
+            });
+            
+            this.inputHandler.attachInputListener(input);
+            this.inputHandler.attachedInputs.add(input);
+          }
+        });
+
+        // Stop after 60 scans (6 seconds)
+        if (scanCount >= 60) {
+          clearInterval(aggressiveScan);
+          logger.info('Aggressive scan completed');
+        }
+      }, 100); // Every 100ms for first 6 seconds
+    }
   }
 
   /**

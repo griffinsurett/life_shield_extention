@@ -10,7 +10,7 @@
 import { isExtensionContextValid } from '../../utils/chrome';
 import { TAB_BLOCKING_DEBOUNCE } from '../../utils/timing';
 import { createLogger } from '../../utils/logger';
-import { getBlockedSites, getRedirectUrl, containsBlockedSite, isFilterEnabled } from './settings';
+import { getBlockedSites, getRedirectUrl, containsBlockedSite, isFilterEnabled, shouldUseCustomUrl } from './settings';
 import { incrementStats } from './stats';
 import { showUrlBlockedNotification } from './notifications';
 
@@ -18,6 +18,20 @@ const logger = createLogger('BlockingService');
 
 // Track blocked tabs to prevent duplicate stats
 const blockedTabIds = new Set();
+
+/**
+ * Get blocked page URL
+ * 
+ * @param {string} originalUrl - The URL that was blocked
+ * @returns {string} URL to blocked page
+ */
+function getBlockedPageUrl(originalUrl = '') {
+  const blockedPageUrl = chrome.runtime.getURL('src/blocked/index.html');
+  if (originalUrl) {
+    return `${blockedPageUrl}?blocked=${encodeURIComponent(originalUrl)}`;
+  }
+  return blockedPageUrl;
+}
 
 /**
  * Initialize blocking service
@@ -39,7 +53,7 @@ export async function initBlocking() {
       if (!isExtensionContextValid()) return;
       
       if (namespace === 'sync') {
-        if (changes.blockedSites || changes.redirectUrl || changes.enableFilter) {
+        if (changes.blockedSites || changes.redirectUrl || changes.enableFilter || changes.useCustomUrl) {
           updateBlockingRules();
         }
       }
@@ -85,9 +99,13 @@ export async function updateBlockingRules() {
     }
 
     const blockedSites = getBlockedSites();
-    const redirectUrl = getRedirectUrl() || 'https://griffinswebservices.com';
+    const useCustom = shouldUseCustomUrl();
+    const redirectUrl = useCustom 
+      ? (getRedirectUrl() || 'https://griffinswebservices.com')
+      : getBlockedPageUrl();
     
     logger.info(`Updating rules for ${blockedSites.length} sites`);
+    logger.info(`Using ${useCustom ? 'custom URL' : 'blocked page'}: ${redirectUrl}`);
 
     // Get existing rules
     const existingRules = await chrome.declarativeNetRequest.getDynamicRules();
@@ -211,10 +229,13 @@ function setupBlockedRequestListener() {
           setTimeout(() => blockedTabIds.delete(tabId), TAB_BLOCKING_DEBOUNCE);
         }
 
-        // Redirect to safe page
-        chrome.tabs.update(tabId, {
-          url: getRedirectUrl() || 'https://griffinswebservices.com'
-        });
+        // Redirect to appropriate page
+        const useCustom = shouldUseCustomUrl();
+        const redirectUrl = useCustom
+          ? (getRedirectUrl() || 'https://griffinswebservices.com')
+          : getBlockedPageUrl(url);
+
+        chrome.tabs.update(tabId, { url: redirectUrl });
       }
     });
 
@@ -240,9 +261,12 @@ function setupBlockedRequestListener() {
           setTimeout(() => blockedTabIds.delete(tabId), TAB_BLOCKING_DEBOUNCE);
         }
 
-        chrome.tabs.update(tabId, {
-          url: getRedirectUrl() || 'https://griffinswebservices.com'
-        });
+        const useCustom = shouldUseCustomUrl();
+        const redirectUrl = useCustom
+          ? (getRedirectUrl() || 'https://griffinswebservices.com')
+          : getBlockedPageUrl(url);
+
+        chrome.tabs.update(tabId, { url: redirectUrl });
       }
     });
 

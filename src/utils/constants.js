@@ -31,6 +31,10 @@ export const DEFAULT_SETTINGS = {
   // Notifications disabled by default (can be annoying)
   showAlerts: false,
   
+  // Blocking behavior
+  useCustomUrl: false,  // If false, use custom message page
+  customMessage: 'This page has been blocked to support your wellness journey. Take a moment to breathe and consider a healthier alternative.',
+  
   /**
    * Default healthy replacement phrases
    * Randomly selected when blocked words are replaced
@@ -79,6 +83,8 @@ export const STORAGE_KEYS = {
   ENABLE_FILTER: 'enableFilter',
   SHOW_ALERTS: 'showAlerts',
   REPLACEMENT_PHRASES: 'replacementPhrases',
+  USE_CUSTOM_URL: 'useCustomUrl',
+  CUSTOM_MESSAGE: 'customMessage',
   
   // Statistics (stored in local storage)
   FILTER_COUNT: 'filterCount',
@@ -154,12 +160,24 @@ export const SELECTORS = {
    * Catches all possible input types
    * Excludes inputs that already have our filter attached
    */
+    /**
+   * Input field selectors
+   * Catches all possible input types including Google's special inputs
+   * Excludes inputs that already have our filter attached
+   */
   INPUT: [
-    'input:not([data-filter-attached])',              // Text inputs
-    'textarea:not([data-filter-attached])',           // Textareas
-    '[contenteditable="true"]:not([data-filter-attached])',  // Content editable
-    '[role="textbox"]:not([data-filter-attached])',   // ARIA textbox
-    '[role="searchbox"]:not([data-filter-attached])'  // ARIA searchbox
+    'input:not([data-filter-attached])',
+    'textarea:not([data-filter-attached])',
+    '[contenteditable="true"]:not([data-filter-attached])',
+    '[role="textbox"]:not([data-filter-attached])',
+    '[role="searchbox"]:not([data-filter-attached])',
+    // Google-specific
+    'input[name="q"]:not([data-filter-attached])',
+    'textarea[name="q"]:not([data-filter-attached])',
+    'input.gLFyf:not([data-filter-attached])',
+    'textarea.gLFyf:not([data-filter-attached])',
+    'input[jsname]:not([data-filter-attached])',
+    'textarea[jsname]:not([data-filter-attached])'
   ]
 };
 

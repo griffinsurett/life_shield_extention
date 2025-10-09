@@ -19,7 +19,9 @@ let state = {
   blockedSites: [],
   redirectUrl: '',
   showAlerts: false,
-  enableFilter: true, // ADD THIS
+  enableFilter: true,
+  useCustomUrl: false,
+  customMessage: '',
 };
 
 /**
@@ -55,7 +57,9 @@ async function loadSettings() {
         STORAGE_KEYS.BLOCKED_SITES,
         STORAGE_KEYS.REDIRECT_URL,
         STORAGE_KEYS.SHOW_ALERTS,
-        STORAGE_KEYS.ENABLE_FILTER, // ADD THIS
+        STORAGE_KEYS.ENABLE_FILTER,
+        STORAGE_KEYS.USE_CUSTOM_URL,
+        STORAGE_KEYS.CUSTOM_MESSAGE,
       ]),
       {}
     );
@@ -64,12 +68,15 @@ async function loadSettings() {
     state.blockedSites = result.blockedSites || [];
     state.redirectUrl = result.redirectUrl || '';
     state.showAlerts = result.showAlerts || false;
-    state.enableFilter = result.enableFilter !== false; // ADD THIS
+    state.enableFilter = result.enableFilter !== false;
+    state.useCustomUrl = result.useCustomUrl || false;
+    state.customMessage = result.customMessage || '';
 
     logger.info('Settings loaded', {
       words: state.blockedWords.length,
       sites: state.blockedSites.length,
-      enabled: state.enableFilter // ADD THIS
+      enabled: state.enableFilter,
+      useCustomUrl: state.useCustomUrl
     });
   } catch (error) {
     logger.safeError('Failed to load settings', error);
@@ -110,10 +117,19 @@ function setupListeners() {
           logger.debug('Show alerts updated');
         }
 
-        // ADD THIS BLOCK
         if (changes.enableFilter !== undefined) {
           state.enableFilter = changes.enableFilter.newValue;
           logger.info(`Filter ${state.enableFilter ? 'enabled' : 'disabled'}`);
+        }
+        
+        if (changes.useCustomUrl !== undefined) {
+          state.useCustomUrl = changes.useCustomUrl.newValue;
+          logger.debug('Use custom URL updated');
+        }
+        
+        if (changes.customMessage !== undefined) {
+          state.customMessage = changes.customMessage.newValue;
+          logger.debug('Custom message updated');
         }
       }
     });
@@ -129,7 +145,7 @@ function setupListeners() {
  * @returns {boolean}
  */
 export function containsBlockedWord(text) {
-  if (!text || !state.enableFilter) return false; // ADD enableFilter check
+  if (!text || !state.enableFilter) return false;
   const lower = text.toLowerCase();
   return state.blockedWords.some(word => lower.includes(word.toLowerCase()));
 }
@@ -141,7 +157,7 @@ export function containsBlockedWord(text) {
  * @returns {boolean}
  */
 export function containsBlockedSite(url) {
-  if (!url || !state.enableFilter) return false; // ADD enableFilter check
+  if (!url || !state.enableFilter) return false;
   const lower = url.toLowerCase();
   return state.blockedSites.some(site => lower.includes(site.toLowerCase()));
 }
@@ -152,7 +168,7 @@ export function containsBlockedSite(url) {
  * @returns {string[]}
  */
 export function getBlockedWords() {
-  return [...state.blockedWords]; // Return copy
+  return [...state.blockedWords];
 }
 
 /**
@@ -161,7 +177,7 @@ export function getBlockedWords() {
  * @returns {string[]}
  */
 export function getBlockedSites() {
-  return [...state.blockedSites]; // Return copy
+  return [...state.blockedSites];
 }
 
 /**
@@ -184,10 +200,27 @@ export function shouldShowAlerts() {
 
 /**
  * Check if filter is enabled
- * ADD THIS FUNCTION
  * 
  * @returns {boolean}
  */
 export function isFilterEnabled() {
   return state.enableFilter;
+}
+
+/**
+ * Check if custom URL should be used
+ * 
+ * @returns {boolean}
+ */
+export function shouldUseCustomUrl() {
+  return state.useCustomUrl;
+}
+
+/**
+ * Get custom message
+ * 
+ * @returns {string}
+ */
+export function getCustomMessage() {
+  return state.customMessage;
 }
