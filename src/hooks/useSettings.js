@@ -31,6 +31,8 @@ export const useSettings = () => {
       enableFilter: result.enableFilter ?? DEFAULT_SETTINGS.enableFilter,
       showAlerts: result.showAlerts ?? DEFAULT_SETTINGS.showAlerts,
       replacementPhrases: result.replacementPhrases ?? DEFAULT_SETTINGS.replacementPhrases,
+      useCustomUrl: result.useCustomUrl ?? DEFAULT_SETTINGS.useCustomUrl,
+      customMessage: result.customMessage ?? DEFAULT_SETTINGS.customMessage,
     });
     
     setLoading(false);
@@ -58,9 +60,24 @@ export const useSettings = () => {
    * Now with immediate filter state broadcast
    */
   const updateSettings = useCallback(async (updates) => {
+    console.log('[useSettings] Updating settings:', updates);
+    
     // Save to storage
     await storage.set(updates);
-    setSettings(prev => ({ ...prev, ...updates }));
+    
+    // Immediately update local state
+    setSettings(prev => {
+      const newSettings = { ...prev, ...updates };
+      console.log('[useSettings] New settings state:', newSettings);
+      return newSettings;
+    });
+    
+    // Verify what was saved
+    setTimeout(async () => {
+      const keys = Object.keys(updates);
+      const result = await storage.get(keys);
+      console.log('[useSettings] Verified storage contains:', result);
+    }, 100);
     
     // If filter state changed, broadcast immediately to all tabs
     if ('enableFilter' in updates) {
@@ -81,7 +98,7 @@ export const useSettings = () => {
         
         await Promise.allSettled(broadcastPromises);
       } catch (error) {
-        console.warn('Error broadcasting filter state:', error);
+        console.warn('[useSettings] Error broadcasting filter state:', error);
       }
     }
     

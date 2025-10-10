@@ -35,8 +35,16 @@ export const storage = {
    * const { blockedWords, redirectUrl } = result;
    */
   async get(keys) {
-    return new Promise((resolve) => {
-      chrome.storage.sync.get(keys, resolve);
+    return new Promise((resolve, reject) => {
+      chrome.storage.sync.get(keys, (result) => {
+        if (chrome.runtime.lastError) {
+          console.error('[storage.get] Error:', chrome.runtime.lastError);
+          reject(chrome.runtime.lastError);
+        } else {
+          console.log('[storage.get] Retrieved:', keys, '→', result);
+          resolve(result);
+        }
+      });
     });
   },
 
@@ -50,8 +58,17 @@ export const storage = {
    * await storage.set({ blockedWords: ['word1', 'word2'] });
    */
   async set(items) {
-    return new Promise((resolve) => {
-      chrome.storage.sync.set(items, resolve);
+    return new Promise((resolve, reject) => {
+      console.log('[storage.set] Saving:', items);
+      chrome.storage.sync.set(items, () => {
+        if (chrome.runtime.lastError) {
+          console.error('[storage.set] Error:', chrome.runtime.lastError);
+          reject(chrome.runtime.lastError);
+        } else {
+          console.log('[storage.set] Successfully saved:', items);
+          resolve();
+        }
+      });
     });
   },
 
@@ -67,8 +84,15 @@ export const storage = {
    * const count = result.todayCount;
    */
   async getLocal(keys) {
-    return new Promise((resolve) => {
-      chrome.storage.local.get(keys, resolve);
+    return new Promise((resolve, reject) => {
+      chrome.storage.local.get(keys, (result) => {
+        if (chrome.runtime.lastError) {
+          console.error('[storage.getLocal] Error:', chrome.runtime.lastError);
+          reject(chrome.runtime.lastError);
+        } else {
+          resolve(result);
+        }
+      });
     });
   },
 
@@ -82,8 +106,15 @@ export const storage = {
    * await storage.setLocal({ todayCount: 5 });
    */
   async setLocal(items) {
-    return new Promise((resolve) => {
-      chrome.storage.local.set(items, resolve);
+    return new Promise((resolve, reject) => {
+      chrome.storage.local.set(items, () => {
+        if (chrome.runtime.lastError) {
+          console.error('[storage.setLocal] Error:', chrome.runtime.lastError);
+          reject(chrome.runtime.lastError);
+        } else {
+          resolve();
+        }
+      });
     });
   },
 
