@@ -85,7 +85,7 @@ export const useListManager = (items = [], updateItems, options = {}) => {
   const performAdd = useCallback(async (item) => {
     await updateItems([...items, item]);
     setInputValue("");
-    showToast(`Added "${item}"`, "success");
+    showToast(`Blocked "${item}"`, "success");
   }, [items, updateItems, showToast]);
 
   /**

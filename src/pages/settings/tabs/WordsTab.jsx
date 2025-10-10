@@ -1,7 +1,9 @@
+// src/pages/settings/tabs/WordsTab.jsx
 /**
- * Words Tab Component
+ * Words Tab Component (Settings)
  *
  * Tab for managing blocked words with vulnerability protection.
+ * Now uses ProtectedListManager for consistency.
  *
  * @component
  */
@@ -9,7 +11,7 @@
 import { useCallback } from "react";
 import { useApp } from "../../../contexts/AppContext";
 import { useListManager } from "../../../hooks/useListManager";
-import ListManager from "../../../components/ListManager";
+import { ProtectedListManager } from "../../../components/ProtectedListManager";
 
 const WordsTab = ({ showConfirmation }) => {
   const { settings, updateSettings } = useApp();
@@ -25,6 +27,11 @@ const WordsTab = ({ showConfirmation }) => {
     }
   );
 
+  // Memoized add handler
+  const handleAdd = useCallback(() => {
+    wordManager.addItem(showConfirmation);
+  }, [wordManager, showConfirmation]);
+
   // Memoized clear all handler
   const handleClearAll = useCallback(() => {
     wordManager.clearAll(
@@ -33,44 +40,25 @@ const WordsTab = ({ showConfirmation }) => {
     );
   }, [wordManager, showConfirmation]);
 
-  // Memoized add handler
-  const handleAdd = useCallback(() => {
-    wordManager.addItem(showConfirmation);
-  }, [wordManager, showConfirmation]);
-
-  // Handler for showing vulnerable content
-  const handleShowVulnerableContent = useCallback((onConfirm) => {
-    showConfirmation({
-      title: "⚠️ Show Blocked Words?",
-      message: "You are about to reveal your list of blocked words. This is sensitive content that helps protect your browsing experience. Are you sure you want to display it?",
-      confirmText: "Yes, Show List",
-      cancelText: "Keep Hidden",
-      confirmColor: "primary",
-      onConfirm: onConfirm
-    });
-  }, [showConfirmation]);
-
   return (
     <div className="bg-white rounded-2xl shadow-lg p-8 animate-fade-in">
       <h2 className="text-2xl font-bold text-gray-800 mb-6">
         Blocked Words Management
       </h2>
 
-      <ListManager
+      <ProtectedListManager
         items={settings.blockedWords}
+        itemName="Word"
+        itemNamePlural="Blocked Words"
         inputValue={wordManager.inputValue}
         onInputChange={wordManager.setInputValue}
         onAdd={handleAdd}
         onRemove={wordManager.removeItem}
         onClear={handleClearAll}
         placeholder="Enter word or phrase to block..."
-        buttonText="Add Word"
-        emptyText="No blocked words yet"
-        title="Current Blocked Words"
         variant="default"
-        maxHeight="max-h-96"
-        isVulnerable={true}
-        onRequestShow={handleShowVulnerableContent}
+        itemIcon="📝"
+        showConfirmation={showConfirmation}
       />
     </div>
   );

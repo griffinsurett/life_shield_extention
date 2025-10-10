@@ -26,7 +26,7 @@ const blockedTabIds = new Set();
  * @returns {string} URL to blocked page
  */
 function getBlockedPageUrl(originalUrl = '') {
-  const blockedPageUrl = chrome.runtime.getURL('src/blocked/index.html');
+  const blockedPageUrl = chrome.runtime.getURL('src/pages/blocked/index.html');
   if (originalUrl) {
     return `${blockedPageUrl}?blocked=${encodeURIComponent(originalUrl)}`;
   }

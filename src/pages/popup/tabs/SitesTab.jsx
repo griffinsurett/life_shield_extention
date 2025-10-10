@@ -1,15 +1,16 @@
+// src/pages/popup/tabs/SitesTab.jsx
 /**
- * Sites Tab Component
+ * Sites Tab Component (Popup)
  *
- * Full blocked sites management interface.
- * Now uses confirmation modal for clear all.
+ * Quick add interface for blocked sites.
+ * Uses ProtectedListManager with hideList for add-only mode.
  *
  * @component
  */
 
 import { useCallback } from "react";
 import { useApp } from "../../../contexts/AppContext";
-import ListManager from "../../../components/ListManager";
+import { ProtectedListManager } from "../../../components/ProtectedListManager";
 
 export const SitesTab = ({ siteManager, showConfirmation }) => {
   const { settings } = useApp();
@@ -21,24 +22,41 @@ export const SitesTab = ({ siteManager, showConfirmation }) => {
 
   return (
     <div className="bg-white rounded-2xl shadow-lg p-8 animate-fade-in">
-      <h2 className="text-2xl font-bold text-gray-800 mb-6">Blocked Sites</h2>
-      <p className="text-gray-600 mb-6">
-        Sites that will be blocked and redirect to your chosen URL
+      <h2 className="text-2xl font-bold text-gray-800 mb-4">
+        Block Site
+      </h2>
+      <p className="text-gray-600 mb-6 text-sm">
+        Quickly add websites to your protected block list.
       </p>
 
-      <ListManager
+      <ProtectedListManager
         items={settings.blockedSites}
+        itemName="Site"
+        itemNamePlural="Blocked Sites"
         inputValue={siteManager.inputValue}
         onInputChange={siteManager.setInputValue}
         onAdd={handleAdd}
         onRemove={siteManager.removeItem}
         placeholder="Enter domain (e.g., example.com)..."
-        buttonText="Block Site"
-        emptyText="No blocked sites"
-        title="Blocked Sites"
         variant="danger"
         itemIcon="🚫"
+        hideList={true}
+        showConfirmation={showConfirmation}
       />
+
+      {/* Warning Card */}
+      <div className="mt-6 p-4 bg-orange-50 border-2 border-orange-200 rounded-xl">
+        <div className="flex items-start gap-3">
+          <span className="text-xl flex-shrink-0">⚠️</span>
+          <div>
+            <p className="text-sm text-orange-900 font-medium mb-1">Instant Protection</p>
+            <p className="text-xs text-orange-800">
+              Sites are blocked immediately after adding. Your block list is 
+              working in the background to protect your wellness journey.
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

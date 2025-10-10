@@ -2,7 +2,7 @@
  * Popup Component
  *
  * Main popup UI with tabbed interface.
- * Now with granular error boundaries around each tab.
+ * Now passes correct props to tabs using ListManager.
  *
  * @component
  */
@@ -114,13 +114,19 @@ export const Popup = () => {
       case "words":
         return (
           <SimpleErrorBoundary>
-            <WordsTab {...props} />
+            <WordsTab 
+              wordManager={wordManager}
+              showConfirmation={confirmation.showConfirmation}
+            />
           </SimpleErrorBoundary>
         );
       case "sites":
         return (
           <SimpleErrorBoundary>
-            <SitesTab {...props} />
+            <SitesTab 
+              siteManager={siteManager}
+              showConfirmation={confirmation.showConfirmation}
+            />
           </SimpleErrorBoundary>
         );
       case "more":

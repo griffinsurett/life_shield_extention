@@ -48,9 +48,10 @@ export const HomeTab = ({
       
       <StatusCard todayCount={stats.todayCount} />
       
+      {/* Quick Block Words */}
       <div className="p-4 bg-white/10 rounded-xl backdrop-blur-sm border border-white/20">
         <h3 className="text-sm font-semibold uppercase tracking-wide opacity-90 mb-3">
-          Quick Add Word
+          Quick Block Words
         </h3>
         <div className="flex gap-2">
           <input 
@@ -65,11 +66,12 @@ export const HomeTab = ({
             onClick={() => wordManager.addItem(showConfirmation)}
             className="px-4 py-2 bg-white text-primary rounded-lg font-semibold text-sm hover:shadow-lg transition-all"
           >
-            Add
+            Block
           </button>
         </div>
       </div>
       
+      {/* Quick Block Site */}
       <div className="p-4 bg-white/10 rounded-xl backdrop-blur-sm border border-white/20">
         <h3 className="text-sm font-semibold uppercase tracking-wide opacity-90 mb-3">
           Quick Block Site
@@ -92,6 +94,7 @@ export const HomeTab = ({
         </div>
       </div>
 
+      {/* Stats Grid */}
       <div className="grid grid-cols-2 gap-3">
         <div className="p-3 bg-white/10 rounded-lg backdrop-blur-sm border border-white/20 text-center">
           <div className="text-2xl font-bold">{stats.filterCount}</div>

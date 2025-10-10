@@ -1,7 +1,9 @@
+// src/pages/settings/tabs/SitesTab.jsx
 /**
- * Sites Tab Component
+ * Sites Tab Component (Settings)
  *
  * Tab for managing blocked sites with vulnerability protection.
+ * Now uses ProtectedListManager for consistency.
  *
  * @component
  */
@@ -9,7 +11,7 @@
 import { useCallback } from "react";
 import { useApp } from "../../../contexts/AppContext";
 import { useListManager } from "../../../hooks/useListManager";
-import ListManager from "../../../components/ListManager";
+import { ProtectedListManager } from "../../../components/ProtectedListManager";
 
 const SitesTab = ({ showConfirmation }) => {
   const { settings, updateSettings } = useApp();
@@ -37,18 +39,6 @@ const SitesTab = ({ showConfirmation }) => {
     siteManager.addItem(showConfirmation);
   }, [siteManager, showConfirmation]);
 
-  // Handler for showing vulnerable content
-  const handleShowVulnerableContent = useCallback((onConfirm) => {
-    showConfirmation({
-      title: "⚠️ Show Blocked Sites?",
-      message: "You are about to reveal your list of blocked websites. This is sensitive content that helps protect your wellness journey. Are you sure you want to display it?",
-      confirmText: "Yes, Show List",
-      cancelText: "Keep Hidden",
-      confirmColor: "primary",
-      onConfirm: onConfirm
-    });
-  }, [showConfirmation]);
-
   return (
     <div className="bg-white rounded-2xl shadow-lg p-8 animate-fade-in">
       <h2 className="text-2xl font-bold text-gray-800 mb-6">Blocked Sites</h2>
@@ -56,20 +46,18 @@ const SitesTab = ({ showConfirmation }) => {
         Sites that will be blocked and redirect to your chosen URL
       </p>
 
-      <ListManager
+      <ProtectedListManager
         items={settings.blockedSites}
+        itemName="Site"
+        itemNamePlural="Blocked Sites"
         inputValue={siteManager.inputValue}
         onInputChange={siteManager.setInputValue}
         onAdd={handleAdd}
         onRemove={siteManager.removeItem}
         placeholder="Enter domain (e.g., example.com)..."
-        buttonText="Block Site"
-        emptyText="No blocked sites"
-        title="Blocked Sites"
         variant="danger"
         itemIcon="🚫"
-        isVulnerable={true}
-        onRequestShow={handleShowVulnerableContent}
+        showConfirmation={showConfirmation}
       />
     </div>
   );
