@@ -1,26 +1,11 @@
 // src/components/ProtectedListManager.jsx
-/**
- * Protected List Manager Component
- * 
- * Secure wrapper around ListManager for sensitive data (blocked words/sites).
- * Adds lock/unlock functionality and vulnerability protection.
- * 
- * Key features:
- * - Lock/unlock toggle for viewing sensitive content
- * - Confirmation modal before unlocking
- * - Security warnings and messaging
- * - Protected state management
- * 
- * @component
- */
-
 import { useState, useCallback } from 'react';
 import ListManager from './ListManager';
 
 export const ProtectedListManager = ({
   items,
-  itemName,           // Singular: "Word", "Site"
-  itemNamePlural,     // Plural: "Blocked Words", "Blocked Sites"
+  itemName,
+  itemNamePlural,
   inputValue,
   onInputChange,
   onAdd,
@@ -33,12 +18,8 @@ export const ProtectedListManager = ({
   showConfirmation,
   maxHeight = 'max-h-96',
 }) => {
-  // Track if protected content is unlocked
   const [isUnlocked, setIsUnlocked] = useState(false);
 
-  /**
-   * Handle unlock request - show confirmation first
-   */
   const handleUnlockRequest = useCallback(() => {
     showConfirmation({
       title: `⚠️ Show ${itemNamePlural}?`,
@@ -50,14 +31,11 @@ export const ProtectedListManager = ({
     });
   }, [showConfirmation, itemNamePlural]);
 
-  /**
-   * Handle lock - no confirmation needed
-   */
   const handleLock = useCallback(() => {
     setIsUnlocked(false);
   }, []);
 
-  // In hideList mode, don't show lock/unlock - just use the base component
+  // In hideList mode - render ListManager + protected notice
   if (hideList) {
     return (
       <>
@@ -77,34 +55,17 @@ export const ProtectedListManager = ({
           hideList={true}
         />
         
-        {/* Security note in hideList mode */}
-        <div className="mt-4 p-4 bg-gray-50 rounded-xl border-2 border-gray-200">
-          <div className="flex items-center gap-3">
-            <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-              variant === 'default' ? 'bg-primary/10' :
-              variant === 'danger' ? 'bg-red-100' :
-              'bg-green-100'
-            }`}>
-              <span className="text-2xl">{itemIcon || '📝'}</span>
-            </div>
+        {/* Protected notice */}
+        <div className="p-4 bg-gray-50 rounded-xl border-2 border-gray-200">
+          <div className="flex items-start gap-3">
+            <svg className="w-5 h-5 text-gray-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
             <div>
-              <p className="text-xs text-gray-500 uppercase tracking-wide">
-                Total {itemNamePlural}
+              <p className="text-sm text-gray-700">
+                <strong className="text-gray-900">Protected:</strong> List hidden for privacy. Access via full Settings page.
               </p>
-              <p className="text-3xl font-bold text-gray-800">{items.length}</p>
             </div>
-          </div>
-          
-          <div className="mt-3 pt-3 border-t border-gray-200">
-            <p className="text-xs text-gray-600">
-              <span className="inline-flex items-center gap-1">
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
-                <strong>Protected:</strong>
-              </span>
-              {' '}List hidden for privacy. Access via full Settings page.
-            </p>
           </div>
         </div>
       </>
@@ -114,7 +75,6 @@ export const ProtectedListManager = ({
   // Full mode with lock/unlock protection
   return (
     <div className="space-y-6">
-      {/* Lock/Unlock Toggle */}
       <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border-2 border-gray-200">
         <div className="flex items-center gap-3">
           <div className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${
@@ -143,7 +103,6 @@ export const ProtectedListManager = ({
           </div>
         </div>
         
-        {/* Lock/Unlock Button */}
         {isUnlocked ? (
           <button
             onClick={handleLock}
@@ -167,7 +126,6 @@ export const ProtectedListManager = ({
         )}
       </div>
 
-      {/* Add Input - always visible */}
       <ListManager
         items={items}
         inputValue={inputValue}
@@ -185,7 +143,6 @@ export const ProtectedListManager = ({
         hideList={!isUnlocked}
       />
 
-      {/* Warning banner when locked */}
       {!isUnlocked && (
         <div className="p-4 bg-yellow-50 border-2 border-yellow-200 rounded-xl">
           <div className="flex items-center gap-3">
@@ -198,7 +155,6 @@ export const ProtectedListManager = ({
             </div>
           </div>
           
-          {/* Show count even when locked */}
           {items.length > 0 && (
             <div className="mt-3 pt-3 border-t border-yellow-200">
               <div className="inline-flex items-center gap-2 px-3 py-1 bg-yellow-100 rounded-lg">
