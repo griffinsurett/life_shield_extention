@@ -2,7 +2,7 @@
  * Phrases Tab Component
  *
  * Tab for managing replacement phrases.
- * Now uses confirmation modal instead of window.confirm.
+ * No vulnerability protection needed - these are positive content.
  *
  * @component
  */
@@ -26,9 +26,6 @@ const PhrasesTab = ({ showToast, showConfirmation }) => {
     }
   );
 
-  /**
-   * Reset phrases to default list with confirmation
-   */
   const resetPhrases = useCallback(() => {
     showConfirmation({
       title: "Reset All Phrases?",
@@ -46,7 +43,6 @@ const PhrasesTab = ({ showToast, showConfirmation }) => {
     });
   }, [showConfirmation, updateSettings, showToast]);
 
-  // Memoized custom item renderer for italic phrases
   const renderPhrase = useCallback(
     (phrase, index, onRemove) => (
       <div
@@ -99,6 +95,7 @@ const PhrasesTab = ({ showToast, showConfirmation }) => {
         title="Current Phrases"
         variant="success"
         renderItem={renderPhrase}
+        // No isVulnerable prop - replacement phrases are safe to show
       />
 
       <div className="mt-6">

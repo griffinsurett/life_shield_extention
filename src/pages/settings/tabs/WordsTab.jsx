@@ -1,8 +1,7 @@
 /**
  * Words Tab Component
  *
- * Tab for managing blocked words.
- * Now uses confirmation modal for clear all.
+ * Tab for managing blocked words with vulnerability protection.
  *
  * @component
  */
@@ -39,6 +38,18 @@ const WordsTab = ({ showConfirmation }) => {
     wordManager.addItem(showConfirmation);
   }, [wordManager, showConfirmation]);
 
+  // Handler for showing vulnerable content
+  const handleShowVulnerableContent = useCallback((onConfirm) => {
+    showConfirmation({
+      title: "⚠️ Show Blocked Words?",
+      message: "You are about to reveal your list of blocked words. This is sensitive content that helps protect your browsing experience. Are you sure you want to display it?",
+      confirmText: "Yes, Show List",
+      cancelText: "Keep Hidden",
+      confirmColor: "primary",
+      onConfirm: onConfirm
+    });
+  }, [showConfirmation]);
+
   return (
     <div className="bg-white rounded-2xl shadow-lg p-8 animate-fade-in">
       <h2 className="text-2xl font-bold text-gray-800 mb-6">
@@ -58,6 +69,8 @@ const WordsTab = ({ showConfirmation }) => {
         title="Current Blocked Words"
         variant="default"
         maxHeight="max-h-96"
+        isVulnerable={true}
+        onRequestShow={handleShowVulnerableContent}
       />
     </div>
   );

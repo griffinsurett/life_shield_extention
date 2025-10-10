@@ -1,8 +1,7 @@
 /**
  * Sites Tab Component
  *
- * Tab for managing blocked sites.
- * Now uses confirmation modal for clear all.
+ * Tab for managing blocked sites with vulnerability protection.
  *
  * @component
  */
@@ -38,6 +37,18 @@ const SitesTab = ({ showConfirmation }) => {
     siteManager.addItem(showConfirmation);
   }, [siteManager, showConfirmation]);
 
+  // Handler for showing vulnerable content
+  const handleShowVulnerableContent = useCallback((onConfirm) => {
+    showConfirmation({
+      title: "⚠️ Show Blocked Sites?",
+      message: "You are about to reveal your list of blocked websites. This is sensitive content that helps protect your wellness journey. Are you sure you want to display it?",
+      confirmText: "Yes, Show List",
+      cancelText: "Keep Hidden",
+      confirmColor: "primary",
+      onConfirm: onConfirm
+    });
+  }, [showConfirmation]);
+
   return (
     <div className="bg-white rounded-2xl shadow-lg p-8 animate-fade-in">
       <h2 className="text-2xl font-bold text-gray-800 mb-6">Blocked Sites</h2>
@@ -57,6 +68,8 @@ const SitesTab = ({ showConfirmation }) => {
         title="Blocked Sites"
         variant="danger"
         itemIcon="🚫"
+        isVulnerable={true}
+        onRequestShow={handleShowVulnerableContent}
       />
     </div>
   );

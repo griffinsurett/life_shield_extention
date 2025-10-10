@@ -5,13 +5,13 @@
  * Main settings page with code splitting.
  * Tabs are lazy-loaded to reduce initial bundle size.
  *
- * SIMPLIFIED: Removed advanced technical settings for better UX
- *
  * @component
  */
 
 import { useState, useCallback, lazy, Suspense } from "react";
 import { useToast } from "../../components/ToastContainer";
+import { useConfirmation } from "../../hooks/useConfirmation";  // ADD THIS
+import { ConfirmationModal } from "../../components/ConfirmationModal";  // ADD THIS
 import { SimpleErrorBoundary } from "../../components/ErrorBoundary";
 
 // Lazy load all tab components
@@ -37,6 +37,7 @@ const TabLoader = () => (
 
 export const Settings = () => {
   const { showToast } = useToast();
+  const confirmation = useConfirmation();  // ADD THIS
   const [activeTab, setActiveTab] = useState("general");
 
   const tabs = [
@@ -62,7 +63,11 @@ export const Settings = () => {
   const renderTab = useCallback(() => {
     if (!TabComponent) return null;
 
-    const props = { showToast };
+    // CHANGE THIS LINE - add showConfirmation
+    const props = { 
+      showToast,
+      showConfirmation: confirmation.showConfirmation  // ADD THIS
+    };
 
     return (
       <SimpleErrorBoundary>
@@ -71,7 +76,7 @@ export const Settings = () => {
         </Suspense>
       </SimpleErrorBoundary>
     );
-  }, [TabComponent, showToast]);
+  }, [TabComponent, showToast, confirmation.showConfirmation]);  // UPDATE DEPENDENCIES
 
   return (
     <div className="bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
@@ -117,6 +122,18 @@ export const Settings = () => {
           <main className="lg:col-span-3">{renderTab()}</main>
         </div>
       </div>
+
+      {/* ADD CONFIRMATION MODAL */}
+      <ConfirmationModal
+        isOpen={confirmation.isOpen}
+        title={confirmation.confirmConfig.title}
+        message={confirmation.confirmConfig.message}
+        confirmText={confirmation.confirmConfig.confirmText}
+        cancelText={confirmation.confirmConfig.cancelText}
+        confirmColor={confirmation.confirmConfig.confirmColor}
+        onConfirm={confirmation.handleConfirm}
+        onCancel={confirmation.handleCancel}
+      />
     </div>
   );
 };
