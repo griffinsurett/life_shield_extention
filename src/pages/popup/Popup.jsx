@@ -152,7 +152,7 @@ export const Popup = () => {
   ]);
 
   return (
-    <div className="w-[460px] h-[580px] m-0 p-0 bg-gradient-to-br from-primary via-purple-600 to-secondary overflow-hidden flex flex-col">
+    <div className="w-[460px] h-[580px] m-0 p-0 btn-gradient overflow-hidden flex flex-col">
       <div className="flex-1 flex flex-col p-6 text-white overflow-hidden">
         <PopupHeader onSettingsClick={openSettings} />
         <PopupTabs activeTab={activeTab} onTabChange={setActiveTab} />
