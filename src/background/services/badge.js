@@ -13,12 +13,14 @@ import {
   safeChrome,
   safeChromeAsync,
 } from "../../utils/chromeApi";
-import { BADGE_UPDATE_INTERVAL } from "../../utils/timing";
 import { createLogger } from "../../utils/logger";
 import { shouldShowAlerts } from "./settings";
 import { BRAND } from "../../config";
 
 const logger = createLogger("BadgeService");
+
+// Local timing constant
+const BADGE_UPDATE_INTERVAL = 60000; // 1 minute
 
 /**
  * Initialize badge service

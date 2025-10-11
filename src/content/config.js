@@ -1,15 +1,13 @@
 /**
  * Wellness Config
  * 
- * Manages configuration for content script.
- * Performance settings are now hardcoded for simplicity.
- * Blur mode removed for better recovery focus.
+ * Manages all configuration for content script.
+ * Contains settings, selectors, and performance constants.
  * 
  * @class WellnessConfig
  */
 
 import { isExtensionContextValid } from "../utils/chromeApi";
-import { SELECTORS, PERFORMANCE } from "../utils/selectors";
 import { createLogger } from "../utils/logger";
 
 const logger = createLogger('WellnessConfig');
@@ -24,18 +22,92 @@ export class WellnessConfig {
     this.REPLACEMENT_PHRASES = [];
     
     // Performance settings (HARDCODED - not user-configurable)
-    this.SCAN_INTERVAL = PERFORMANCE.SCAN_INTERVAL;
-    this.MUTATION_DEBOUNCE = PERFORMANCE.MUTATION_DEBOUNCE;
-    this.MIN_CLEAN_INTERVAL = PERFORMANCE.MIN_CLEAN_INTERVAL;
+    this.SCAN_INTERVAL = 2000;
+    this.MUTATION_DEBOUNCE = 200;
+    this.MIN_CLEAN_INTERVAL = 500;
+    this.EARLY_SCAN_DELAYS = [0, 100, 500, 1000];
+    this.INPUT_SCAN_INTERVAL = 5000;
+    this.GOOGLE_SETUP_INTERVAL = 100;
+    this.YAHOO_CHECK_INTERVAL = 200;
     
     // Feature flags
     this.HIDE_ENTIRE_DROPDOWN = true;
 
-    // Selector configurations from constants
-    this.GOOGLE_SEARCH_SELECTORS = SELECTORS.GOOGLE_SEARCH;
-    this.GOOGLE_SUGGESTION_SELECTORS = SELECTORS.GOOGLE_SUGGESTION;
-    this.SUGGESTION_SELECTORS = SELECTORS.SUGGESTION;
-    this.INPUT_SELECTORS = SELECTORS.INPUT;
+    // CSS Selectors
+    this.SELECTORS = {
+      /**
+       * Google search box selectors
+       */
+      GOOGLE_SEARCH: [
+        'input[name="q"]',
+        'textarea[name="q"]',
+        'input[type="text"][title*="Search"]',
+        'input[aria-label*="Search"]',
+        'textarea[aria-label*="Search"]',
+        '[role="combobox"][name="q"]',
+        'textarea[aria-controls*="Alh6id"]',
+        'input[jsname]',
+        'textarea[jsname]',
+        '.gLFyf',
+        'input.gLFyf',
+        'textarea.gLFyf',
+        'form[role="search"] input',
+        'form[role="search"] textarea'
+      ],
+      
+      /**
+       * Google autocomplete suggestion selectors
+       */
+      GOOGLE_SUGGESTION: [
+        '.UUbT9',
+        '.aajZCb',
+        '[role="listbox"]',
+        '.sbdd_b',
+        '.erkvQe',
+        '.mkHrUc',
+        '.G43f7e',
+        '[jsname]',
+        'div[role="presentation"]'
+      ],
+      
+      /**
+       * Generic autocomplete suggestion selectors
+       */
+      SUGGESTION: [
+        '[role="option"]',
+        '[role="listbox"] li',
+        '[role="listbox"] div',
+        '.suggestion',
+        '[data-suggestion]',
+        '.sbct',
+        '.aypbod',
+        'li',
+        'div[jsname]',
+        '.UUbT9',
+        '.aajZCb',
+        '.erkvQe',
+        '.sbdd_b',
+        '.mkHrUc',
+        '.G43f7e'
+      ],
+      
+      /**
+       * Input field selectors
+       */
+      INPUT: [
+        'input:not([data-filter-attached])',
+        'textarea:not([data-filter-attached])',
+        '[contenteditable="true"]:not([data-filter-attached])',
+        '[role="textbox"]:not([data-filter-attached])',
+        '[role="searchbox"]:not([data-filter-attached])',
+        'input[name="q"]:not([data-filter-attached])',
+        'textarea[name="q"]:not([data-filter-attached])',
+        'input.gLFyf:not([data-filter-attached])',
+        'textarea.gLFyf:not([data-filter-attached])',
+        'input[jsname]:not([data-filter-attached])',
+        'textarea[jsname]:not([data-filter-attached])'
+      ]
+    };
 
     // Load settings from storage
     this.loadConfig();

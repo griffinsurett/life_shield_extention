@@ -10,7 +10,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { storage } from '../utils/storage';
 import { STORAGE_KEYS } from '../config';
-import { STATS_REFRESH_INTERVAL } from '../utils/timing';
+
+// Local timing constant
+const STATS_REFRESH_INTERVAL = 5000; // 5 seconds
 
 export const useStats = () => {
   const [stats, setStats] = useState({

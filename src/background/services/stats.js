@@ -11,11 +11,13 @@ import {
   isExtensionContextValid,
   safeChromeAsync,
 } from "../../utils/chromeApi";
-import { STATS_CHECK_INTERVAL } from "../../utils/timing";
 import { createLogger } from "../../utils/logger";
 import { updateBadge } from "./badge";
 
 const logger = createLogger("StatsService");
+
+// Local timing constant
+const STATS_CHECK_INTERVAL = 3600000; // 1 hour
 
 /**
  * Initialize stats service

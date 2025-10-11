@@ -10,7 +10,6 @@
 import { isExtensionContextValid } from "../utils/chromeApi";
 import { createLogger, setLogLevel } from "../utils/logger";
 import { DEFAULTS } from "../config";
-import { STARTUP_NOTIFICATION_DELAY } from "../utils/timing";
 
 // Import all functional services
 import { initBadge, updateBadge } from "./services/badge";
@@ -25,6 +24,9 @@ import {
 } from "./services/notifications";
 
 const logger = createLogger("Background");
+
+// Local timing constant
+const STARTUP_NOTIFICATION_DELAY = 1000; // 1 second
 
 // Set log level based on environment
 // Use 'info' for production, 'debug' for development

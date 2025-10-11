@@ -8,7 +8,9 @@
  */
 
 import { useEffect } from 'react';
-import { TOAST_DISMISS_DELAY } from '../utils/timing';
+
+// Local timing constant
+const TOAST_DISMISS_DELAY = 3000; // 3 seconds
 
 export const Toast = ({ message, type = 'info', onClose }) => {
   /**

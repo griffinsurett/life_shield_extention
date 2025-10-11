@@ -9,7 +9,6 @@
 
 import { isExtensionContextValid } from "../utils/chromeApi";
 import { createLogger } from "../utils/logger";
-import { EARLY_SCAN_DELAYS, INPUT_SCAN_INTERVAL } from "../utils/timing";
 import { WellnessConfig } from "./config";
 import { WellnessUtils } from "./modules/WellnessUtils";
 import { TextScrubber } from "./modules/TextScrubber";
@@ -191,7 +190,7 @@ window.addEventListener(
       }
 
       // Early scans for dynamic inputs
-      EARLY_SCAN_DELAYS.forEach((delay) => {
+      config.EARLY_SCAN_DELAYS.forEach((delay) => {
         setTimeout(() => {
           if (isShuttingDown || !isExtensionContextValid() || !config.ENABLED)
             return;
@@ -268,7 +267,7 @@ window.addEventListener(
         if (missedInputs > 0) {
           logger.debug(`Safety net caught ${missedInputs} missed inputs`);
         }
-      }, INPUT_SCAN_INTERVAL);
+      }, config.INPUT_SCAN_INTERVAL);
 
       eventListeners.init();
       siteHandlers.init();

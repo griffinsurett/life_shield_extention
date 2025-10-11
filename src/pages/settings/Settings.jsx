@@ -1,9 +1,9 @@
-// src/settings/Settings.jsx
+// src/pages/settings/Settings.jsx
 /**
  * Settings Component
  *
  * Main settings page with code splitting.
- * Tabs are lazy-loaded to reduce initial bundle size.
+ * Account section now at bottom of sidebar.
  *
  * @component
  */
@@ -13,11 +13,11 @@ import { useToast } from "../../components/ToastContainer";
 import { useConfirmation } from "../../hooks/useConfirmation";
 import { ConfirmationModal } from "../../components/ConfirmationModal";
 import { SimpleErrorBoundary } from "../../components/ErrorBoundary";
+import { AccountSection } from "./components/AccountSection";
 import { BRAND } from "../../config";
 
 // Lazy load all tab components
 const GeneralTab = lazy(() => import("./tabs/GeneralTab"));
-const AccountTab = lazy(() => import("./tabs/AccountTab"));
 const WordsTab = lazy(() => import("./tabs/WordsTab"));
 const PhrasesTab = lazy(() => import("./tabs/PhrasesTab"));
 const SitesTab = lazy(() => import("./tabs/SitesTab"));
@@ -43,7 +43,6 @@ export const Settings = () => {
 
   const tabs = [
     { id: "general", name: "General", icon: "⚙️", component: GeneralTab },
-    { id: "account", name: "Account", icon: "👤", component: AccountTab },
     { id: "words", name: "Blocked Words", icon: "📝", component: WordsTab },
     {
       id: "phrases",
@@ -99,24 +98,33 @@ export const Settings = () => {
       <div className="max-w-7xl mx-auto px-6 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           <aside className="lg:col-span-1">
-            <nav className="bg-white rounded-2xl shadow-lg p-4 sticky top-6">
-              <div className="space-y-2">
-                {tabs.map((tab) => (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`w-full text-left px-4 py-3 rounded-xl font-medium transition-all flex items-center gap-3 ${
-                      activeTab === tab.id
-                        ? "bg-primary text-white"
-                        : "text-gray-700 hover:bg-gray-100"
-                    }`}
-                  >
-                    <span className="text-xl">{tab.icon}</span>
-                    {tab.name}
-                  </button>
-                ))}
-              </div>
-            </nav>
+            <div className="bg-white rounded-2xl shadow-lg sticky top-6 overflow-hidden">
+              {/* Main Navigation */}
+              <nav className="p-4">
+                <div className="space-y-2">
+                  {tabs.map((tab) => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`w-full text-left px-4 py-3 rounded-xl font-medium transition-all flex items-center gap-3 ${
+                        activeTab === tab.id
+                          ? "bg-primary text-white"
+                          : "text-gray-700 hover:bg-gray-100"
+                      }`}
+                    >
+                      <span className="text-xl">{tab.icon}</span>
+                      {tab.name}
+                    </button>
+                  ))}
+                </div>
+              </nav>
+
+              {/* Divider */}
+              <div className="border-t border-gray-200 mx-4"></div>
+
+              {/* Account Section at Bottom */}
+              <AccountSection showToast={showToast} />
+            </div>
           </aside>
 
           <main className="lg:col-span-3">{renderTab()}</main>

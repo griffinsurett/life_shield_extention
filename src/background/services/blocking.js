@@ -8,7 +8,6 @@
  */
 
 import { isExtensionContextValid } from "../../utils/chromeApi";
-import { TAB_BLOCKING_DEBOUNCE } from "../../utils/timing";
 import { createLogger } from "../../utils/logger";
 import {
   getBlockedSites,
@@ -25,6 +24,9 @@ import {
 } from "../../utils/builders";
 
 const logger = createLogger("BlockingService");
+
+// Local timing constant
+const TAB_BLOCKING_DEBOUNCE = 2000; // 2 seconds
 
 // Track blocked tabs to prevent duplicate stats
 const blockedTabIds = new Set();

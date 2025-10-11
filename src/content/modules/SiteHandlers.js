@@ -8,7 +8,6 @@
  */
 
 import { createLogger } from '../../utils/logger';
-import { GOOGLE_SETUP_INTERVAL, YAHOO_CHECK_INTERVAL } from '../../utils/timing';
 
 const logger = createLogger('SiteHandlers');
 
@@ -49,24 +48,9 @@ export class SiteHandlers {
     // More aggressive setup for Google's dynamic UI
     const setupInterval = setInterval(() => {
       // Find all possible Google search inputs
-      const searchBoxes = document.querySelectorAll([
-        'input[name="q"]',
-        'textarea[name="q"]',
-        'input[type="text"][title*="Search"]',
-        'input[aria-label*="Search"]',
-        'textarea[aria-label*="Search"]',
-        '[role="combobox"][name="q"]',
-        'textarea[aria-controls*="Alh6id"]',
-        // New Tab page specific selectors
-        'input[jsname]',
-        'textarea[jsname]',
-        '.gLFyf', // Google's search input class
-        'input.gLFyf',
-        'textarea.gLFyf',
-        // Additional fallbacks
-        'form[role="search"] input',
-        'form[role="search"] textarea'
-      ].join(', '));
+      const searchBoxes = document.querySelectorAll(
+        this.config.SELECTORS.GOOGLE_SEARCH.join(', ')
+      );
 
       if (searchBoxes.length > 0) {
         let attached = 0;
@@ -82,7 +66,7 @@ export class SiteHandlers {
           logger.info(`Google: Attached to ${attached} search boxes`);
         }
       }
-    }, GOOGLE_SETUP_INTERVAL);
+    }, this.config.GOOGLE_SETUP_INTERVAL);
 
     // Clean up after 30 seconds (increased from 10)
     setTimeout(() => {
@@ -151,7 +135,7 @@ export class SiteHandlers {
     const observer = new MutationObserver(() => {
       try {
         const suggestions = document.querySelectorAll(
-          this.config.GOOGLE_SUGGESTION_SELECTORS.join(', ')
+          this.config.SELECTORS.GOOGLE_SUGGESTION.join(', ')
         );
 
         for (const suggestion of suggestions) {
@@ -197,7 +181,7 @@ export class SiteHandlers {
         this.inputHandler.attachToInputs(document);
         logger.debug('Yahoo search box found and attached');
       }
-    }, YAHOO_CHECK_INTERVAL);
+    }, this.config.YAHOO_CHECK_INTERVAL);
 
     // Clean up after 10 seconds
     setTimeout(() => {

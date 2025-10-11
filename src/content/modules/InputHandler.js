@@ -32,7 +32,7 @@ export class InputHandler {
     if (!container) return 0;
 
     let count = 0;
-    const selectors = this.config.INPUT_SELECTORS.join(', ');
+    const selectors = this.config.SELECTORS.INPUT.join(', ');
     const inputs = container.querySelectorAll(selectors);
 
     for (const input of inputs) {
