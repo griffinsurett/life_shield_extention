@@ -7,6 +7,7 @@
  */
 
 import { Modal } from './Modal';
+import Button from './Button';
 
 export const ConfirmationModal = ({
   modalId = 'confirmation-modal',
@@ -20,9 +21,9 @@ export const ConfirmationModal = ({
 }) => {
   // Color classes for confirm button
   const colorClasses = {
-    red: 'bg-red-600 hover:bg-red-700',
-    primary: 'bg-primary hover:bg-secondary',
-    orange: 'bg-orange-600 hover:bg-orange-700'
+    red: 'btn-danger',
+    primary: 'btn-primary',
+    orange: 'bg-orange-600 hover:bg-orange-700 text-white focus:ring-orange-500'
   };
 
   const handleConfirm = () => {
@@ -44,7 +45,7 @@ export const ConfirmationModal = ({
       modalId={modalId}
       className="bg-white rounded-2xl shadow-2xl max-w-md w-full"
       animationType="slide-up"
-      showCloseButton={true}
+      showCloseButton={false}
       closeOnOverlay={false}
       closeOnEscape={true}
     >
@@ -60,18 +61,18 @@ export const ConfirmationModal = ({
       
       {/* Footer */}
       <div className="flex gap-3 p-6 pt-0">
-        <button
+        <Button
           onClick={handleCancel}
-          className="flex-1 px-4 py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-xl font-semibold transition-colors"
+          className="flex-1 btn-base btn-md btn-secondary font-semibold"
         >
           {cancelText}
-        </button>
-        <button
+        </Button>
+        <Button
           onClick={handleConfirm}
-          className={`flex-1 px-4 py-3 ${colorClasses[confirmColor]} text-white rounded-xl font-semibold transition-colors`}
+          className={`flex-1 btn-base btn-md ${colorClasses[confirmColor]} font-semibold`}
         >
           {confirmText}
-        </button>
+        </Button>
       </div>
     </Modal>
   );

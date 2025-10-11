@@ -1,62 +1,76 @@
 /**
- * Add Item Input Component
+ * AddItemInput Component
  * 
- * Reusable input with button for adding items to lists.
+ * Input with add button for list management.
+ * Used for adding blocked words, sites, etc.
  * 
  * @component
  */
 
-import { memo, useCallback } from 'react';
+import { useState } from 'react';
+import Button from './Button';
+import Input from './Input';
 
-const AddItemInput = memo(({ 
-  value, 
-  onChange, 
+export const AddItemInput = ({ 
   onAdd, 
-  placeholder, 
+  placeholder = 'Add item...', 
   buttonText = 'Add',
-  buttonColor = 'primary'
+  minLength = 1,
+  transform,
+  validate 
 }) => {
-  // Color scheme classes for button
-  const colorClasses = {
-    primary: 'bg-primary hover:bg-secondary',
-    green: 'bg-green-500 hover:bg-green-600',
-    orange: 'bg-orange-500 hover:bg-orange-600'
+  const [value, setValue] = useState('');
+  const [error, setError] = useState('');
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    
+    // Clear previous errors
+    setError('');
+    
+    // Apply transformation if provided
+    const processedValue = transform ? transform(value) : value.trim();
+    
+    // Validation
+    if (processedValue.length < minLength) {
+      setError(`Must be at least ${minLength} character${minLength > 1 ? 's' : ''}`);
+      return;
+    }
+    
+    if (validate) {
+      const validationError = validate(processedValue);
+      if (validationError) {
+        setError(validationError);
+        return;
+      }
+    }
+    
+    // Add item and clear input
+    onAdd(processedValue);
+    setValue('');
   };
 
-  // Memoized key press handler
-  const handleKeyPress = useCallback((e) => {
-    if (e.key === 'Enter') {
-      onAdd();
-    }
-  }, [onAdd]);
-
   return (
-    <div className="flex gap-3">
-      {/* Text input */}
-      <input 
-        type="text" 
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        onKeyPress={handleKeyPress}
-        placeholder={placeholder}
-        className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-primary focus:outline-none transition-colors text-gray-900"
-      />
-      
-      {/* Add button with icon */}
-      <button 
-        onClick={onAdd}
-        className={`px-6 py-3 ${colorClasses[buttonColor]} text-white rounded-xl font-semibold transition-colors flex items-center gap-2`}
-      >
-        {/* Plus icon */}
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-        </svg>
-        {buttonText}
-      </button>
-    </div>
+    <form onSubmit={handleSubmit} className="space-y-2">
+      <div className="flex gap-2">
+        <Input
+          type="text"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          placeholder={placeholder}
+          className="input-base flex-1"
+        />
+        <Button
+          type="submit"
+          disabled={!value.trim()}
+          className="btn-base btn-md btn-primary font-medium whitespace-nowrap"
+        >
+          {buttonText}
+        </Button>
+      </div>
+      {error && (
+        <p className="text-sm text-red-600 ml-1">{error}</p>
+      )}
+    </form>
   );
-});
-
-AddItemInput.displayName = 'AddItemInput';
-
-export { AddItemInput };
+};

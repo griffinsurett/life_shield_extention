@@ -13,6 +13,7 @@ import { useConfirmation } from "../../hooks/useConfirmation";
 import { ConfirmationModal } from "../../components/ConfirmationModal";
 import { SimpleErrorBoundary } from "../../components/ErrorBoundary";
 import { AccountSection } from "./components/AccountSection";
+import Button from "../../components/Button";
 import { BRAND } from "../../config";
 
 // Lazy load all tab components
@@ -97,7 +98,7 @@ export const Settings = () => {
               <nav className="p-4">
                 <div className="space-y-2">
                   {tabs.map((tab) => (
-                    <button
+                    <Button
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id)}
                       className={`w-full text-left px-4 py-3 rounded-xl font-medium transition-all flex items-center gap-3 ${
@@ -108,7 +109,7 @@ export const Settings = () => {
                     >
                       <span className="text-xl">{tab.icon}</span>
                       {tab.name}
-                    </button>
+                    </Button>
                   ))}
                 </div>
               </nav>

@@ -4,6 +4,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { Modal, ModalTrigger } from '../../../components/Modal';
 import { Dropdown } from '../../../components/Dropdown';
 import { AuthModal } from '../../../components/AuthModal';
+import Button from '../../../components/Button';
 import { BRAND, STORAGE_KEYS } from '../../../config';
 
 export const AccountSection = ({ showToast }) => {
@@ -65,7 +66,7 @@ export const AccountSection = ({ showToast }) => {
         <div className="p-4">
           <ModalTrigger
             modalId={authModalId}
-            className="w-full p-3 bg-gradient-to-r from-primary to-secondary text-white rounded-xl font-medium hover:shadow-lg transition-all flex items-center justify-center gap-2"
+            className="w-full btn-base btn-md btn-gradient font-medium flex items-center justify-center gap-2"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
@@ -123,7 +124,7 @@ export const AccountSection = ({ showToast }) => {
           </div>
           
           <div className="bg-white rounded-b-xl overflow-hidden">
-            <button
+            <Button
               onClick={() => showToast('Account settings coming soon!', 'info')}
               className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2 border-b border-gray-100"
             >
@@ -131,9 +132,9 @@ export const AccountSection = ({ showToast }) => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
               Profile Settings
-            </button>
+            </Button>
             
-            <button
+            <Button
               onClick={() => showToast('Pro plans coming soon!', 'info')}
               className="w-full text-left px-4 py-3 text-sm text-primary hover:bg-primary/5 transition-colors flex items-center gap-2 font-medium border-b border-gray-100"
             >
@@ -141,9 +142,9 @@ export const AccountSection = ({ showToast }) => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
               Upgrade to Pro
-            </button>
+            </Button>
             
-            <button
+            <Button
               onClick={handleSignOut}
               className="w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors flex items-center gap-2"
             >
@@ -151,7 +152,7 @@ export const AccountSection = ({ showToast }) => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
               </svg>
               Sign Out
-            </button>
+            </Button>
           </div>
         </div>
       </Dropdown>

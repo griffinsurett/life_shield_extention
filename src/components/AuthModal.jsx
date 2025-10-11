@@ -3,6 +3,8 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from './ToastContainer';
 import { Modal } from './Modal';
+import Button from './Button';
+import Input from './Input';
 import { BRAND } from '../config';
 
 export const AuthModal = ({ modalId = 'auth-modal' }) => {
@@ -142,34 +144,34 @@ export const AuthModal = ({ modalId = 'auth-modal' }) => {
           
           {/* Actions */}
           <div className="space-y-3">
-            <button
+            <Button
               onClick={closeModal}
-              className="w-full px-4 py-3 bg-primary hover:bg-secondary text-white rounded-xl font-semibold transition-colors"
+              className="w-full btn-base btn-md btn-primary font-semibold"
             >
               Got it!
-            </button>
+            </Button>
             
-            <button
+            <Button
               onClick={() => {
                 setShowEmailVerification(false);
                 setIsSignUp(false);
                 setPassword('');
               }}
-              className="w-full px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-medium transition-colors"
+              className="w-full btn-base btn-md btn-secondary font-medium"
             >
               Back to Sign In
-            </button>
+            </Button>
           </div>
 
           {/* Resend link */}
           <p className="text-center text-xs text-gray-500">
             Didn't receive the email?{' '}
-            <button 
+            <Button 
               onClick={handleResend}
-              className="text-primary hover:text-secondary underline font-medium"
+              className="btn-link font-medium"
             >
               Resend
-            </button>
+            </Button>
           </p>
         </div>
       </Modal>
@@ -200,13 +202,13 @@ export const AuthModal = ({ modalId = 'auth-modal' }) => {
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Email
           </label>
-          <input
+          <Input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="your@email.com"
             required
-            className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-primary focus:outline-none transition-colors"
+            className="input-base"
           />
         </div>
 
@@ -214,14 +216,14 @@ export const AuthModal = ({ modalId = 'auth-modal' }) => {
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Password
           </label>
-          <input
+          <Input
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••••"
             required
             minLength={6}
-            className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-primary focus:outline-none transition-colors"
+            className="input-base"
           />
           {isSignUp && (
             <p className="text-xs text-gray-500 mt-1">
@@ -230,10 +232,10 @@ export const AuthModal = ({ modalId = 'auth-modal' }) => {
           )}
         </div>
 
-        <button
+        <Button
           type="submit"
           disabled={loading}
-          className="w-full px-4 py-3 bg-primary hover:bg-secondary text-white rounded-xl font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          className="w-full btn-base btn-md btn-primary font-semibold flex items-center justify-center gap-2"
         >
           {loading ? (
             <>
@@ -243,21 +245,21 @@ export const AuthModal = ({ modalId = 'auth-modal' }) => {
           ) : (
             isSignUp ? 'Create Account' : 'Sign In'
           )}
-        </button>
+        </Button>
 
         <div className="text-center pt-2">
-          <button
+          <Button
             type="button"
             onClick={() => {
               setIsSignUp(!isSignUp);
               setPassword('');
             }}
-            className="text-sm text-primary hover:text-secondary transition-colors"
+            className="btn-link text-sm"
           >
             {isSignUp 
               ? 'Already have an account? Sign in' 
               : "Don't have an account? Sign up"}
-          </button>
+          </Button>
         </div>
       </form>
     </Modal>
