@@ -134,7 +134,7 @@
 
   /* Input Component Classes */
   .input-base {
-    @apply w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-primary focus:outline-none transition-colors;
+    @apply w-full px-4 py-3 border-2 text-gray-700 border-gray-300 rounded-xl focus:border-primary focus:outline-none transition-colors;
   }
   
   .input-sm {
