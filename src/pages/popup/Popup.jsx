@@ -1,8 +1,7 @@
 /**
  * Popup Component
  *
- * Main popup UI with tabbed interface.
- * Now passes correct props to tabs using ListManager.
+ * Main popup UI with checkbox-controlled modal.
  *
  * @component
  */
@@ -24,12 +23,11 @@ import { PopupFooter } from './components/PopupFooter';
 
 export const Popup = () => {
   const { settings, updateSettings } = useApp();
-
   const { exportToFile, importFromFile } = useFileOperations();
   const [previewPhrase, setPreviewPhrase] = useState("");
   const [activeTab, setActiveTab] = useState("home");
 
-  const confirmation = useConfirmation();
+  const confirmation = useConfirmation('popup-confirmation-modal');
 
   const wordManager = useListManager(
     settings.blockedWords,
@@ -91,7 +89,6 @@ export const Popup = () => {
     chrome.runtime.openOptionsPage();
   }, []);
 
-  // Render active tab with granular error boundaries
   const renderTabContent = useCallback(() => {
     const props = {
       wordManager,
@@ -167,8 +164,9 @@ export const Popup = () => {
         <PopupFooter />
       </div>
 
+      {/* Confirmation Modal */}
       <ConfirmationModal
-        isOpen={confirmation.isOpen}
+        modalId="popup-confirmation-modal"
         title={confirmation.confirmConfig.title}
         message={confirmation.confirmConfig.message}
         confirmText={confirmation.confirmConfig.confirmText}

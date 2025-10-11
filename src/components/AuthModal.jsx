@@ -1,11 +1,11 @@
 // src/components/AuthModal.jsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from './ToastContainer';
 import { Modal } from './Modal';
 import { BRAND } from '../config';
 
-export const AuthModal = ({ isOpen, onClose }) => {
+export const AuthModal = ({ modalId = 'auth-modal' }) => {
   const { signIn, signUp, resendVerification } = useAuth();
   const { showToast } = useToast();
   const [isSignUp, setIsSignUp] = useState(false);
@@ -14,6 +14,11 @@ export const AuthModal = ({ isOpen, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [showEmailVerification, setShowEmailVerification] = useState(false);
   const [pendingEmail, setPendingEmail] = useState('');
+
+  const closeModal = () => {
+    const checkbox = document.getElementById(modalId);
+    if (checkbox) checkbox.checked = false;
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -40,7 +45,7 @@ export const AuthModal = ({ isOpen, onClose }) => {
           }
         } else {
           showToast('Signed in successfully!', 'success');
-          onClose();
+          closeModal();
         }
       }
     } catch (err) {
@@ -63,12 +68,32 @@ export const AuthModal = ({ isOpen, onClose }) => {
     }
   };
 
+  // Reset state when modal closes
+  useEffect(() => {
+    const checkbox = document.getElementById(modalId);
+    const handleChange = (e) => {
+      if (!e.target.checked) {
+        // Reset form when modal closes
+        setTimeout(() => {
+          setEmail('');
+          setPassword('');
+          setIsSignUp(false);
+          setShowEmailVerification(false);
+        }, 300);
+      }
+    };
+    
+    if (checkbox) {
+      checkbox.addEventListener('change', handleChange);
+      return () => checkbox.removeEventListener('change', handleChange);
+    }
+  }, [modalId]);
+
   // Email Verification Screen
   if (showEmailVerification) {
     return (
       <Modal
-        isOpen={isOpen}
-        onClose={onClose}
+        modalId={modalId}
         className="bg-white rounded-2xl shadow-2xl max-w-md w-full"
         animationType="slide-up"
         showCloseButton={true}
@@ -118,7 +143,7 @@ export const AuthModal = ({ isOpen, onClose }) => {
           {/* Actions */}
           <div className="space-y-3">
             <button
-              onClick={onClose}
+              onClick={closeModal}
               className="w-full px-4 py-3 bg-primary hover:bg-secondary text-white rounded-xl font-semibold transition-colors"
             >
               Got it!
@@ -154,10 +179,10 @@ export const AuthModal = ({ isOpen, onClose }) => {
   // Sign In / Sign Up Form
   return (
     <Modal
-      isOpen={isOpen}
-      onClose={onClose}
+      modalId={modalId}
       className="bg-white rounded-2xl shadow-2xl max-w-md w-full"
       animationType="slide-up"
+      showCloseButton={true}
     >
       <div className="bg-gradient-to-r from-primary to-secondary p-6 rounded-t-2xl">
         <h2 className="text-2xl font-bold text-white">

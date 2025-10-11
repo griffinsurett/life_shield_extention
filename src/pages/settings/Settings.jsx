@@ -2,8 +2,7 @@
 /**
  * Settings Component
  *
- * Main settings page with code splitting.
- * Account section now at bottom of sidebar.
+ * Main settings page with checkbox-controlled modal.
  *
  * @component
  */
@@ -24,9 +23,6 @@ const SitesTab = lazy(() => import("./tabs/SitesTab"));
 const StatsTab = lazy(() => import("./tabs/StatsTab"));
 const AboutTab = lazy(() => import("./tabs/AboutTab"));
 
-/**
- * Loading spinner component
- */
 const TabLoader = () => (
   <div className="bg-white rounded-2xl shadow-lg p-8 animate-fade-in flex items-center justify-center min-h-[400px]">
     <div className="text-center">
@@ -38,7 +34,7 @@ const TabLoader = () => (
 
 export const Settings = () => {
   const { showToast } = useToast();
-  const confirmation = useConfirmation();
+  const confirmation = useConfirmation('settings-confirmation-modal');
   const [activeTab, setActiveTab] = useState("general");
 
   const tabs = [
@@ -55,11 +51,9 @@ export const Settings = () => {
     { id: "about", name: "About", icon: "ℹ️", component: AboutTab },
   ];
 
-  // Get active tab component
   const activeTabData = tabs.find((tab) => tab.id === activeTab);
   const TabComponent = activeTabData?.component;
 
-  // Memoized tab renderer with lazy loading
   const renderTab = useCallback(() => {
     if (!TabComponent) return null;
 
@@ -119,10 +113,8 @@ export const Settings = () => {
                 </div>
               </nav>
 
-              {/* Divider */}
               <div className="border-t border-gray-200 mx-4"></div>
 
-              {/* Account Section at Bottom */}
               <AccountSection showToast={showToast} />
             </div>
           </aside>
@@ -131,8 +123,9 @@ export const Settings = () => {
         </div>
       </div>
 
+      {/* Confirmation Modal */}
       <ConfirmationModal
-        isOpen={confirmation.isOpen}
+        modalId="settings-confirmation-modal"
         title={confirmation.confirmConfig.title}
         message={confirmation.confirmConfig.message}
         confirmText={confirmation.confirmConfig.confirmText}

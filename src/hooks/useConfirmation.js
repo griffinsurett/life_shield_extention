@@ -1,74 +1,74 @@
 /**
  * Confirmation Hook
  * 
- * Manages confirmation modal state and callbacks.
- * Provides clean API for showing confirmations before actions.
- * 
- * Features:
- * - Show/hide modal
- * - Pending action storage
- * - Confirm/cancel handlers
- * - Customizable messages
+ * Now works with checkbox-based modals.
  * 
  * @hook
- * @returns {Object} Confirmation state and handlers
  */
 
-import { useState } from 'react';
+import { useState, useCallback, useRef } from 'react';
 
-export const useConfirmation = () => {
-  const [isOpen, setIsOpen] = useState(false);
+export const useConfirmation = (modalId = 'confirmation-modal') => {
   const [confirmConfig, setConfirmConfig] = useState({
     title: '',
     message: '',
     confirmText: 'Confirm',
     cancelText: 'Cancel',
     confirmColor: 'red',
-    onConfirm: () => {}
+    onConfirm: () => {},
+    onCancel: () => {}
   });
+  
+  const pendingActionRef = useRef(null);
 
   /**
    * Show confirmation modal
-   * 
-   * @param {Object} config - Confirmation configuration
-   * @param {string} config.title - Modal title
-   * @param {string} config.message - Modal message
-   * @param {Function} config.onConfirm - Called when confirmed
-   * @param {string} config.confirmText - Confirm button text
-   * @param {string} config.cancelText - Cancel button text
-   * @param {string} config.confirmColor - Button color (red/primary/orange)
    */
-  const showConfirmation = (config) => {
+  const showConfirmation = useCallback((config) => {
     setConfirmConfig({
       title: config.title || 'Confirm Action',
       message: config.message || 'Are you sure?',
       confirmText: config.confirmText || 'Confirm',
       cancelText: config.cancelText || 'Cancel',
       confirmColor: config.confirmColor || 'red',
-      onConfirm: config.onConfirm || (() => {})
+      onConfirm: config.onConfirm || (() => {}),
+      onCancel: config.onCancel || (() => {})
     });
-    setIsOpen(true);
-  };
+    
+    // Open modal by checking the checkbox
+    const checkbox = document.getElementById(modalId);
+    if (checkbox) {
+      checkbox.checked = true;
+    }
+  }, [modalId]);
 
   /**
    * Handle confirmation
-   * Calls the pending action and closes modal
    */
-  const handleConfirm = () => {
+  const handleConfirm = useCallback(() => {
     confirmConfig.onConfirm();
-    setIsOpen(false);
-  };
+    // Close modal
+    const checkbox = document.getElementById(modalId);
+    if (checkbox) {
+      checkbox.checked = false;
+    }
+  }, [confirmConfig, modalId]);
 
   /**
    * Handle cancellation
-   * Just closes modal without action
    */
-  const handleCancel = () => {
-    setIsOpen(false);
-  };
+  const handleCancel = useCallback(() => {
+    if (confirmConfig.onCancel) {
+      confirmConfig.onCancel();
+    }
+    // Close modal
+    const checkbox = document.getElementById(modalId);
+    if (checkbox) {
+      checkbox.checked = false;
+    }
+  }, [confirmConfig, modalId]);
 
   return {
-    isOpen,
     confirmConfig,
     showConfirmation,
     handleConfirm,

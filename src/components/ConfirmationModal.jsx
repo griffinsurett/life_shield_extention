@@ -1,7 +1,7 @@
 /**
  * Confirmation Modal Component
  * 
- * Now using the base Modal component.
+ * Checkbox-controlled confirmation modal.
  * 
  * @component
  */
@@ -9,7 +9,7 @@
 import { Modal } from './Modal';
 
 export const ConfirmationModal = ({
-  isOpen,
+  modalId = 'confirmation-modal',
   title,
   message,
   confirmText = 'Confirm',
@@ -25,13 +25,28 @@ export const ConfirmationModal = ({
     orange: 'bg-orange-600 hover:bg-orange-700'
   };
 
+  const handleConfirm = () => {
+    if (onConfirm) onConfirm();
+    // Close modal
+    const checkbox = document.getElementById(modalId);
+    if (checkbox) checkbox.checked = false;
+  };
+
+  const handleCancel = () => {
+    if (onCancel) onCancel();
+    // Close modal
+    const checkbox = document.getElementById(modalId);
+    if (checkbox) checkbox.checked = false;
+  };
+
   return (
     <Modal
-      isOpen={isOpen}
-      onClose={onCancel}
-      showCloseButton={true}
+      modalId={modalId}
       className="bg-white rounded-2xl shadow-2xl max-w-md w-full"
       animationType="slide-up"
+      showCloseButton={true}
+      closeOnOverlay={false}
+      closeOnEscape={true}
     >
       {/* Header */}
       <div className="bg-gradient-to-r from-primary to-secondary p-6 rounded-t-2xl">
@@ -46,13 +61,13 @@ export const ConfirmationModal = ({
       {/* Footer */}
       <div className="flex gap-3 p-6 pt-0">
         <button
-          onClick={onCancel}
+          onClick={handleCancel}
           className="flex-1 px-4 py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-xl font-semibold transition-colors"
         >
           {cancelText}
         </button>
         <button
-          onClick={onConfirm}
+          onClick={handleConfirm}
           className={`flex-1 px-4 py-3 ${colorClasses[confirmColor]} text-white rounded-xl font-semibold transition-colors`}
         >
           {confirmText}

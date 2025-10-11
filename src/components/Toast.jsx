@@ -43,7 +43,11 @@ export const Toast = ({ message, type = 'info', onClose }) => {
   };
 
   return (
-    <div className={`${colors[type]} text-white px-4 py-3 rounded-lg shadow-xl text-sm font-medium animate-fade-in flex items-center gap-2 max-w-xs`}>
+    <div className={`
+      ${colors[type]} text-white px-4 py-3 rounded-lg 
+      shadow-2xl text-sm font-medium animate-fade-in 
+      flex items-center gap-2 max-w-xs
+    `}>
       {/* Icon */}
       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         {icons[type]}
