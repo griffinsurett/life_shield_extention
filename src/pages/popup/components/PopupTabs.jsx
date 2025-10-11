@@ -15,6 +15,8 @@
  * @param {Function} props.onTabChange - Called when tab is clicked
  */
 
+import Button from '../../../components/Button';
+
 export const PopupTabs = ({ activeTab, onTabChange }) => {
   const tabs = [
     { id: 'home', label: 'Home', icon: '🏠' },
@@ -26,7 +28,7 @@ export const PopupTabs = ({ activeTab, onTabChange }) => {
   return (
     <div className="flex gap-2 bg-white/10 rounded-xl p-2 backdrop-blur-sm border border-white/20">
       {tabs.map(tab => (
-        <button
+        <Button
           key={tab.id}
           onClick={() => onTabChange(tab.id)}
           className={`flex-1 px-3 py-2 rounded-lg font-medium text-sm transition-all ${
@@ -39,7 +41,7 @@ export const PopupTabs = ({ activeTab, onTabChange }) => {
             <span className="text-lg">{tab.icon}</span>
             <span className="text-xs">{tab.label}</span>
           </div>
-        </button>
+        </Button>
       ))}
     </div>
   );

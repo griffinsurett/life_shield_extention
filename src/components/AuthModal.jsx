@@ -1,21 +1,21 @@
 // src/components/AuthModal.jsx
-import { useState, useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { useToast } from './ToastContainer';
-import { Modal } from './Modal';
-import Button from './Button';
-import Input from './Input';
-import { BRAND } from '../config';
+import { useState, useEffect } from "react";
+import { useAuth } from "../contexts/AuthContext";
+import { useToast } from "./ToastContainer";
+import { Modal } from "./Modal";
+import Button from "./Button";
+import Input from "./Inputs/Input";
+import { BRAND } from "../config";
 
-export const AuthModal = ({ modalId = 'auth-modal' }) => {
+export const AuthModal = ({ modalId = "auth-modal" }) => {
   const { signIn, signUp, resendVerification } = useAuth();
   const { showToast } = useToast();
   const [isSignUp, setIsSignUp] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [showEmailVerification, setShowEmailVerification] = useState(false);
-  const [pendingEmail, setPendingEmail] = useState('');
+  const [pendingEmail, setPendingEmail] = useState("");
 
   const closeModal = () => {
     const checkbox = document.getElementById(modalId);
@@ -29,29 +29,32 @@ export const AuthModal = ({ modalId = 'auth-modal' }) => {
     try {
       if (isSignUp) {
         const { data, error } = await signUp(email, password);
-        
+
         if (error) {
-          showToast(error.message, 'error');
+          showToast(error.message, "error");
         } else {
           setPendingEmail(email);
           setShowEmailVerification(true);
         }
       } else {
         const { error } = await signIn(email, password);
-        
+
         if (error) {
-          if (error.message.includes('Email not confirmed')) {
-            showToast('Please verify your email first. Check your inbox!', 'error');
+          if (error.message.includes("Email not confirmed")) {
+            showToast(
+              "Please verify your email first. Check your inbox!",
+              "error"
+            );
           } else {
-            showToast(error.message, 'error');
+            showToast(error.message, "error");
           }
         } else {
-          showToast('Signed in successfully!', 'success');
+          showToast("Signed in successfully!", "success");
           closeModal();
         }
       }
     } catch (err) {
-      showToast('An error occurred. Please try again.', 'error');
+      showToast("An error occurred. Please try again.", "error");
     } finally {
       setLoading(false);
     }
@@ -61,12 +64,12 @@ export const AuthModal = ({ modalId = 'auth-modal' }) => {
     try {
       const { error } = await resendVerification(pendingEmail);
       if (error) {
-        showToast(error.message, 'error');
+        showToast(error.message, "error");
       } else {
-        showToast('Verification email sent!', 'success');
+        showToast("Verification email sent!", "success");
       }
     } catch (err) {
-      showToast('Failed to resend email', 'error');
+      showToast("Failed to resend email", "error");
     }
   };
 
@@ -77,17 +80,17 @@ export const AuthModal = ({ modalId = 'auth-modal' }) => {
       if (!e.target.checked) {
         // Reset form when modal closes
         setTimeout(() => {
-          setEmail('');
-          setPassword('');
+          setEmail("");
+          setPassword("");
           setIsSignUp(false);
           setShowEmailVerification(false);
         }, 300);
       }
     };
-    
+
     if (checkbox) {
-      checkbox.addEventListener('change', handleChange);
-      return () => checkbox.removeEventListener('change', handleChange);
+      checkbox.addEventListener("change", handleChange);
+      return () => checkbox.removeEventListener("change", handleChange);
     }
   }, [modalId]);
 
@@ -108,7 +111,7 @@ export const AuthModal = ({ modalId = 'auth-modal' }) => {
             One click away from getting started!
           </p>
         </div>
-        
+
         {/* Body */}
         <div className="p-6 space-y-6">
           <div className="text-center">
@@ -120,28 +123,36 @@ export const AuthModal = ({ modalId = 'auth-modal' }) => {
                 {pendingEmail}
               </p>
             </div>
-            
+
             <div className="text-left bg-gradient-to-br from-blue-50 to-purple-50 border-2 border-blue-200 rounded-xl p-4 space-y-3">
               <p className="font-semibold text-blue-900 flex items-center gap-2">
                 <span className="text-2xl">✨</span> What happens next:
               </p>
               <ol className="space-y-2 text-sm text-gray-700">
                 <li className="flex items-start gap-2">
-                  <span className="font-bold text-blue-600 flex-shrink-0">1.</span>
+                  <span className="font-bold text-blue-600 flex-shrink-0">
+                    1.
+                  </span>
                   <span>Check your email inbox (and spam folder)</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="font-bold text-blue-600 flex-shrink-0">2.</span>
+                  <span className="font-bold text-blue-600 flex-shrink-0">
+                    2.
+                  </span>
                   <span>Click the verification link</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="font-bold text-purple-600 flex-shrink-0">3.</span>
-                  <span><strong>You'll be automatically logged in!</strong> 🎉</span>
+                  <span className="font-bold text-purple-600 flex-shrink-0">
+                    3.
+                  </span>
+                  <span>
+                    <strong>You'll be automatically logged in!</strong> 🎉
+                  </span>
                 </li>
               </ol>
             </div>
           </div>
-          
+
           {/* Actions */}
           <div className="space-y-3">
             <Button
@@ -150,12 +161,12 @@ export const AuthModal = ({ modalId = 'auth-modal' }) => {
             >
               Got it!
             </Button>
-            
+
             <Button
               onClick={() => {
                 setShowEmailVerification(false);
                 setIsSignUp(false);
-                setPassword('');
+                setPassword("");
               }}
               className="w-full btn-base btn-md btn-secondary font-medium"
             >
@@ -165,11 +176,8 @@ export const AuthModal = ({ modalId = 'auth-modal' }) => {
 
           {/* Resend link */}
           <p className="text-center text-xs text-gray-500">
-            Didn't receive the email?{' '}
-            <Button 
-              onClick={handleResend}
-              className="btn-link font-medium"
-            >
+            Didn't receive the email?{" "}
+            <Button onClick={handleResend} className="btn-link font-medium">
               Resend
             </Button>
           </p>
@@ -188,15 +196,15 @@ export const AuthModal = ({ modalId = 'auth-modal' }) => {
     >
       <div className="bg-gradient-to-r from-primary to-secondary p-6 rounded-t-2xl">
         <h2 className="text-2xl font-bold text-white">
-          {isSignUp ? 'Create Account' : 'Sign In'}
+          {isSignUp ? "Create Account" : "Sign In"}
         </h2>
         <p className="text-white/80 text-sm mt-1">
-          {isSignUp 
-            ? 'Sign up to sync your settings across devices' 
-            : 'Welcome back! Sign in to your account'}
+          {isSignUp
+            ? "Sign up to sync your settings across devices"
+            : "Welcome back! Sign in to your account"}
         </p>
       </div>
-      
+
       <form onSubmit={handleSubmit} className="p-6 space-y-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -242,8 +250,10 @@ export const AuthModal = ({ modalId = 'auth-modal' }) => {
               <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
               Please wait...
             </>
+          ) : isSignUp ? (
+            "Create Account"
           ) : (
-            isSignUp ? 'Create Account' : 'Sign In'
+            "Sign In"
           )}
         </Button>
 
@@ -252,12 +262,12 @@ export const AuthModal = ({ modalId = 'auth-modal' }) => {
             type="button"
             onClick={() => {
               setIsSignUp(!isSignUp);
-              setPassword('');
+              setPassword("");
             }}
             className="btn-link text-sm"
           >
-            {isSignUp 
-              ? 'Already have an account? Sign in' 
+            {isSignUp
+              ? "Already have an account? Sign in"
               : "Don't have an account? Sign up"}
           </Button>
         </div>

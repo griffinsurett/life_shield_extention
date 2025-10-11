@@ -8,57 +8,28 @@
  * @component
  */
 
-import { useState, useEffect } from "react";
 import { useApp } from "../../../contexts/AppContext";
 import { Toggle } from "../../../components/Toggle";
-import { DEFAULTS } from "../../../config";
+import Button from "../../../components/Button";
+import Input from "../../../components/Inputs/Input";
+import Textarea from "../../../components/Inputs/Textarea";
 
 const GeneralTab = ({ showToast }) => {
   const { settings, updateSettings } = useApp();
-  const [customMessage, setCustomMessage] = useState(
-    settings.customMessage || ""
-  );
-  const [redirectUrl, setRedirectUrl] = useState(settings.redirectUrl || "");
 
-  // Sync local state with settings when they change
-  useEffect(() => {
-    setCustomMessage(settings.customMessage || "");
-    setRedirectUrl(settings.redirectUrl || "");
-  }, [settings.customMessage, settings.redirectUrl]);
-
-  const saveSettings = async (updates) => {
-    await updateSettings(updates);
-    showToast("Settings saved!", "success");
+  const handleToggle = async (key, value) => {
+    await updateSettings({ [key]: value });
+    showToast(`Setting ${value ? "enabled" : "disabled"}`, "success");
   };
 
-  const handleCustomMessageChange = (e) => {
-    setCustomMessage(e.target.value);
+  const handleRedirectChange = async (e) => {
+    const url = e.target.value;
+    await updateSettings({ redirectUrl: url });
   };
 
-  const handleCustomMessageBlur = () => {
-    saveSettings({ customMessage });
-  };
-
-  const handleRedirectUrlChange = (e) => {
-    setRedirectUrl(e.target.value);
-  };
-
-  const handleRedirectUrlBlur = () => {
-    saveSettings({ redirectUrl });
-  };
-
-  // Handle Custom URL toggle
-  const handleCustomUrlToggle = async (value) => {
-    const updates = { useCustomUrl: value };
-    
-    // If enabling custom URL and redirectUrl is empty, set a default
-    if (value && !redirectUrl.trim()) {
-      const defaultRedirectUrl = DEFAULTS.REDIRECT_URL;
-      setRedirectUrl(defaultRedirectUrl);
-      updates.redirectUrl = defaultRedirectUrl;
-    }
-    
-    await saveSettings(updates);
+  const handleMessageChange = async (e) => {
+    const message = e.target.value;
+    await updateSettings({ customMessage: message });
   };
 
   return (
@@ -67,175 +38,145 @@ const GeneralTab = ({ showToast }) => {
         General Settings
       </h2>
 
-      <div className="space-y-6">
+      <div className="space-y-8">
         {/* Enable Filter Toggle */}
-        <Toggle
-          checked={settings.enableFilter}
-          onChange={(val) => saveSettings({ enableFilter: val })}
-          label="Enable Filter"
-          description="Turn the content filter on or off globally"
-        />
+        <div className="pb-6 border-b border-gray-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-800 mb-1">
+                Enable Filter
+              </h3>
+              <p className="text-sm text-gray-600">
+                Turn the content filter on or off globally
+              </p>
+            </div>
+            <Toggle
+              checked={settings.enableFilter}
+              onChange={(checked) => handleToggle("enableFilter", checked)}
+            />
+          </div>
+        </div>
 
         {/* Show Alerts Toggle */}
-        <Toggle
-          checked={settings.showAlerts}
-          onChange={(val) => saveSettings({ showAlerts: val })}
-          label="Show Alerts"
-          description="Display notifications and badge count when content is blocked"
-        />
+        <div className="pb-6 border-b border-gray-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-800 mb-1">
+                Show Alerts
+              </h3>
+              <p className="text-sm text-gray-600">
+                Display notifications and badge count when content is blocked
+              </p>
+            </div>
+            <Toggle
+              checked={settings.showAlerts}
+              onChange={(checked) => handleToggle("showAlerts", checked)}
+            />
+          </div>
+        </div>
 
-        {/* Blocking Behavior Section */}
-        <div className="pt-6 border-t border-gray-200">
+        {/* Blocking Behavior */}
+        <div>
           <h3 className="text-lg font-semibold text-gray-800 mb-4">
             Blocking Behavior
           </h3>
-          <p className="text-sm text-gray-600 mb-6">
+          <p className="text-sm text-gray-600 mb-4">
             Choose what happens when blocked content is detected
           </p>
 
-          {/* Radio-style options */}
           <div className="space-y-4">
-            {/* Option 1: Custom Blocked Page (default) */}
-            <div 
-              onClick={() => handleCustomUrlToggle(false)}
-              className={`cursor-pointer p-6 rounded-xl border-2 transition-all ${
-                !settings.useCustomUrl 
-                  ? 'bg-gradient-to-r from-purple-50 to-purple-100 border-purple-300' 
-                  : 'bg-gray-50 border-gray-200 hover:border-gray-300'
+            {/* Built-in Blocked Page Option */}
+            <label
+              className={`block p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                !settings.useCustomUrl
+                  ? "border-primary bg-primary/5"
+                  : "border-gray-200 hover:border-gray-300"
               }`}
             >
-              <div className="flex items-start gap-4">
-                {/* Radio button */}
-                <div className="flex-shrink-0 mt-1">
-                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                    !settings.useCustomUrl 
-                      ? 'border-purple-600 bg-purple-600' 
-                      : 'border-gray-300'
-                  }`}>
-                    {!settings.useCustomUrl && (
-                      <div className="w-2 h-2 bg-white rounded-full"></div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Icon and content */}
+              <div className="flex items-start gap-3">
+                <input
+                  type="radio"
+                  name="blockBehavior"
+                  checked={!settings.useCustomUrl}
+                  onChange={() => updateSettings({ useCustomUrl: false })}
+                  className="mt-1"
+                />
                 <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="w-10 h-10 bg-gradient-to-br from-purple-400 to-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <svg
-                        className="w-5 h-5 text-white"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                        />
-                      </svg>
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-gray-800">
-                        Built-in Blocked Page
-                      </h4>
-                      <p className="text-sm text-gray-600">
-                        Show a custom message on our blocked page
-                      </p>
-                    </div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-2xl">🛡️</span>
+                    <span className="font-semibold text-gray-800">
+                      Built-in Blocked Page
+                    </span>
                   </div>
+                  <p className="text-sm text-gray-600">
+                    Show a custom message on our blocked page
+                  </p>
 
-                  {/* Show textarea when this option is selected */}
                   {!settings.useCustomUrl && (
-                    <div className="mt-4 space-y-2">
-                      <textarea
-                        value={customMessage}
-                        onChange={handleCustomMessageChange}
-                        onBlur={handleCustomMessageBlur}
-                        onClick={(e) => e.stopPropagation()}
-                        placeholder="Enter a custom message to display..."
+                    <div className="mt-3">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Custom Message (optional)
+                      </label>
+                      <Textarea
+                        value={settings.customMessage || ""}
+                        onChange={handleMessageChange}
+                        placeholder="This site is blocked for your wellbeing"
+                        className="textarea-base"
                         rows={3}
-                        className="w-full px-4 py-3 border-2 border-purple-300 rounded-xl focus:border-purple-500 focus:outline-none transition-colors resize-none"
                       />
-                      <p className="text-xs text-gray-600">
-                        This message will appear on the built-in blocked content page
-                      </p>
                     </div>
                   )}
                 </div>
               </div>
-            </div>
+            </label>
 
-            {/* Option 2: Custom Redirect URL */}
-            <div 
-              onClick={() => handleCustomUrlToggle(true)}
-              className={`cursor-pointer p-6 rounded-xl border-2 transition-all ${
-                settings.useCustomUrl 
-                  ? 'bg-gradient-to-r from-blue-50 to-blue-100 border-blue-300' 
-                  : 'bg-gray-50 border-gray-200 hover:border-gray-300'
+            {/* Custom URL Option */}
+            <label
+              className={`block p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                settings.useCustomUrl
+                  ? "border-primary bg-primary/5"
+                  : "border-gray-200 hover:border-gray-300"
               }`}
             >
-              <div className="flex items-start gap-4">
-                {/* Radio button */}
-                <div className="flex-shrink-0 mt-1">
-                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                    settings.useCustomUrl 
-                      ? 'border-blue-600 bg-blue-600' 
-                      : 'border-gray-300'
-                  }`}>
-                    {settings.useCustomUrl && (
-                      <div className="w-2 h-2 bg-white rounded-full"></div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Icon and content */}
+              <div className="flex items-start gap-3">
+                <input
+                  type="radio"
+                  name="blockBehavior"
+                  checked={settings.useCustomUrl}
+                  onChange={() => updateSettings({ useCustomUrl: true })}
+                  className="mt-1"
+                />
                 <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <svg
-                        className="w-5 h-5 text-white"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
-                        />
-                      </svg>
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-gray-800">Custom Redirect URL</h4>
-                      <p className="text-sm text-gray-600">
-                        Redirect to your own website when content is blocked
-                      </p>
-                    </div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-2xl">🔗</span>
+                    <span className="font-semibold text-gray-800">
+                      Custom Redirect URL
+                    </span>
                   </div>
+                  <p className="text-sm text-gray-600">
+                    Redirect to a specific website when content is blocked
+                  </p>
 
-                  {/* Show input when this option is selected */}
                   {settings.useCustomUrl && (
-                    <div className="mt-4 space-y-2">
-                      <input
+                    <div className="mt-3">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Redirect URL
+                      </label>
+                      <Input
                         type="url"
-                        value={redirectUrl}
-                        onChange={handleRedirectUrlChange}
-                        onBlur={handleRedirectUrlBlur}
-                        onClick={(e) => e.stopPropagation()}
+                        value={settings.redirectUrl}
+                        onChange={handleRedirectChange}
                         placeholder="https://example.com"
-                        className="w-full px-4 py-3 border-2 border-blue-300 rounded-xl focus:border-blue-500 focus:outline-none transition-colors"
+                        className="input-base"
                       />
-                      <p className="text-xs text-gray-600">
-                        Enter the URL to redirect to when blocking content
+                      <p className="text-xs text-gray-500 mt-1">
+                        Enter a full URL including https://
                       </p>
                     </div>
                   )}
                 </div>
               </div>
-            </div>
+            </label>
           </div>
         </div>
       </div>

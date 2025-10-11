@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { AuthModal } from '../../../components/AuthModal';
+import Button from '../../../components/Button';
 import { BRAND, STORAGE_KEYS } from '../../../config';
 
 const AccountTab = ({ showToast }) => {
@@ -75,12 +76,12 @@ const AccountTab = ({ showToast }) => {
               </div>
             </div>
 
-            <button
+            <Button
               onClick={handleSignOut}
               className="w-full px-6 py-3 bg-red-600 text-white rounded-xl font-semibold hover:bg-red-700 transition-colors"
             >
               Sign Out
-            </button>
+            </Button>
           </div>
         ) : (
           // Signed out state
@@ -108,12 +109,12 @@ const AccountTab = ({ showToast }) => {
               </ul>
             </div>
 
-            <button
+            <Button
               onClick={() => setShowAuthModal(true)}
               className="w-full px-6 py-3 bg-primary text-white rounded-xl font-semibold hover:bg-secondary transition-colors"
             >
               Sign In / Sign Up
-            </button>
+            </Button>
           </div>
         )}
       </div>

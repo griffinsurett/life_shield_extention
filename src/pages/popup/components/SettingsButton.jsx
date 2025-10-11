@@ -14,9 +14,11 @@
  * @param {Function} props.onClick - Called when button clicked
  */
 
+import Button from '../../../components/Button';
+
 export const SettingsButton = ({ onClick }) => {
   return (
-    <button 
+    <Button
       onClick={onClick}
       className="w-full px-4 py-3 bg-white/20 hover:bg-white/30 rounded-lg font-semibold text-sm transition-all duration-200 flex items-center justify-center gap-2"
     >
@@ -26,6 +28,6 @@ export const SettingsButton = ({ onClick }) => {
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
       </svg>
       Advanced Settings
-    </button>
+    </Button>
   );
 };

@@ -9,6 +9,7 @@
 
 import { Component } from 'react';
 import { logError } from '../utils/logger';
+import Button from './Button';
 
 export class ErrorBoundary extends Component {
   constructor(props) {
@@ -81,18 +82,18 @@ export class ErrorBoundary extends Component {
             )}
 
             <div className="flex gap-3">
-              <button
+              <Button
                 onClick={this.handleReset}
                 className="flex-1 px-6 py-3 bg-primary text-white rounded-xl font-semibold hover:bg-secondary transition-colors"
               >
                 Try Again
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={() => window.location.reload()}
                 className="flex-1 px-6 py-3 bg-gray-200 text-gray-800 rounded-xl font-semibold hover:bg-gray-300 transition-colors"
               >
                 Reload Page
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -126,12 +127,12 @@ export class SimpleErrorBoundary extends Component {
       return (
         <div className="p-4 bg-red-50 border-2 border-red-200 rounded-xl">
           <p className="text-red-800 font-medium">⚠️ This section failed to load</p>
-          <button
+          <Button
             onClick={() => this.setState({ hasError: false })}
             className="mt-2 text-sm text-red-600 hover:text-red-800 underline"
           >
             Try again
-          </button>
+          </Button>
         </div>
       );
     }

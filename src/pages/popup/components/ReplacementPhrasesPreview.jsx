@@ -16,6 +16,8 @@
  * @param {Function} props.onRefresh - Called when refresh button clicked
  */
 
+import Button from '../../../components/Button';
+
 export const ReplacementPhrasesPreview = ({ phrase, onRefresh }) => {
   return (
     <div className="mb-5 p-4 bg-white/10 rounded-xl backdrop-blur-sm border border-white/20 shadow-lg">
@@ -28,12 +30,12 @@ export const ReplacementPhrasesPreview = ({ phrase, onRefresh }) => {
         <p className="text-sm font-medium italic">&quot;{phrase || 'Loading...'}&quot;</p>
         
         {/* Refresh button */}
-        <button 
+        <Button
           onClick={onRefresh}
           className="text-xs text-white/60 hover:text-white mt-2 transition-colors"
         >
           ↻ Show Another
-        </button>
+        </Button>
       </div>
     </div>
   );

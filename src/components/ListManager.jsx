@@ -13,6 +13,7 @@ import { memo, useCallback } from 'react';
 import Badge from './Badge';
 import { AddItemInput } from './AddItemInput';
 import { SectionHeader } from './SectionHeader';
+import Button from './Button';
 
 const ListManager = memo(({
   items = [],
@@ -113,12 +114,12 @@ const ListManager = memo(({
           {/* Clear all button */}
           {onClear && items.length > 0 && (
             <div className="mt-4">
-              <button
+              <Button
                 onClick={onClear}
                 className="px-4 py-2 bg-red-500 text-white rounded-xl font-medium hover:bg-red-600 transition-colors"
               >
                 Clear All
-              </button>
+              </Button>
             </div>
           )}
         </div>

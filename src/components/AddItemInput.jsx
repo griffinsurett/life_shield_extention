@@ -1,42 +1,44 @@
 /**
  * AddItemInput Component
- * 
+ *
  * Input with add button for list management.
  * Used for adding blocked words, sites, etc.
- * 
+ *
  * @component
  */
 
-import { useState } from 'react';
-import Button from './Button';
-import Input from './Input';
+import { useState } from "react";
+import Button from "./Button";
+import Input from "./Inputs/Input";
 
-export const AddItemInput = ({ 
-  onAdd, 
-  placeholder = 'Add item...', 
-  buttonText = 'Add',
+export const AddItemInput = ({
+  onAdd,
+  placeholder = "Add item...",
+  buttonText = "Add",
   minLength = 1,
   transform,
-  validate 
+  validate,
 }) => {
-  const [value, setValue] = useState('');
-  const [error, setError] = useState('');
+  const [value, setValue] = useState("");
+  const [error, setError] = useState("");
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
+
     // Clear previous errors
-    setError('');
-    
+    setError("");
+
     // Apply transformation if provided
     const processedValue = transform ? transform(value) : value.trim();
-    
+
     // Validation
     if (processedValue.length < minLength) {
-      setError(`Must be at least ${minLength} character${minLength > 1 ? 's' : ''}`);
+      setError(
+        `Must be at least ${minLength} character${minLength > 1 ? "s" : ""}`
+      );
       return;
     }
-    
+
     if (validate) {
       const validationError = validate(processedValue);
       if (validationError) {
@@ -44,10 +46,10 @@ export const AddItemInput = ({
         return;
       }
     }
-    
+
     // Add item and clear input
     onAdd(processedValue);
-    setValue('');
+    setValue("");
   };
 
   return (
@@ -68,9 +70,7 @@ export const AddItemInput = ({
           {buttonText}
         </Button>
       </div>
-      {error && (
-        <p className="text-sm text-red-600 ml-1">{error}</p>
-      )}
+      {error && <p className="text-sm text-red-600 ml-1">{error}</p>}
     </form>
   );
 };

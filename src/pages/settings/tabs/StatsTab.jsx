@@ -9,6 +9,7 @@
 
 import { useCallback } from "react";
 import { useApp } from "../../../contexts/AppContext";
+import Button from '../../../components/Button';
 
 const StatsTab = ({ showToast, showConfirmation }) => {
   const { stats, resetStats } = useApp();
@@ -68,12 +69,12 @@ const StatsTab = ({ showToast, showConfirmation }) => {
       </div>
 
       {/* Reset button */}
-      <button
+      <Button
         onClick={handleReset}
         className="px-6 py-3 bg-red-500 text-white rounded-xl font-semibold hover:bg-red-600 transition-colors"
       >
         Reset All Statistics
-      </button>
+      </Button>
     </div>
   );
 };

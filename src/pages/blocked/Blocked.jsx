@@ -7,6 +7,7 @@
 
 import { useState, useEffect } from 'react';
 import { BRAND, DEFAULTS } from '../../config';
+import Button from '../../components/Button';
 
 const Blocked = () => {
   const [customMessage, setCustomMessage] = useState(DEFAULTS.CUSTOM_MESSAGE);
@@ -110,18 +111,18 @@ const Blocked = () => {
         
         {/* Action Buttons */}
         <div className="flex gap-4 justify-center">
-          <button
+          <Button
             onClick={goBack}
             className="px-6 py-3 bg-primary hover:bg-secondary text-white rounded-xl font-semibold transition-all shadow-lg hover:shadow-xl"
           >
             Go Back
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={openSettings}
             className="px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-xl font-semibold transition-all"
           >
             Open Settings
-          </button>
+          </Button>
         </div>
 
         {/* Footer */}

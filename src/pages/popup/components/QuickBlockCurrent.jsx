@@ -17,6 +17,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import Button from '../../../components/Button';
 
 export const QuickBlockCurrent = ({ onBlockSite, showConfirmation }) => {
   const [currentUrl, setCurrentUrl] = useState('');
@@ -84,7 +85,7 @@ export const QuickBlockCurrent = ({ onBlockSite, showConfirmation }) => {
           </p>
         </div>
         
-        <button
+        <Button
           onClick={handleBlockClick}
           className="flex-shrink-0 px-4 py-3 bg-white text-red-600 rounded-lg font-bold text-sm hover:shadow-xl hover:scale-105 active:scale-100 transition-all duration-200 flex flex-col items-center gap-1"
         >
@@ -92,7 +93,7 @@ export const QuickBlockCurrent = ({ onBlockSite, showConfirmation }) => {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
           </svg>
           <span className="text-xs">Block</span>
-        </button>
+        </Button>
       </div>
     </div>
   );
