@@ -126,7 +126,7 @@ export const AccountSection = ({ showToast }) => {
             </div>
           }
         >
-          <div className="mx-4 mb-4 overflow-hidden">
+          <div className="overflow-hidden">
             <div className="p-3 bg-gray-50 rounded-t-xl">
               <p className="text-xs text-gray-500 mb-1">Account</p>
               <p className="text-sm font-medium text-gray-900 truncate">{user.email}</p>
