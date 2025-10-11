@@ -35,19 +35,14 @@ const TabLoader = () => (
 
 export const Settings = () => {
   const { showToast } = useToast();
-  const confirmation = useConfirmation('settings-confirmation-modal');
+  const confirmation = useConfirmation("settings-confirmation-modal");
   const [activeTab, setActiveTab] = useState("general");
 
   const tabs = [
     { id: "general", name: "General", icon: "⚙️", component: GeneralTab },
     { id: "words", name: "Blocked Words", icon: "📝", component: WordsTab },
-    {
-      id: "phrases",
-      name: "Replacement Phrases",
-      icon: "💬",
-      component: PhrasesTab,
-    },
     { id: "sites", name: "Blocked Sites", icon: "🚫", component: SitesTab },
+    { id: "phrases", name: "Replacement Phrases", icon: "💬", component: PhrasesTab },
     { id: "stats", name: "Statistics", icon: "📊", component: StatsTab },
     { id: "about", name: "About", icon: "ℹ️", component: AboutTab },
   ];
@@ -58,9 +53,9 @@ export const Settings = () => {
   const renderTab = useCallback(() => {
     if (!TabComponent) return null;
 
-    const props = { 
+    const props = {
       showToast,
-      showConfirmation: confirmation.showConfirmation
+      showConfirmation: confirmation.showConfirmation,
     };
 
     return (

@@ -112,7 +112,7 @@ const ListManager = memo(({
           </div>
 
           {/* Clear all button */}
-          {onClear && items.length > 0 && (
+          {/* {onClear && items.length > 0 && (
             <div className="mt-4">
               <Button
                 onClick={onClear}
@@ -121,7 +121,7 @@ const ListManager = memo(({
                 Clear All
               </Button>
             </div>
-          )}
+          )} */}
         </div>
       )}
 
