@@ -5,22 +5,44 @@ import { useToast } from "./ToastContainer";
 import { Modal } from "./Modal";
 import Button from "./Button";
 import Input from "./Inputs/Input";
-import { BRAND } from "../config";
+import { BRAND, STORAGE_KEYS } from "../config";
 
 export const AuthModal = ({ modalId = "auth-modal" }) => {
-  const { signIn, signUp, resendVerification } = useAuth();
+  const { user, signIn, signUp, resendVerification } = useAuth();
   const { showToast } = useToast();
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [showEmailVerification, setShowEmailVerification] = useState(false);
+  const [showSuccessScreen, setShowSuccessScreen] = useState(false);
   const [pendingEmail, setPendingEmail] = useState("");
 
   const closeModal = () => {
     const checkbox = document.getElementById(modalId);
     if (checkbox) checkbox.checked = false;
   };
+
+  // NEW: Auto-close modal after successful email verification
+  useEffect(() => {
+    if (user) {
+      // Check if this is a fresh email verification
+      chrome.storage.local.get([STORAGE_KEYS.EMAIL_JUST_VERIFIED], (result) => {
+        if (result[STORAGE_KEYS.EMAIL_JUST_VERIFIED]) {
+          // Show success screen
+          setShowSuccessScreen(true);
+          
+          // Auto-close after 2.5 seconds
+          setTimeout(() => {
+            closeModal();
+            // Clean up
+            setShowSuccessScreen(false);
+            chrome.storage.local.remove([STORAGE_KEYS.EMAIL_JUST_VERIFIED]);
+          }, 2500);
+        }
+      });
+    }
+  }, [user]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -78,12 +100,12 @@ export const AuthModal = ({ modalId = "auth-modal" }) => {
     const checkbox = document.getElementById(modalId);
     const handleChange = (e) => {
       if (!e.target.checked) {
-        // Reset form when modal closes
         setTimeout(() => {
           setEmail("");
           setPassword("");
           setIsSignUp(false);
           setShowEmailVerification(false);
+          setShowSuccessScreen(false);
         }, 300);
       }
     };
@@ -93,6 +115,50 @@ export const AuthModal = ({ modalId = "auth-modal" }) => {
       return () => checkbox.removeEventListener("change", handleChange);
     }
   }, [modalId]);
+
+  // NEW: Success Screen after Email Verification
+  if (showSuccessScreen) {
+    return (
+      <Modal
+        modalId={modalId}
+        className="bg-white rounded-2xl shadow-2xl max-w-md w-full"
+        animationType="slide-up"
+        showCloseButton={false}
+      >
+        {/* Success Header */}
+        <div className="bg-gradient-to-r from-green-500 to-green-600 p-6 rounded-t-2xl text-center">
+          <div className="text-6xl mb-3 animate-bounce">✅</div>
+          <h2 className="text-2xl font-bold text-white">Welcome!</h2>
+          <p className="text-white/90 text-sm mt-2">
+            Your email has been verified
+          </p>
+        </div>
+
+        {/* Success Body */}
+        <div className="p-8 text-center">
+          <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-6 mb-4">
+            <p className="text-green-900 font-semibold mb-2">
+              🎉 Account Activated!
+            </p>
+            <p className="text-sm text-green-800">
+              You're now signed in to <strong>{BRAND.NAME}</strong>
+            </p>
+            <div className="mt-3 pt-3 border-t border-green-200">
+              <p className="text-xs text-green-700">
+                {user?.email}
+              </p>
+            </div>
+          </div>
+
+          {/* Auto-closing indicator */}
+          <div className="flex items-center justify-center gap-2 text-sm text-gray-600">
+            <div className="w-4 h-4 border-2 border-green-500 border-t-transparent rounded-full animate-spin"></div>
+            <span>Setting up your account...</span>
+          </div>
+        </div>
+      </Modal>
+    );
+  }
 
   // Email Verification Screen
   if (showEmailVerification) {

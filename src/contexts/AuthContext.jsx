@@ -83,10 +83,10 @@ export function AuthProvider({ children }) {
           verified: !!(data.user?.email_confirmed_at || data.user?.confirmed_at)
         });
 
-        // Set flag for UI to show success message
+        // Set flags for UI
         chrome.storage.local.set({ 
-          [STORAGE_KEYS.EMAIL_JUST_VERIFIED]: true,
-          [STORAGE_KEYS.VERIFICATION_SUCCESSFUL]: true
+          [STORAGE_KEYS.EMAIL_JUST_VERIFIED]: true,  // For modal auto-close
+          [STORAGE_KEYS.VERIFICATION_SUCCESSFUL]: true  // For toast notification
         });
 
         // Clean up URL hash
