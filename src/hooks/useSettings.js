@@ -10,29 +10,38 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { storage, sendMessageToTabs } from '../utils/storage';
-import { DEFAULT_SETTINGS, STORAGE_KEYS } from '../utils/constants';
+import { DEFAULTS, STORAGE_KEYS } from '../config';
 
 export const useSettings = () => {
-  const [settings, setSettings] = useState(DEFAULT_SETTINGS);
+  const [settings, setSettings] = useState({
+    blockedWords: DEFAULTS.BLOCKED_WORDS,
+    blockedSites: DEFAULTS.BLOCKED_SITES,
+    redirectUrl: DEFAULTS.REDIRECT_URL,
+    enableFilter: DEFAULTS.ENABLE_FILTER,
+    showAlerts: DEFAULTS.SHOW_ALERTS,
+    replacementPhrases: DEFAULTS.REPLACEMENT_PHRASES,
+    useCustomUrl: DEFAULTS.USE_CUSTOM_URL,
+    customMessage: DEFAULTS.CUSTOM_MESSAGE,
+  });
   const [loading, setLoading] = useState(true);
 
   // Memoized loadSettings function
   const loadSettings = useCallback(async () => {
     const keys = Object.values(STORAGE_KEYS).filter(k => 
-      !['filterCount', 'todayCount', 'installDate', 'lastResetDate'].includes(k)
+      !['filterCount', 'todayCount', 'installDate', 'lastResetDate', 'emailJustVerified', 'verificationSuccessful'].includes(k)
     );
     
     const result = await storage.get(keys);
     
     setSettings({
-      blockedWords: result.blockedWords ?? DEFAULT_SETTINGS.blockedWords,
-      blockedSites: result.blockedSites ?? DEFAULT_SETTINGS.blockedSites,
-      redirectUrl: result.redirectUrl ?? DEFAULT_SETTINGS.redirectUrl,
-      enableFilter: result.enableFilter ?? DEFAULT_SETTINGS.enableFilter,
-      showAlerts: result.showAlerts ?? DEFAULT_SETTINGS.showAlerts,
-      replacementPhrases: result.replacementPhrases ?? DEFAULT_SETTINGS.replacementPhrases,
-      useCustomUrl: result.useCustomUrl ?? DEFAULT_SETTINGS.useCustomUrl,
-      customMessage: result.customMessage ?? DEFAULT_SETTINGS.customMessage,
+      blockedWords: result.blockedWords ?? DEFAULTS.BLOCKED_WORDS,
+      blockedSites: result.blockedSites ?? DEFAULTS.BLOCKED_SITES,
+      redirectUrl: result.redirectUrl ?? DEFAULTS.REDIRECT_URL,
+      enableFilter: result.enableFilter ?? DEFAULTS.ENABLE_FILTER,
+      showAlerts: result.showAlerts ?? DEFAULTS.SHOW_ALERTS,
+      replacementPhrases: result.replacementPhrases ?? DEFAULTS.REPLACEMENT_PHRASES,
+      useCustomUrl: result.useCustomUrl ?? DEFAULTS.USE_CUSTOM_URL,
+      customMessage: result.customMessage ?? DEFAULTS.CUSTOM_MESSAGE,
     });
     
     setLoading(false);

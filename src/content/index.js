@@ -1,27 +1,24 @@
 /**
  * Content Script Entry Point
- * 
+ *
  * Main content script that runs on every page.
  * Now with proper logging and enableFilter check.
- * 
+ *
  * @module content/index
  */
 
-import { isExtensionContextValid } from '../utils/chrome';
-import { createLogger } from '../utils/logger';
-import { 
-  EARLY_SCAN_DELAYS, 
-  INPUT_SCAN_INTERVAL 
-} from '../utils/timing';
-import { WellnessConfig } from './config';
-import { WellnessUtils } from './modules/WellnessUtils';
-import { TextScrubber } from './modules/TextScrubber';
-import { ElementCleaner } from './modules/ElementCleaner';
-import { InputHandler } from './modules/InputHandler';
-import { SiteHandlers } from './modules/SiteHandlers';
-import { EventListeners } from './modules/EventListeners';
+import { isExtensionContextValid } from "../utils/chromeApi";
+import { createLogger } from "../utils/logger";
+import { EARLY_SCAN_DELAYS, INPUT_SCAN_INTERVAL } from "../utils/timing";
+import { WellnessConfig } from "./config";
+import { WellnessUtils } from "./modules/WellnessUtils";
+import { TextScrubber } from "./modules/TextScrubber";
+import { ElementCleaner } from "./modules/ElementCleaner";
+import { InputHandler } from "./modules/InputHandler";
+import { SiteHandlers } from "./modules/SiteHandlers";
+import { EventListeners } from "./modules/EventListeners";
 
-const logger = createLogger('ContentScript');
+const logger = createLogger("ContentScript");
 
 // =============================================================================
 // CRITICAL: Error handlers MUST be first - before any imports
@@ -30,46 +27,56 @@ const logger = createLogger('ContentScript');
 /**
  * Global error handler for extension context invalidation
  */
-window.addEventListener('error', (event) => {
-  if (event.error && 
-      (event.error.message?.includes('Extension context invalidated') ||
-       event.error.message?.includes('Cannot access') ||
-       event.error.message?.includes('Extension manifest') ||
-       event.error.message?.includes('chrome-extension://'))) {
-    
-    event.preventDefault();
-    event.stopPropagation();
-    event.stopImmediatePropagation();
-    
-    return true;
-  }
-}, true);
+window.addEventListener(
+  "error",
+  (event) => {
+    if (
+      event.error &&
+      (event.error.message?.includes("Extension context invalidated") ||
+        event.error.message?.includes("Cannot access") ||
+        event.error.message?.includes("Extension manifest") ||
+        event.error.message?.includes("chrome-extension://"))
+    ) {
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+
+      return true;
+    }
+  },
+  true
+);
 
 /**
  * Global promise rejection handler
  */
-window.addEventListener('unhandledrejection', (event) => {
-  const message = event.reason?.message || String(event.reason);
-  
-  if (message.includes('Extension context invalidated') ||
-      message.includes('Cannot access') ||
-      message.includes('Extension manifest') ||
-      message.includes('chrome-extension://')) {
-    
-    event.preventDefault();
-    event.stopPropagation();
-    event.stopImmediatePropagation();
-    
-    return true;
-  }
-}, true);
+window.addEventListener(
+  "unhandledrejection",
+  (event) => {
+    const message = event.reason?.message || String(event.reason);
+
+    if (
+      message.includes("Extension context invalidated") ||
+      message.includes("Cannot access") ||
+      message.includes("Extension manifest") ||
+      message.includes("chrome-extension://")
+    ) {
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+
+      return true;
+    }
+  },
+  true
+);
 
 // =============================================================================
 // Main content script
 // =============================================================================
 
-(async function() {
-  'use strict';
+(async function () {
+  "use strict";
 
   // Check if extension context is valid before starting
   try {
@@ -116,12 +123,12 @@ window.addEventListener('unhandledrejection', (event) => {
 
     if (!isExtensionContextValid()) {
       isShuttingDown = true;
-      logger.warn('Extension context invalidated, shutting down');
+      logger.warn("Extension context invalidated, shutting down");
       return;
     }
 
     const now = Date.now();
-    
+
     if (now - lastCleanTime < config.MIN_CLEAN_INTERVAL) {
       return;
     }
@@ -132,29 +139,31 @@ window.addEventListener('unhandledrejection', (event) => {
         const textCount = textScrubber.scrubTextNodesIn(container);
         elementCleaner.hideBlockedElements(container);
         const inputCount = inputHandler.attachToInputs(container);
-        
+
         if (textCount > 0 || inputCount > 0) {
-          logger.debug(`Cleaned ${textCount} text nodes, ${inputCount} new inputs`);
+          logger.debug(
+            `Cleaned ${textCount} text nodes, ${inputCount} new inputs`
+          );
           totalFilteredThisPage += textCount;
-          
+
           if (!hasNotifiedThisPage && totalFilteredThisPage >= 5) {
             utils.notifyContentFiltered(totalFilteredThisPage);
             hasNotifiedThisPage = true;
           }
         }
       } catch (error) {
-        logger.safeError('Error during cleaning', error);
-        if (error.message?.includes('Extension context invalidated')) {
+        logger.safeError("Error during cleaning", error);
+        if (error.message?.includes("Extension context invalidated")) {
           isShuttingDown = true;
           return;
         }
       }
     }
-    
+
     try {
       utils.checkURL();
     } catch (error) {
-      if (error.message?.includes('Extension context invalidated')) {
+      if (error.message?.includes("Extension context invalidated")) {
         isShuttingDown = true;
       }
     }
@@ -166,26 +175,27 @@ window.addEventListener('unhandledrejection', (event) => {
   function initialize() {
     // CHECK IF FILTER IS ENABLED BEFORE INITIALIZING
     if (!config.ENABLED) {
-      logger.info('Content filter is disabled, not initializing');
+      logger.info("Content filter is disabled, not initializing");
       return;
     }
 
     try {
       elementCleaner.injectStyles();
-      
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => {
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", () => {
           if (!isShuttingDown && config.ENABLED) throttledClean();
         });
       } else {
         throttledClean();
       }
-      
+
       // Early scans for dynamic inputs
-      EARLY_SCAN_DELAYS.forEach(delay => {
+      EARLY_SCAN_DELAYS.forEach((delay) => {
         setTimeout(() => {
-          if (isShuttingDown || !isExtensionContextValid() || !config.ENABLED) return;
-          
+          if (isShuttingDown || !isExtensionContextValid() || !config.ENABLED)
+            return;
+
           const newInputs = inputHandler.attachToInputs(document);
           if (newInputs > 0) {
             logger.debug(`Early scan found ${newInputs} inputs at ${delay}ms`);
@@ -197,7 +207,8 @@ window.addEventListener('unhandledrejection', (event) => {
       const observer = new MutationObserver((mutations) => {
         if (isShuttingDown || !isExtensionContextValid() || !config.ENABLED) {
           observer.disconnect();
-          if (!config.ENABLED) logger.info('Filter disabled, disconnecting observer');
+          if (!config.ENABLED)
+            logger.info("Filter disabled, disconnecting observer");
           isShuttingDown = true;
           return;
         }
@@ -207,8 +218,8 @@ window.addEventListener('unhandledrejection', (event) => {
         }
 
         const addedNodes = [];
-        mutations.forEach(mutation => {
-          mutation.addedNodes.forEach(node => {
+        mutations.forEach((mutation) => {
+          mutation.addedNodes.forEach((node) => {
             if (node.nodeType === 1) {
               addedNodes.push(node);
             }
@@ -219,8 +230,8 @@ window.addEventListener('unhandledrejection', (event) => {
 
         mutationTimer = setTimeout(() => {
           if (isShuttingDown || !config.ENABLED) return;
-          
-          addedNodes.forEach(node => {
+
+          addedNodes.forEach((node) => {
             if (node.nodeType === 1) {
               throttledClean(node);
             }
@@ -231,7 +242,7 @@ window.addEventListener('unhandledrejection', (event) => {
       if (document.body) {
         observer.observe(document.body, {
           childList: true,
-          subtree: true
+          subtree: true,
         });
       }
 
@@ -252,7 +263,7 @@ window.addEventListener('unhandledrejection', (event) => {
           isShuttingDown = true;
           return;
         }
-        
+
         const missedInputs = inputHandler.attachToInputs(document);
         if (missedInputs > 0) {
           logger.debug(`Safety net caught ${missedInputs} missed inputs`);
@@ -262,10 +273,10 @@ window.addEventListener('unhandledrejection', (event) => {
       eventListeners.init();
       siteHandlers.init();
 
-      logger.info('Wellness filter active!');
+      logger.info("Wellness filter active!");
     } catch (error) {
-      logger.safeError('Error during initialization', error);
-      if (error.message?.includes('Extension context invalidated')) {
+      logger.safeError("Error during initialization", error);
+      if (error.message?.includes("Extension context invalidated")) {
         isShuttingDown = true;
         return;
       }

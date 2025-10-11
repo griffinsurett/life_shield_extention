@@ -1,56 +1,11 @@
 /**
- * Constants
+ * Technical Constants
  * 
- * Central location for all extension constants.
- * Includes default settings, storage keys, and CSS selectors.
- * 
- * Performance settings are now HARDCODED (not user-configurable)
- * to keep the UI simple and user-focused.
+ * CSS selectors and performance settings.
+ * Configuration values have been moved to config/ folder.
  * 
  * @module utils/constants
  */
-
-/**
- * Default settings for new installations
- * 
- * @constant {Object}
- */
-export const DEFAULT_SETTINGS = {
-  // Default blocked words (for testing)
-  blockedWords: ["chair", "a chair"],
-  
-  // No blocked sites by default
-  blockedSites: [],
-  
-  // Default redirect destination
-  redirectUrl: "https://griffinswebservices.com",
-  
-  // Filter is enabled by default
-  enableFilter: true,
-  
-  // Notifications disabled by default (can be annoying)
-  showAlerts: false,
-  
-  // Blocking behavior
-  useCustomUrl: false,  // If false, use custom message page
-  customMessage: 'This page has been blocked to support your wellness journey. Take a moment to breathe and consider a healthier alternative.',
-  
-  /**
-   * Default healthy replacement phrases
-   * Randomly selected when blocked words are replaced
-   * Focus on wellness, health, and positive activities
-   */
-  replacementPhrases: [
-    "yoga for beginners", "meditation techniques", "healthy recipes",
-    "stress relief tips", "walking benefits", "sleep improvement",
-    "breathing exercises", "mindfulness practice", "stretching routine",
-    "water intake benefits", "morning exercise", "immune system boost",
-    "vitamin d benefits", "relaxation techniques", "healthy meal prep",
-    "nature walk benefits", "gratitude journal", "posture improvement",
-    "herbal tea benefits", "workout motivation", "mental health tips",
-    "nutrition basics", "hydration tips", "self care ideas", "wellness routine"
-  ]
-};
 
 /**
  * Performance Settings (HARDCODED - Not user-configurable)
@@ -67,30 +22,6 @@ export const PERFORMANCE = {
   
   // Minimum interval between cleaning operations (ms)
   MIN_CLEAN_INTERVAL: 500,
-};
-
-/**
- * Storage keys
- * Centralized key names for chrome.storage
- * 
- * @constant {Object}
- */
-export const STORAGE_KEYS = {
-  // Settings (stored in sync storage)
-  BLOCKED_WORDS: 'blockedWords',
-  BLOCKED_SITES: 'blockedSites',
-  REDIRECT_URL: 'redirectUrl',
-  ENABLE_FILTER: 'enableFilter',
-  SHOW_ALERTS: 'showAlerts',
-  REPLACEMENT_PHRASES: 'replacementPhrases',
-  USE_CUSTOM_URL: 'useCustomUrl',
-  CUSTOM_MESSAGE: 'customMessage',
-  
-  // Statistics (stored in local storage)
-  FILTER_COUNT: 'filterCount',
-  TODAY_COUNT: 'todayCount',
-  INSTALL_DATE: 'installDate',
-  LAST_RESET_DATE: 'lastResetDate'
 };
 
 /**
@@ -157,11 +88,6 @@ export const SELECTORS = {
   
   /**
    * Input field selectors
-   * Catches all possible input types
-   * Excludes inputs that already have our filter attached
-   */
-    /**
-   * Input field selectors
    * Catches all possible input types including Google's special inputs
    * Excludes inputs that already have our filter attached
    */
@@ -180,11 +106,3 @@ export const SELECTORS = {
     'textarea[jsname]:not([data-filter-attached])'
   ]
 };
-
-/**
- * Minimum interval between cleaning operations (ms)
- * Prevents excessive processing during rapid DOM changes
- * 
- * @constant {number}
- */
-export const MIN_CLEAN_INTERVAL = 500;

@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from './ToastContainer';
+import { BRAND } from '../config';
 
 export const AuthModal = ({ isOpen, onClose }) => {
   const { signIn, signUp, resendVerification } = useAuth();

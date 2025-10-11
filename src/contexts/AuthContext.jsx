@@ -16,6 +16,8 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../services/supabase';
 import { createLogger } from '../utils/logger';
+import { BRAND, STORAGE_KEYS } from '../config';
+import { getSettingsPageUrl } from '../utils/builders';
 
 const logger = createLogger('AuthContext');
 const AuthContext = createContext(null);
@@ -83,8 +85,8 @@ export function AuthProvider({ children }) {
 
         // Set flag for UI to show success message
         chrome.storage.local.set({ 
-          emailJustVerified: true,
-          verificationSuccessful: true
+          [STORAGE_KEYS.EMAIL_JUST_VERIFIED]: true,
+          [STORAGE_KEYS.VERIFICATION_SUCCESSFUL]: true
         });
 
         // Clean up URL hash
@@ -150,8 +152,8 @@ export function AuthProvider({ children }) {
       // Handle sign out - clean up storage
       if (event === 'SIGNED_OUT') {
         chrome.storage.local.remove([
-          'emailJustVerified',
-          'verificationSuccessful'
+          STORAGE_KEYS.EMAIL_JUST_VERIFIED,
+          STORAGE_KEYS.VERIFICATION_SUCCESSFUL
         ]);
         logger.info('Signed out - cleared storage flags');
       }
@@ -178,7 +180,7 @@ export function AuthProvider({ children }) {
         email,
         password,
         options: {
-          emailRedirectTo: chrome.runtime.getURL('src/pages/settings/index.html')
+          emailRedirectTo: getSettingsPageUrl()
         }
       });
 
@@ -267,7 +269,7 @@ export function AuthProvider({ children }) {
       logger.info('Sending password reset email...', { email });
       
       const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: chrome.runtime.getURL('src/pages/settings/index.html'),
+        redirectTo: getSettingsPageUrl(),
       });
 
       if (error) throw error;
@@ -295,7 +297,7 @@ export function AuthProvider({ children }) {
         type: 'signup',
         email: email,
         options: {
-          emailRedirectTo: chrome.runtime.getURL('src/pages/settings/index.html')
+          emailRedirectTo: getSettingsPageUrl()
         }
       });
 

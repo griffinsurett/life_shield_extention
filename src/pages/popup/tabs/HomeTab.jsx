@@ -3,6 +3,7 @@ import { useToast } from '../../../components/ToastContainer';
 import { useApp } from '../../../contexts/AppContext';
 import { StatusCard } from '../components/StatusCard';
 import { QuickBlockCurrent } from '../components/QuickBlockCurrent';
+import { getRedirectUrlWithFallback } from '../../../utils/builders';
 
 export const HomeTab = ({ 
   wordManager, 
@@ -33,7 +34,7 @@ export const HomeTab = ({
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       if (tabs[0]?.id) {
         chrome.tabs.update(tabs[0].id, { 
-          url: settings.redirectUrl || 'https://griffinswebservices.com' 
+          url: getRedirectUrlWithFallback(settings.redirectUrl)
         });
       }
     });

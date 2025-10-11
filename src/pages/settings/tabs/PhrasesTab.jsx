@@ -11,7 +11,7 @@ import { useCallback } from "react";
 import { useApp } from "../../../contexts/AppContext";
 import { useListManager } from "../../../hooks/useListManager";
 import ListManager from "../../../components/ListManager";
-import { DEFAULT_SETTINGS } from "../../../utils/constants";
+import { DEFAULTS } from "../../../config";
 
 const PhrasesTab = ({ showToast, showConfirmation }) => {
   const { settings, updateSettings } = useApp();
@@ -36,7 +36,7 @@ const PhrasesTab = ({ showToast, showConfirmation }) => {
       confirmColor: "orange",
       onConfirm: async () => {
         await updateSettings({
-          replacementPhrases: DEFAULT_SETTINGS.replacementPhrases,
+          replacementPhrases: DEFAULTS.REPLACEMENT_PHRASES,
         });
         showToast("Phrases reset to defaults", "success");
       },
@@ -95,7 +95,6 @@ const PhrasesTab = ({ showToast, showConfirmation }) => {
         title="Current Phrases"
         variant="success"
         renderItem={renderPhrase}
-        // No isVulnerable prop - replacement phrases are safe to show
       />
 
       <div className="mt-6">

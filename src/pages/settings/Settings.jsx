@@ -10,9 +10,10 @@
 
 import { useState, useCallback, lazy, Suspense } from "react";
 import { useToast } from "../../components/ToastContainer";
-import { useConfirmation } from "../../hooks/useConfirmation";  // ADD THIS
-import { ConfirmationModal } from "../../components/ConfirmationModal";  // ADD THIS
+import { useConfirmation } from "../../hooks/useConfirmation";
+import { ConfirmationModal } from "../../components/ConfirmationModal";
 import { SimpleErrorBoundary } from "../../components/ErrorBoundary";
+import { BRAND } from "../../config";
 
 // Lazy load all tab components
 const GeneralTab = lazy(() => import("./tabs/GeneralTab"));
@@ -37,7 +38,7 @@ const TabLoader = () => (
 
 export const Settings = () => {
   const { showToast } = useToast();
-  const confirmation = useConfirmation();  // ADD THIS
+  const confirmation = useConfirmation();
   const [activeTab, setActiveTab] = useState("general");
 
   const tabs = [
@@ -63,10 +64,9 @@ export const Settings = () => {
   const renderTab = useCallback(() => {
     if (!TabComponent) return null;
 
-    // CHANGE THIS LINE - add showConfirmation
     const props = { 
       showToast,
-      showConfirmation: confirmation.showConfirmation  // ADD THIS
+      showConfirmation: confirmation.showConfirmation
     };
 
     return (
@@ -76,7 +76,7 @@ export const Settings = () => {
         </Suspense>
       </SimpleErrorBoundary>
     );
-  }, [TabComponent, showToast, confirmation.showConfirmation]);  // UPDATE DEPENDENCIES
+  }, [TabComponent, showToast, confirmation.showConfirmation]);
 
   return (
     <div className="bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
@@ -84,10 +84,10 @@ export const Settings = () => {
         <div className="max-w-7xl mx-auto px-6 py-8">
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center text-4xl">
-              🌿
+              {BRAND.ICON}
             </div>
             <div className="text-white">
-              <h1 className="text-3xl font-bold">Wellness Filter</h1>
+              <h1 className="text-3xl font-bold">{BRAND.NAME}</h1>
               <p className="text-white/80 text-sm">
                 Advanced Settings & Configuration
               </p>
@@ -123,7 +123,6 @@ export const Settings = () => {
         </div>
       </div>
 
-      {/* ADD CONFIRMATION MODAL */}
       <ConfirmationModal
         isOpen={confirmation.isOpen}
         title={confirmation.confirmConfig.title}

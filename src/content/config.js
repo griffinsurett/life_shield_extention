@@ -8,8 +8,8 @@
  * @class WellnessConfig
  */
 
-import { isExtensionContextValid } from "../utils/chrome";
-import { SELECTORS, PERFORMANCE } from "../utils/constants";
+import { isExtensionContextValid } from "../utils/chromeApi";
+import { SELECTORS, PERFORMANCE } from "../utils/selectors";
 import { createLogger } from "../utils/logger";
 
 const logger = createLogger('WellnessConfig');

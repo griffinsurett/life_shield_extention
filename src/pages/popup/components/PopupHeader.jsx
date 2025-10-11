@@ -14,12 +14,14 @@
  * @param {Function} props.onSettingsClick - Called when settings button clicked
  */
 
+import { BRAND } from '../../../config';
+
 export const PopupHeader = ({ onSettingsClick }) => {
   return (
     <div className="mb-6 animate-fade-in">
       <div className="flex items-center justify-between mb-2">
         {/* Extension title */}
-        <h1 className="text-3xl font-bold">Wellness Filter</h1>
+        <h1 className="text-3xl font-bold">{BRAND.NAME}</h1>
         
         {/* Settings button */}
         <button 
@@ -36,7 +38,7 @@ export const PopupHeader = ({ onSettingsClick }) => {
       </div>
       
       {/* Subtitle */}
-      <p className="text-white/70 text-sm">Promoting healthy browsing habits</p>
+      <p className="text-white/70 text-sm">{BRAND.TAGLINE}</p>
     </div>
   );
 };

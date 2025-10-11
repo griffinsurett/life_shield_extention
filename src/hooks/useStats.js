@@ -9,7 +9,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { storage } from '../utils/storage';
-import { STORAGE_KEYS } from '../utils/constants';
+import { STORAGE_KEYS } from '../config';
 import { STATS_REFRESH_INTERVAL } from '../utils/timing';
 
 export const useStats = () => {

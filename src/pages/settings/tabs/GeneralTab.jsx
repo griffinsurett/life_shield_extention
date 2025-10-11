@@ -11,6 +11,7 @@
 import { useState, useEffect } from "react";
 import { useApp } from "../../../contexts/AppContext";
 import { Toggle } from "../../../components/Toggle";
+import { DEFAULTS } from "../../../config";
 
 const GeneralTab = ({ showToast }) => {
   const { settings, updateSettings } = useApp();
@@ -52,7 +53,7 @@ const GeneralTab = ({ showToast }) => {
     
     // If enabling custom URL and redirectUrl is empty, set a default
     if (value && !redirectUrl.trim()) {
-      const defaultRedirectUrl = "https://griffinswebservices.com";
+      const defaultRedirectUrl = DEFAULTS.REDIRECT_URL;
       setRedirectUrl(defaultRedirectUrl);
       updates.redirectUrl = defaultRedirectUrl;
     }

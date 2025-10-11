@@ -6,9 +6,10 @@
  */
 
 import { useState, useEffect } from 'react';
+import { BRAND, DEFAULTS } from '../../config';
 
 const Blocked = () => {
-  const [customMessage, setCustomMessage] = useState('This page has been blocked to support your wellness journey. Take a moment to breathe and consider a healthier alternative.');
+  const [customMessage, setCustomMessage] = useState(DEFAULTS.CUSTOM_MESSAGE);
   const [blockedUrl, setBlockedUrl] = useState('');
   const [isLoading, setIsLoading] = useState(true);
 
@@ -82,7 +83,7 @@ const Blocked = () => {
       <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full p-12 text-center animate-fade-in">
         {/* Logo */}
         <div className="w-24 h-24 bg-gradient-to-br from-primary to-secondary rounded-3xl flex items-center justify-center text-5xl mx-auto mb-6 shadow-xl">
-          🌿
+          {BRAND.ICON}
         </div>
         
         {/* Title */}
@@ -126,7 +127,7 @@ const Blocked = () => {
         {/* Footer */}
         <div className="mt-8 pt-6 border-t border-gray-200">
           <p className="text-sm text-gray-500">
-            Wellness Filter • Promoting Healthy Browsing Habits
+            {BRAND.NAME} • {BRAND.TAGLINE}
           </p>
         </div>
       </div>

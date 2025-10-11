@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { AuthModal } from '../../../components/AuthModal';
+import { BRAND, STORAGE_KEYS } from '../../../config';
 
 const AccountTab = ({ showToast }) => {
   const { user, signOut, loading } = useAuth();
@@ -9,15 +10,15 @@ const AccountTab = ({ showToast }) => {
 
   // Check for verification success flag
   useEffect(() => {
-    chrome.storage.local.get(['verificationSuccessful'], (result) => {
-      if (result.verificationSuccessful && user) {
+    chrome.storage.local.get([STORAGE_KEYS.VERIFICATION_SUCCESSFUL], (result) => {
+      if (result[STORAGE_KEYS.VERIFICATION_SUCCESSFUL] && user) {
         // Clear the URL hash
         if (window.location.hash) {
           window.history.replaceState(null, '', window.location.pathname);
         }
         
-        showToast('🎉 Email verified! Welcome to Wellness Filter!', 'success');
-        chrome.storage.local.remove(['verificationSuccessful', 'emailJustVerified']);
+        showToast(`🎉 Email verified! Welcome to ${BRAND.NAME}!`, 'success');
+        chrome.storage.local.remove([STORAGE_KEYS.VERIFICATION_SUCCESSFUL, STORAGE_KEYS.EMAIL_JUST_VERIFIED]);
       }
     });
   }, [user, showToast]);
