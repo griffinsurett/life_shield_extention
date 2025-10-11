@@ -16,7 +16,7 @@ const Toggle = memo(({ checked, onChange, label, description }) => {
   }, [onChange]);
 
   return (
-    <div className="flex items-center justify-between p-6 bg-gray-50 rounded-xl">
+    <div className="flex items-center justify-between p-6 rounded-xl">
       {/* Label and description */}
       <div>
         <h3 className="font-semibold text-gray-800">{label}</h3>
