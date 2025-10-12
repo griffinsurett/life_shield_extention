@@ -31,6 +31,7 @@ export const ProtectedListManager = ({
       onConfirm: () => setIsUnlocked(true)
     });
   }, [showConfirmation, itemNamePlural]);
+  
 
   const handleLock = useCallback(() => {
     setIsUnlocked(false);
