@@ -68,51 +68,28 @@ export const useSettings = () => {
    * Update settings in storage
    * Now with immediate filter state broadcast
    */
-  const updateSettings = useCallback(async (updates) => {
+const updateSettings = useCallback(async (updates) => {
     console.log('[useSettings] Updating settings:', updates);
     
-    // Save to storage
-    await storage.set(updates);
-    
-    // Immediately update local state
-    setSettings(prev => {
-      const newSettings = { ...prev, ...updates };
-      console.log('[useSettings] New settings state:', newSettings);
-      return newSettings;
-    });
-    
-    // Verify what was saved
-    setTimeout(async () => {
-      const keys = Object.keys(updates);
-      const result = await storage.get(keys);
-      console.log('[useSettings] Verified storage contains:', result);
-    }, 100);
-    
-    // If filter state changed, broadcast immediately to all tabs
-    if ('enableFilter' in updates) {
-      try {
-        const tabs = await chrome.tabs.query({});
-        
-        // Send immediate filter state change message
-        const broadcastPromises = tabs.map(tab =>
-          chrome.tabs.sendMessage(tab.id, {
-            action: 'filterStateChanged',
-            enabled: updates.enableFilter,
-            timestamp: Date.now()
-          }).catch(() => {
-            // Ignore errors - some tabs don't have content scripts
-            // (chrome:// pages, extension pages, etc.)
-          })
-        );
-        
-        await Promise.allSettled(broadcastPromises);
-      } catch (error) {
-        console.warn('[useSettings] Error broadcasting filter state:', error);
-      }
+    try {
+      // Save to storage
+      await storage.set(updates);
+      
+      // Immediately update local state
+      setSettings(prev => {
+        const newSettings = { ...prev, ...updates };
+        console.log('[useSettings] New settings state:', newSettings);
+        return newSettings;
+      });
+      
+      // Broadcast changes
+      await sendMessageToTabs({ action: 'reloadConfig' });
+      
+      console.log('[useSettings] Update successful');
+    } catch (error) {
+      console.error('[useSettings] Update failed:', error);
+      throw error; // Re-throw to let caller handle
     }
-    
-    // Still send generic reload for other settings
-    await sendMessageToTabs({ action: 'reloadConfig' });
   }, []);
 
   return { settings, updateSettings, loading };

@@ -6,12 +6,10 @@
  * @component
  */
 
+// src/pages/popup/Popup.jsx
 import { useState, useEffect, useCallback } from 'react';
 import { useApp } from '../../contexts/AppContext';
-import { useListManager } from '../../hooks/useListManager';
 import { useFileOperations } from '../../hooks/useFileOperations';
-import { useConfirmation } from '../../hooks/useConfirmation';
-import { ConfirmationModal } from '../../components/ConfirmationModal';
 import { SimpleErrorBoundary } from '../../components/ErrorBoundary';
 import { PopupHeader } from './components/PopupHeader';
 import { PopupTabs } from './components/PopupTabs';
@@ -26,37 +24,6 @@ export const Popup = () => {
   const { exportToFile, importFromFile } = useFileOperations();
   const [previewPhrase, setPreviewPhrase] = useState("");
   const [activeTab, setActiveTab] = useState("home");
-
-  const confirmation = useConfirmation('popup-confirmation-modal');
-
-  const wordManager = useListManager(
-    settings.blockedWords,
-    (words) => updateSettings({ blockedWords: words }),
-    {
-      itemName: "word",
-      requireConfirmation: true,
-      getConfirmMessage: (word) =>
-        `Are you sure you want to block the word "${word}"? This will filter it from all web pages you visit.`,
-    }
-  );
-
-  const siteManager = useListManager(
-    settings.blockedSites,
-    (sites) => updateSettings({ blockedSites: sites }),
-    {
-      itemName: "site",
-      transform: (val) =>
-        val
-          .trim()
-          .toLowerCase()
-          .replace(/^https?:\/\//, "")
-          .replace(/\/$/, ""),
-      duplicateCheck: true,
-      requireConfirmation: true,
-      getConfirmMessage: (site) =>
-        `Are you sure you want to block "${site}"? You will be redirected and unable to access this site until you unblock it.`,
-    }
-  );
 
   const refreshPreviewPhrase = useCallback(() => {
     if (settings.replacementPhrases.length > 0) {
@@ -91,14 +58,11 @@ export const Popup = () => {
 
   const renderTabContent = useCallback(() => {
     const props = {
-      wordManager,
-      siteManager,
       previewPhrase,
       refreshPreviewPhrase,
       handleExport,
       handleImport,
       openSettings,
-      showConfirmation: confirmation.showConfirmation,
     };
 
     switch (activeTab) {
@@ -111,19 +75,13 @@ export const Popup = () => {
       case "words":
         return (
           <SimpleErrorBoundary>
-            <WordsTab 
-              wordManager={wordManager}
-              showConfirmation={confirmation.showConfirmation}
-            />
+            <WordsTab />
           </SimpleErrorBoundary>
         );
       case "sites":
         return (
           <SimpleErrorBoundary>
-            <SitesTab 
-              siteManager={siteManager}
-              showConfirmation={confirmation.showConfirmation}
-            />
+            <SitesTab />
           </SimpleErrorBoundary>
         );
       case "more":
@@ -141,14 +99,11 @@ export const Popup = () => {
     }
   }, [
     activeTab,
-    wordManager,
-    siteManager,
     previewPhrase,
     refreshPreviewPhrase,
     handleExport,
     handleImport,
     openSettings,
-    confirmation.showConfirmation,
   ]);
 
   return (
@@ -163,18 +118,6 @@ export const Popup = () => {
 
         <PopupFooter />
       </div>
-
-      {/* Confirmation Modal */}
-      <ConfirmationModal
-        modalId="popup-confirmation-modal"
-        title={confirmation.confirmConfig.title}
-        message={confirmation.confirmConfig.message}
-        confirmText={confirmation.confirmConfig.confirmText}
-        cancelText={confirmation.confirmConfig.cancelText}
-        confirmColor={confirmation.confirmConfig.confirmColor}
-        onConfirm={confirmation.handleConfirm}
-        onCancel={confirmation.handleCancel}
-      />
     </div>
   );
 };

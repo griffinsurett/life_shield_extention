@@ -1,37 +1,22 @@
-/**
- * Phrases Tab Component
- *
- * Tab for managing replacement phrases.
- * No vulnerability protection needed - these are positive content.
- *
- * @component
- */
-
+// src/pages/settings/tabs/PhrasesTab.jsx
 import { useCallback } from "react";
 import { useApp } from "../../../contexts/AppContext";
-import { useListManager } from "../../../hooks/useListManager";
-import ListManager from "../../../components/ListManager";
+import { useToast } from "../../../components/ToastContainer";
+import { useConfirmation } from "../../../hooks/useConfirmation";
+import { ConfirmationModal } from "../../../components/ConfirmationModal";
+import { ListManager } from "../../../components/ListManager";
 import { DEFAULTS } from "../../../config";
 import Button from '../../../components/Button';
 
-const PhrasesTab = ({ showToast, showConfirmation }) => {
+const PhrasesTab = () => {
   const { settings, updateSettings } = useApp();
-
-  const phraseManager = useListManager(
-    settings.replacementPhrases,
-    (phrases) => updateSettings({ replacementPhrases: phrases }),
-    {
-      itemName: "phrase",
-      transform: (val) => val.trim(),
-      duplicateCheck: true,
-    }
-  );
+  const { showToast } = useToast();
+  const confirmation = useConfirmation();
 
   const resetPhrases = useCallback(() => {
-    showConfirmation({
+    confirmation.showConfirmation({
       title: "Reset All Phrases?",
-      message:
-        "Are you sure you want to reset all replacement phrases to defaults? Your custom phrases will be lost.",
+      message: "Are you sure you want to reset all replacement phrases to defaults? Your custom phrases will be lost.",
       confirmText: "Yes, Reset to Defaults",
       cancelText: "Cancel",
       confirmColor: "orange",
@@ -42,38 +27,7 @@ const PhrasesTab = ({ showToast, showConfirmation }) => {
         showToast("Phrases reset to defaults", "success");
       },
     });
-  }, [showConfirmation, updateSettings, showToast]);
-
-  const renderPhrase = useCallback(
-    (phrase, index, onRemove) => (
-      <div
-        key={index}
-        className="inline-flex items-center gap-2 bg-green-50 hover:bg-green-100 px-3 py-2 m-1 rounded-lg text-xs font-medium transition-all group"
-      >
-        <span className="italic">&quot;{phrase}&quot;</span>
-        <Button
-          onClick={() => onRemove(index)}
-          className="opacity-60 hover:opacity-100 hover:bg-red-500/30 rounded-full p-0.5 transition-all"
-          title="Remove"
-        >
-          <svg
-            className="w-3.5 h-3.5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M6 18L18 6M6 6l12 12"
-            />
-          </svg>
-        </Button>
-      </div>
-    ),
-    []
-  );
+  }, [confirmation, updateSettings, showToast]);
 
   return (
     <div className="bg-white rounded-2xl shadow-lg p-8 animate-fade-in">
@@ -81,31 +35,52 @@ const PhrasesTab = ({ showToast, showConfirmation }) => {
         Replacement Phrases
       </h2>
       <p className="text-gray-600 mb-6">
-        These healthy phrases replace blocked words when detected
+        Positive phrases that replace blocked words when filtered
       </p>
 
       <ListManager
         items={settings.replacementPhrases}
-        inputValue={phraseManager.inputValue}
-        onInputChange={phraseManager.setInputValue}
-        onAdd={phraseManager.addItem}
-        onRemove={phraseManager.removeItem}
-        placeholder="Enter a healthy replacement phrase..."
-        buttonText="Add Phrase"
-        emptyText="No replacement phrases"
-        title="Current Phrases"
+        onItemsChange={(phrases) => updateSettings({ replacementPhrases: phrases })}
+        itemName="Phrase"
+        itemNamePlural="Replacement Phrases"
+        placeholder="Enter a positive replacement phrase..."
         variant="success"
-        renderItem={renderPhrase}
+        isProtected={false}
+        confirmAdd={false}
+        confirmRemove={false}
+        maxItems={50}
+        minLength={2}
+        transformItem={(val) => val.trim()}
+        validateItem={(phrase) => {
+          if (phrase.length > 50) {
+            return 'Phrase must be less than 50 characters';
+          }
+          return null;
+        }}
+        showToast={showToast}
       />
 
-      <div className="mt-6">
+      <div className="mt-6 flex justify-end">
         <Button
           onClick={resetPhrases}
-          className="px-4 py-2 bg-orange-500 text-white rounded-xl font-medium hover:bg-orange-600 transition-colors"
+          className="px-6 py-3 bg-orange-500 text-white rounded-xl font-medium hover:bg-orange-600 transition-colors"
         >
-          Reset to Defaults
+          Reset to Default Phrases
         </Button>
       </div>
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={confirmation.isOpen}
+        onClose={confirmation.closeModal}
+        title={confirmation.config.title}
+        message={confirmation.config.message}
+        confirmText={confirmation.config.confirmText}
+        cancelText={confirmation.config.cancelText}
+        confirmColor={confirmation.config.confirmColor}
+        onConfirm={confirmation.handleConfirm}
+        onCancel={confirmation.handleCancel}
+      />
     </div>
   );
 };

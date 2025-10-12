@@ -1,5 +1,4 @@
 // src/components/PageWrapper.jsx
-import { AuthProvider } from '../contexts/AuthContext'; // Add this import
 
 /**
  * Page Wrapper Component
@@ -14,10 +13,13 @@ import { AuthProvider } from '../contexts/AuthContext'; // Add this import
  * @param {boolean} props.showErrorDetails - Show detailed error info (default: true)
  */
 
+// src/components/PageWrapper.jsx
 import { AppProvider } from '../contexts/AppContext';
+import { AuthProvider } from '../contexts/AuthContext';
+import { ModalProvider } from '../contexts/ModalContext';
 import { ToastProvider } from './ToastContainer';
 import { ErrorBoundary } from './ErrorBoundary';
-import '../index.css'; // Import styles once here
+import '../index.css';
 
 export const PageWrapper = ({ 
   children, 
@@ -27,13 +29,15 @@ export const PageWrapper = ({
   if (withProviders) {
     return (
       <ErrorBoundary showDetails={showErrorDetails}>
-        <AuthProvider>  {/* Add this */}
-          <AppProvider>
-            <ToastProvider>
-              {children}
-            </ToastProvider>
-          </AppProvider>
-        </AuthProvider>  {/* Add this */}
+        <ModalProvider>
+          <AuthProvider>
+            <AppProvider>
+              <ToastProvider>
+                {children}
+              </ToastProvider>
+            </AppProvider>
+          </AuthProvider>
+        </ModalProvider>
       </ErrorBoundary>
     );
   }

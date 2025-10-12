@@ -1,20 +1,10 @@
-/**
- * List Manager Hook
- * 
- * Generic hook for managing lists of items (words, sites, phrases).
- * Handles adding, removing, and clearing items with validation.
- * Now supports optional confirmation before adding AND clearing.
- * 
- * @hook
- */
-
+// src/hooks/useListManager.js
 import { useState, useCallback } from "react";
 import { useToast } from "../components/ToastContainer";
 
 export const useListManager = (items = [], updateItems, options = {}) => {
   const { showToast } = useToast();
   const [inputValue, setInputValue] = useState("");
-  const [pendingItem, setPendingItem] = useState(null);
 
   // Extract options with defaults
   const {
@@ -28,11 +18,9 @@ export const useListManager = (items = [], updateItems, options = {}) => {
 
   /**
    * Add new item to list
-   * Validates and optionally shows confirmation before adding
-   * 
-   * @param {Function} onConfirm - Optional callback for confirmation flow
+   * Now handles both direct add and confirmation flow
    */
-  const addItem = useCallback(async (onConfirm) => {
+  const addItem = useCallback((showConfirmation) => {
     // Transform input
     const newItem = transform(inputValue);
 
@@ -51,64 +39,65 @@ export const useListManager = (items = [], updateItems, options = {}) => {
       return;
     }
 
-    // If confirmation required, store pending item and trigger callback
-    if (requireConfirmation && onConfirm) {
-      setPendingItem(newItem);
-      onConfirm({
+    // If confirmation required and showConfirmation function provided
+    if (requireConfirmation && showConfirmation) {
+      showConfirmation({
         title: `Block ${itemName.charAt(0).toUpperCase() + itemName.slice(1)}?`,
         message: getConfirmMessage(newItem),
         confirmText: `Yes, Block ${itemName.charAt(0).toUpperCase() + itemName.slice(1)}`,
         cancelText: "Cancel",
         confirmColor: "red",
-        onConfirm: () => confirmAdd(newItem)
+        onConfirm: async () => {
+          // Perform the add
+          try {
+            await updateItems([...items, newItem]);
+            setInputValue("");
+            showToast(`Blocked "${newItem}"`, "success");
+          } catch (error) {
+            console.error("Error adding item:", error);
+            showToast(`Failed to add ${itemName}`, "error");
+          }
+        }
       });
-      return;
+    } else {
+      // Add immediately without confirmation
+      performAdd(newItem);
     }
-
-    // Otherwise add immediately
-    await performAdd(newItem);
-  }, [inputValue, items, transform, validate, duplicateCheck, requireConfirmation, itemName, getConfirmMessage, showToast]);
-
-  /**
-   * Confirm and add the pending item
-   * Called after user confirms in modal
-   */
-  const confirmAdd = useCallback(async (item) => {
-    await performAdd(item || pendingItem);
-    setPendingItem(null);
-  }, [pendingItem, updateItems, showToast]);
+  }, [inputValue, items, transform, validate, duplicateCheck, requireConfirmation, itemName, getConfirmMessage, showToast, updateItems]);
 
   /**
    * Actually perform the add operation
-   * Internal method called after validation/confirmation
    */
   const performAdd = useCallback(async (item) => {
-    await updateItems([...items, item]);
-    setInputValue("");
-    showToast(`Blocked "${item}"`, "success");
-  }, [items, updateItems, showToast]);
+    try {
+      await updateItems([...items, item]);
+      setInputValue("");
+      showToast(`Blocked "${item}"`, "success");
+    } catch (error) {
+      console.error("Error adding item:", error);
+      showToast(`Failed to add ${itemName}`, "error");
+    }
+  }, [items, updateItems, showToast, itemName]);
 
   /**
    * Remove item from list by index
-   * 
-   * @param {number} index - Index of item to remove
    */
   const removeItem = useCallback(async (index) => {
-    const item = items[index];
-    const newItems = [...items];
-    newItems.splice(index, 1);
-    
-    await updateItems(newItems);
-    
-    showToast(`Removed "${item}"`, "success");
-  }, [items, updateItems, showToast]);
+    try {
+      const item = items[index];
+      const newItems = [...items];
+      newItems.splice(index, 1);
+      
+      await updateItems(newItems);
+      showToast(`Removed "${item}"`, "success");
+    } catch (error) {
+      console.error("Error removing item:", error);
+      showToast(`Failed to remove ${itemName}`, "error");
+    }
+  }, [items, updateItems, showToast, itemName]);
 
   /**
    * Clear all items from list
-   * Now uses confirmation callback instead of window.confirm
-   * 
-   * @param {Function} onConfirm - Confirmation callback
-   * @param {string} customMessage - Optional custom confirmation message
    */
   const clearAll = useCallback((onConfirm, customMessage) => {
     if (!onConfirm) {
@@ -123,8 +112,13 @@ export const useListManager = (items = [], updateItems, options = {}) => {
       cancelText: "Cancel",
       confirmColor: "red",
       onConfirm: async () => {
-        await updateItems([]);
-        showToast(`All ${itemName}s cleared`, "success");
+        try {
+          await updateItems([]);
+          showToast(`All ${itemName}s cleared`, "success");
+        } catch (error) {
+          console.error("Error clearing items:", error);
+          showToast(`Failed to clear ${itemName}s`, "error");
+        }
       }
     });
   }, [itemName, updateItems, showToast]);
@@ -135,6 +129,5 @@ export const useListManager = (items = [], updateItems, options = {}) => {
     addItem,
     removeItem,
     clearAll,
-    pendingItem,
   };
 };

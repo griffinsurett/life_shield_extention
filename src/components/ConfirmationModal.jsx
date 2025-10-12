@@ -6,11 +6,13 @@
  * @component
  */
 
+// src/components/ConfirmationModal.jsx
 import { Modal } from './Modal';
 import Button from './Button';
 
 export const ConfirmationModal = ({
-  modalId = 'confirmation-modal',
+  isOpen,
+  onClose,
   title,
   message,
   confirmText = 'Confirm',
@@ -27,27 +29,23 @@ export const ConfirmationModal = ({
   };
 
   const handleConfirm = () => {
-    if (onConfirm) onConfirm();
-    // Close modal
-    const checkbox = document.getElementById(modalId);
-    if (checkbox) checkbox.checked = false;
+    onConfirm();
+    onClose();
   };
 
   const handleCancel = () => {
     if (onCancel) onCancel();
-    // Close modal
-    const checkbox = document.getElementById(modalId);
-    if (checkbox) checkbox.checked = false;
+    onClose();
   };
 
   return (
     <Modal
-      modalId={modalId}
+      isOpen={isOpen}
+      onClose={onClose}
       className="bg-white rounded-2xl shadow-2xl max-w-md w-full"
       animationType="slide-up"
       showCloseButton={false}
       closeOnOverlay={false}
-      closeOnEscape={true}
     >
       {/* Header */}
       <div className="bg-gradient-to-r from-primary to-secondary p-6 rounded-t-2xl">

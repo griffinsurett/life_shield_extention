@@ -7,6 +7,7 @@
  * @component
  */
 
+// src/pages/settings/Settings.jsx
 import { useState, useCallback, lazy, Suspense } from "react";
 import { useToast } from "../../components/ToastContainer";
 import { useConfirmation } from "../../hooks/useConfirmation";
@@ -35,7 +36,7 @@ const TabLoader = () => (
 
 export const Settings = () => {
   const { showToast } = useToast();
-  const confirmation = useConfirmation("settings-confirmation-modal");
+  const confirmation = useConfirmation();
   const [activeTab, setActiveTab] = useState("general");
 
   const tabs = [
@@ -119,14 +120,15 @@ export const Settings = () => {
         </div>
       </div>
 
-      {/* Confirmation Modal */}
+      {/* Confirmation Modal - using the new system */}
       <ConfirmationModal
-        modalId="settings-confirmation-modal"
-        title={confirmation.confirmConfig.title}
-        message={confirmation.confirmConfig.message}
-        confirmText={confirmation.confirmConfig.confirmText}
-        cancelText={confirmation.confirmConfig.cancelText}
-        confirmColor={confirmation.confirmConfig.confirmColor}
+        isOpen={confirmation.isOpen}
+        onClose={confirmation.closeModal}
+        title={confirmation.config.title}
+        message={confirmation.config.message}
+        confirmText={confirmation.config.confirmText}
+        cancelText={confirmation.config.cancelText}
+        confirmColor={confirmation.config.confirmColor}
         onConfirm={confirmation.handleConfirm}
         onCancel={confirmation.handleCancel}
       />

@@ -7,7 +7,7 @@ import Button from "./Button";
 import Input from "./Inputs/Input";
 import { BRAND, STORAGE_KEYS } from "../config";
 
-export const AuthModal = ({ modalId = "auth-modal" }) => {
+export const AuthModal = ({ isOpen, onClose }) => {
   const { user, signIn, signUp, resendVerification } = useAuth();
   const { showToast } = useToast();
   const [isSignUp, setIsSignUp] = useState(false);
@@ -18,14 +18,9 @@ export const AuthModal = ({ modalId = "auth-modal" }) => {
   const [showSuccessScreen, setShowSuccessScreen] = useState(false);
   const [pendingEmail, setPendingEmail] = useState("");
 
-  const closeModal = () => {
-    const checkbox = document.getElementById(modalId);
-    if (checkbox) checkbox.checked = false;
-  };
-
-  // NEW: Auto-close modal after successful email verification
+  // Auto-close when user logs in
   useEffect(() => {
-    if (user) {
+    if (user && isOpen) {
       // Check if this is a fresh email verification
       chrome.storage.local.get([STORAGE_KEYS.EMAIL_JUST_VERIFIED], (result) => {
         if (result[STORAGE_KEYS.EMAIL_JUST_VERIFIED]) {
@@ -34,15 +29,31 @@ export const AuthModal = ({ modalId = "auth-modal" }) => {
           
           // Auto-close after 2.5 seconds
           setTimeout(() => {
-            closeModal();
+            onClose();
             // Clean up
             setShowSuccessScreen(false);
             chrome.storage.local.remove([STORAGE_KEYS.EMAIL_JUST_VERIFIED]);
           }, 2500);
+        } else {
+          onClose();
         }
       });
     }
-  }, [user]);
+  }, [user, isOpen, onClose]);
+
+  // Reset form when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setTimeout(() => {
+        setEmail("");
+        setPassword("");
+        setIsSignUp(false);
+        setShowEmailVerification(false);
+        setShowSuccessScreen(false);
+        setPendingEmail("");
+      }, 300);
+    }
+  }, [isOpen]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -51,7 +62,7 @@ export const AuthModal = ({ modalId = "auth-modal" }) => {
     try {
       if (isSignUp) {
         const { data, error } = await signUp(email, password);
-
+        
         if (error) {
           showToast(error.message, "error");
         } else {
@@ -60,19 +71,16 @@ export const AuthModal = ({ modalId = "auth-modal" }) => {
         }
       } else {
         const { error } = await signIn(email, password);
-
+        
         if (error) {
           if (error.message.includes("Email not confirmed")) {
-            showToast(
-              "Please verify your email first. Check your inbox!",
-              "error"
-            );
+            showToast("Please verify your email first. Check your inbox!", "error");
           } else {
             showToast(error.message, "error");
           }
         } else {
           showToast("Signed in successfully!", "success");
-          closeModal();
+          onClose();
         }
       }
     } catch (err) {
@@ -95,32 +103,12 @@ export const AuthModal = ({ modalId = "auth-modal" }) => {
     }
   };
 
-  // Reset state when modal closes
-  useEffect(() => {
-    const checkbox = document.getElementById(modalId);
-    const handleChange = (e) => {
-      if (!e.target.checked) {
-        setTimeout(() => {
-          setEmail("");
-          setPassword("");
-          setIsSignUp(false);
-          setShowEmailVerification(false);
-          setShowSuccessScreen(false);
-        }, 300);
-      }
-    };
-
-    if (checkbox) {
-      checkbox.addEventListener("change", handleChange);
-      return () => checkbox.removeEventListener("change", handleChange);
-    }
-  }, [modalId]);
-
-  // NEW: Success Screen after Email Verification
+  // Success Screen after Email Verification
   if (showSuccessScreen) {
     return (
       <Modal
-        modalId={modalId}
+        isOpen={isOpen}
+        onClose={onClose}
         className="bg-white rounded-2xl shadow-2xl max-w-md w-full"
         animationType="slide-up"
         showCloseButton={false}
@@ -129,24 +117,18 @@ export const AuthModal = ({ modalId = "auth-modal" }) => {
         <div className="bg-gradient-to-r from-green-500 to-green-600 p-6 rounded-t-2xl text-center">
           <div className="text-6xl mb-3 animate-bounce">✅</div>
           <h2 className="text-2xl font-bold text-white">Welcome!</h2>
-          <p className="text-white/90 text-sm mt-2">
-            Your email has been verified
-          </p>
+          <p className="text-white/90 text-sm mt-2">Your email has been verified</p>
         </div>
 
         {/* Success Body */}
         <div className="p-8 text-center">
           <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-6 mb-4">
-            <p className="text-green-900 font-semibold mb-2">
-              🎉 Account Activated!
-            </p>
+            <p className="text-green-900 font-semibold mb-2">🎉 Account Activated!</p>
             <p className="text-sm text-green-800">
               You're now signed in to <strong>{BRAND.NAME}</strong>
             </p>
             <div className="mt-3 pt-3 border-t border-green-200">
-              <p className="text-xs text-green-700">
-                {user?.email}
-              </p>
+              <p className="text-xs text-green-700">{user?.email}</p>
             </div>
           </div>
 
@@ -164,7 +146,8 @@ export const AuthModal = ({ modalId = "auth-modal" }) => {
   if (showEmailVerification) {
     return (
       <Modal
-        modalId={modalId}
+        isOpen={isOpen}
+        onClose={onClose}
         className="bg-white rounded-2xl shadow-2xl max-w-md w-full"
         animationType="slide-up"
         showCloseButton={true}
@@ -173,21 +156,15 @@ export const AuthModal = ({ modalId = "auth-modal" }) => {
         <div className="bg-gradient-to-r from-green-500 to-green-600 p-6 rounded-t-2xl text-center">
           <div className="text-6xl mb-3">📧</div>
           <h2 className="text-2xl font-bold text-white">Check Your Email</h2>
-          <p className="text-white/90 text-sm mt-2">
-            One click away from getting started!
-          </p>
+          <p className="text-white/90 text-sm mt-2">One click away from getting started!</p>
         </div>
 
         {/* Body */}
         <div className="p-6 space-y-6">
           <div className="text-center">
-            <p className="text-gray-700 mb-2">
-              We sent a verification link to:
-            </p>
+            <p className="text-gray-700 mb-2">We sent a verification link to:</p>
             <div className="bg-gray-50 rounded-lg p-3 mb-4">
-              <p className="text-primary font-semibold break-all">
-                {pendingEmail}
-              </p>
+              <p className="text-primary font-semibold break-all">{pendingEmail}</p>
             </div>
 
             <div className="text-left bg-gradient-to-br from-blue-50 to-purple-50 border-2 border-blue-200 rounded-xl p-4 space-y-3">
@@ -196,24 +173,16 @@ export const AuthModal = ({ modalId = "auth-modal" }) => {
               </p>
               <ol className="space-y-2 text-sm text-gray-700">
                 <li className="flex items-start gap-2">
-                  <span className="font-bold text-blue-600 flex-shrink-0">
-                    1.
-                  </span>
+                  <span className="font-bold text-blue-600 flex-shrink-0">1.</span>
                   <span>Check your email inbox (and spam folder)</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="font-bold text-blue-600 flex-shrink-0">
-                    2.
-                  </span>
+                  <span className="font-bold text-blue-600 flex-shrink-0">2.</span>
                   <span>Click the verification link</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="font-bold text-purple-600 flex-shrink-0">
-                    3.
-                  </span>
-                  <span>
-                    <strong>You'll be automatically logged in!</strong> 🎉
-                  </span>
+                  <span className="font-bold text-purple-600 flex-shrink-0">3.</span>
+                  <span><strong>You'll be automatically logged in!</strong> 🎉</span>
                 </li>
               </ol>
             </div>
@@ -222,7 +191,7 @@ export const AuthModal = ({ modalId = "auth-modal" }) => {
           {/* Actions */}
           <div className="space-y-3">
             <Button
-              onClick={closeModal}
+              onClick={onClose}
               className="w-full btn-base btn-md btn-primary font-semibold"
             >
               Got it!
@@ -255,7 +224,8 @@ export const AuthModal = ({ modalId = "auth-modal" }) => {
   // Sign In / Sign Up Form
   return (
     <Modal
-      modalId={modalId}
+      isOpen={isOpen}
+      onClose={onClose}
       className="bg-white rounded-2xl shadow-2xl max-w-md w-full"
       animationType="slide-up"
       showCloseButton={true}
@@ -273,9 +243,7 @@ export const AuthModal = ({ modalId = "auth-modal" }) => {
 
       <form onSubmit={handleSubmit} className="p-6 space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Email
-          </label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
           <Input
             type="email"
             value={email}
@@ -287,9 +255,7 @@ export const AuthModal = ({ modalId = "auth-modal" }) => {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Password
-          </label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
           <Input
             type="password"
             value={password}
@@ -300,9 +266,7 @@ export const AuthModal = ({ modalId = "auth-modal" }) => {
             className="input-base"
           />
           {isSignUp && (
-            <p className="text-xs text-gray-500 mt-1">
-              Must be at least 6 characters
-            </p>
+            <p className="text-xs text-gray-500 mt-1">Must be at least 6 characters</p>
           )}
         </div>
 

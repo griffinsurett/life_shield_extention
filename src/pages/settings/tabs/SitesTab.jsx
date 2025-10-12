@@ -1,63 +1,43 @@
 // src/pages/settings/tabs/SitesTab.jsx
-/**
- * Sites Tab Component (Settings)
- *
- * Tab for managing blocked sites with vulnerability protection.
- * Now uses ProtectedListManager for consistency.
- *
- * @component
- */
-
-import { useCallback } from "react";
 import { useApp } from "../../../contexts/AppContext";
-import { useListManager } from "../../../hooks/useListManager";
-import { ProtectedListManager } from "../../../components/ProtectedListManager";
+import { useToast } from "../../../components/ToastContainer";
+import { ListManager } from "../../../components/ListManager";
 
-const SitesTab = ({ showConfirmation }) => {
+const SitesTab = () => {
   const { settings, updateSettings } = useApp();
-
-  const siteManager = useListManager(
-    settings.blockedSites,
-    (sites) => updateSettings({ blockedSites: sites }),
-    {
-      itemName: "site",
-      transform: (val) =>
-        val
-          .trim()
-          .toLowerCase()
-          .replace(/^https?:\/\//, "")
-          .replace(/\/$/, ""),
-      duplicateCheck: true,
-      requireConfirmation: true,
-      getConfirmMessage: (site) =>
-        `Are you sure you want to block "${site}"? You will be redirected and unable to access this site until you unblock it.`,
-    }
-  );
-
-  // Memoized add handler
-  const handleAdd = useCallback(() => {
-    siteManager.addItem(showConfirmation);
-  }, [siteManager, showConfirmation]);
+  const { showToast } = useToast();
 
   return (
     <div className="bg-white rounded-2xl shadow-lg p-8 animate-fade-in">
-      <h2 className="text-2xl font-bold text-gray-800 mb-6">Blocked Sites</h2>
+      <h2 className="text-2xl font-bold text-gray-800 mb-6">
+        Blocked Sites Management
+      </h2>
       <p className="text-gray-600 mb-6">
-        Sites that will be blocked and redirect to your chosen URL
+        Websites that will be blocked and redirect to your chosen URL
       </p>
 
-      <ProtectedListManager
+      <ListManager
         items={settings.blockedSites}
+        onItemsChange={(sites) => updateSettings({ blockedSites: sites })}
         itemName="Site"
         itemNamePlural="Blocked Sites"
-        inputValue={siteManager.inputValue}
-        onInputChange={siteManager.setInputValue}
-        onAdd={handleAdd}
-        onRemove={siteManager.removeItem}
         placeholder="Enter domain (e.g., example.com)..."
         variant="danger"
-        itemIcon="🚫"
-        showConfirmation={showConfirmation}
+        isProtected={true}
+        confirmAdd="You will be unable to access '{item}' until you unblock it. Continue?"
+        confirmRemove="Remove '{item}' from blocked sites?"
+        transformItem={(val) => val.toLowerCase().replace(/^https?:\/\//, '').replace(/\/$/, '')}
+        validateItem={(site) => {
+          if (!site.includes('.')) {
+            return 'Please enter a valid domain (e.g., example.com)';
+          }
+          if (site.startsWith('.') || site.endsWith('.')) {
+            return 'Invalid domain format';
+          }
+          return null;
+        }}
+        minLength={3}
+        showToast={showToast}
       />
     </div>
   );

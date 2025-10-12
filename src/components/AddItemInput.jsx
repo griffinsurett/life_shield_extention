@@ -1,12 +1,4 @@
-/**
- * AddItemInput Component
- *
- * Input with add button for list management.
- * Used for adding blocked words, sites, etc.
- *
- * @component
- */
-
+// src/components/AddItemInput.jsx
 import { useState } from "react";
 import Button from "./Button";
 import Input from "./Inputs/Input";
@@ -18,13 +10,14 @@ export const AddItemInput = ({
   minLength = 1,
   transform,
   validate,
+  value,
+  onChange,
 }) => {
-  const [value, setValue] = useState("");
   const [error, setError] = useState("");
 
   const handleSubmit = (e) => {
     e.preventDefault();
-
+    
     // Clear previous errors
     setError("");
 
@@ -32,7 +25,7 @@ export const AddItemInput = ({
     const processedValue = transform ? transform(value) : value.trim();
 
     // Validation
-    if (processedValue.length < minLength) {
+    if (!processedValue || processedValue.length < minLength) {
       setError(
         `Must be at least ${minLength} character${minLength > 1 ? "s" : ""}`
       );
@@ -47,9 +40,8 @@ export const AddItemInput = ({
       }
     }
 
-    // Add item and clear input
-    onAdd(processedValue);
-    setValue("");
+    // Call the onAdd function
+    onAdd();
   };
 
   return (
@@ -58,13 +50,13 @@ export const AddItemInput = ({
         <Input
           type="text"
           value={value}
-          onChange={(e) => setValue(e.target.value)}
+          onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           className="input-base flex-1"
         />
         <Button
           type="submit"
-          disabled={!value.trim()}
+          disabled={!value || !value.trim()}
           className="btn-base btn-md btn-primary font-medium whitespace-nowrap"
         >
           {buttonText}

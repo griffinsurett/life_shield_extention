@@ -1,15 +1,14 @@
 // src/pages/settings/components/AccountSection.jsx
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../../contexts/AuthContext';
-import { Modal, ModalTrigger } from '../../../components/Modal';
-import { Dropdown } from '../../../components/Dropdown';
 import { AuthModal } from '../../../components/AuthModal';
+import { Dropdown } from '../../../components/Dropdown';
 import Button from '../../../components/Button';
 import { BRAND, STORAGE_KEYS } from '../../../config';
 
 export const AccountSection = ({ showToast }) => {
   const { user, signOut, loading } = useAuth();
-  const authModalId = 'auth-modal';
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const accountDropdownId = 'account-dropdown';
 
   // Check for verification success flag
@@ -73,15 +72,15 @@ export const AccountSection = ({ showToast }) => {
     return (
       <>
         <div className="p-4">
-          <ModalTrigger
-            modalId={authModalId}
+          <Button
+            onClick={() => setShowAuthModal(true)}
             className="w-full btn-base btn-md btn-gradient font-medium flex items-center justify-center gap-2"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
             </svg>
             Sign In / Sign Up
-          </ModalTrigger>
+          </Button>
           
           <div className="mt-3 text-center">
             <p className="text-xs text-gray-500">
@@ -90,7 +89,7 @@ export const AccountSection = ({ showToast }) => {
           </div>
         </div>
 
-        <AuthModal modalId={authModalId} />
+        <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
       </>
     );
   }
@@ -168,7 +167,7 @@ export const AccountSection = ({ showToast }) => {
         </Dropdown>
       </div>
 
-      <AuthModal modalId={authModalId} />
+      <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
     </>
   );
 };
