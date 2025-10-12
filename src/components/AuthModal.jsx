@@ -8,7 +8,7 @@ import Input from "./Inputs/Input";
 import { BRAND, STORAGE_KEYS } from "../config";
 
 export const AuthModal = ({ isOpen, onClose }) => {
-  const { user, signIn, signUp, resendVerification } = useAuth();
+  const { user, profile, signIn, signUp, resendVerification } = useAuth();
   const { showToast } = useToast();
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
@@ -79,7 +79,9 @@ export const AuthModal = ({ isOpen, onClose }) => {
             showToast(error.message, "error");
           }
         } else {
-          showToast("Signed in successfully!", "success");
+          // Show success with username if available
+          const displayName = profile?.username || email.split('@')[0];
+          showToast(`Welcome back, @${displayName}!`, "success");
           onClose();
         }
       }
@@ -127,6 +129,12 @@ export const AuthModal = ({ isOpen, onClose }) => {
             <p className="text-sm text-green-800">
               You're now signed in to <strong>{BRAND.NAME}</strong>
             </p>
+            {profile?.username && (
+              <div className="mt-3 pt-3 border-t border-green-200">
+                <p className="text-sm text-green-700">Your username:</p>
+                <p className="text-lg font-bold text-green-900">@{profile.username}</p>
+              </div>
+            )}
             <div className="mt-3 pt-3 border-t border-green-200">
               <p className="text-xs text-green-700">{user?.email}</p>
             </div>

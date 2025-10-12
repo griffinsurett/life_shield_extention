@@ -9,11 +9,17 @@ import {
   DropdownDivider,
 } from "../../../components/Dropdown";
 import Button from "../../../components/Button";
+import Input from "../../../components/Inputs/Input";
+import { Modal } from "../../../components/Modal";
 import { BRAND, STORAGE_KEYS } from "../../../config";
 
 export const AccountSection = ({ showToast }) => {
-  const { user, signOut, loading } = useAuth();
+  const { user, profile, signOut, updateUsername, loading } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showUsernameModal, setShowUsernameModal] = useState(false);
+  const [newUsername, setNewUsername] = useState("");
+  const [usernameError, setUsernameError] = useState("");
+  const [savingUsername, setSavingUsername] = useState(false);
 
   // Check for verification success flag
   useEffect(() => {
@@ -51,12 +57,55 @@ export const AccountSection = ({ showToast }) => {
   };
 
   const getInitials = () => {
-    if (!user?.email) return "?";
-    return user.email[0].toUpperCase();
+    // Use username if available, otherwise email
+    const displayName = profile?.username || user?.email || "?";
+    return displayName[0].toUpperCase();
+  };
+
+  const getDisplayName = () => {
+    // Show username if available, otherwise email
+    return profile?.username || user?.email || "User";
   };
 
   const getPlanName = () => {
     return "Free Plan";
+  };
+
+  const handleUsernameEdit = () => {
+    setNewUsername(profile?.username || "");
+    setUsernameError("");
+    setShowUsernameModal(true);
+  };
+
+  const handleUsernameSave = async () => {
+    // Validate username
+    const cleanUsername = newUsername.toLowerCase().replace(/[^a-z0-9_]/g, '');
+    
+    if (cleanUsername.length < 3) {
+      setUsernameError("Username must be at least 3 characters");
+      return;
+    }
+    
+    if (cleanUsername.length > 20) {
+      setUsernameError("Username must be less than 20 characters");
+      return;
+    }
+    
+    setSavingUsername(true);
+    const { error } = await updateUsername(cleanUsername);
+    
+    if (error) {
+      if (error.message.includes('duplicate')) {
+        setUsernameError("Username already taken");
+      } else {
+        setUsernameError(error.message);
+      }
+      setSavingUsername(false);
+    } else {
+      showToast("Username updated successfully!", "success");
+      setShowUsernameModal(false);
+      setSavingUsername(false);
+    }
   };
 
   if (loading) {
@@ -131,7 +180,7 @@ export const AccountSection = ({ showToast }) => {
 
                 <div className="flex-1 text-left">
                   <div className="text-sm font-medium text-gray-900 truncate">
-                    {user.email}
+                    @{getDisplayName()}
                   </div>
                   <div className="text-xs text-gray-500 flex items-center gap-1">
                     <span className="inline-block w-2 h-2 bg-green-500 rounded-full"></span>
@@ -159,9 +208,23 @@ export const AccountSection = ({ showToast }) => {
           <div className="w-full">
             <div className="px-4 py-3 bg-gray-50 border-b border-gray-100">
               <p className="text-xs text-gray-500">Account</p>
-              <p className="text-sm font-medium text-gray-900 truncate">
-                {user.email}
-              </p>
+              <div className="flex items-center justify-between">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900 truncate">
+                    @{profile?.username || "loading..."}
+                  </p>
+                  <p className="text-xs text-gray-600 truncate">
+                    {user.email}
+                  </p>
+                </div>
+                <Button
+                  onClick={handleUsernameEdit}
+                  className="text-xs text-primary hover:text-secondary"
+                  title="Edit username"
+                >
+                  Edit
+                </Button>
+              </div>
               <p className="text-xs text-gray-600 mt-0.5">
                 ID: {user.id.slice(0, 8)}...
               </p>
@@ -170,8 +233,29 @@ export const AccountSection = ({ showToast }) => {
             <div className="py-0">
               <Button
                 type="button"
+                onClick={handleUsernameEdit}
+                className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-3 whitespace-nowrap"
+              >
+                <svg
+                  className="w-4 h-4 flex-shrink-0"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                  />
+                </svg>
+                <span>Edit Username</span>
+              </Button>
+
+              <Button
+                type="button"
                 onClick={() =>
-                  showToast("Account settings coming soon!", "info")
+                  showToast("Profile settings coming soon!", "info")
                 }
                 className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-3 whitespace-nowrap"
               >
@@ -243,6 +327,71 @@ export const AccountSection = ({ showToast }) => {
         isOpen={showAuthModal}
         onClose={() => setShowAuthModal(false)}
       />
+
+      {/* Username Edit Modal */}
+      <Modal
+        isOpen={showUsernameModal}
+        onClose={() => setShowUsernameModal(false)}
+        className="bg-white rounded-2xl shadow-2xl max-w-md w-full"
+        animationType="slide-up"
+        showCloseButton={true}
+      >
+        <div className="bg-gradient-to-r from-primary to-secondary p-6 rounded-t-2xl">
+          <h2 className="text-xl font-bold text-white">Edit Username</h2>
+          <p className="text-white/80 text-sm mt-1">
+            Choose a unique username (3-20 characters)
+          </p>
+        </div>
+
+        <div className="p-6 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Username
+            </label>
+            <Input
+              type="text"
+              value={newUsername}
+              onChange={(e) => {
+                setNewUsername(e.target.value);
+                setUsernameError("");
+              }}
+              placeholder="Enter username"
+              className="input-base"
+              maxLength={20}
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Only letters, numbers, and underscores allowed
+            </p>
+            {usernameError && (
+              <p className="text-sm text-red-600 mt-2">{usernameError}</p>
+            )}
+          </div>
+
+          <div className="flex gap-3">
+            <Button
+              onClick={() => setShowUsernameModal(false)}
+              className="flex-1 btn-base btn-md btn-secondary font-semibold"
+              disabled={savingUsername}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleUsernameSave}
+              disabled={savingUsername || !newUsername.trim()}
+              className="flex-1 btn-base btn-md btn-primary font-semibold flex items-center justify-center gap-2"
+            >
+              {savingUsername ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  Saving...
+                </>
+              ) : (
+                "Save Username"
+              )}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </>
   );
 };
