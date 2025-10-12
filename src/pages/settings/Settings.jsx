@@ -91,7 +91,7 @@ export const Settings = () => {
           <aside className="lg:col-span-1">
             <div className="bg-white rounded-2xl shadow-lg sticky top-6 overflow-hidden">
               {/* Main Navigation */}
-              <nav className="p-4">
+              <nav className="p-0">
                 <div className="space-y-2">
                   {tabs.map((tab) => (
                     <Button

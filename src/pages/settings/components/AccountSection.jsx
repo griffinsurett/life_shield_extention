@@ -1,55 +1,62 @@
 // src/pages/settings/components/AccountSection.jsx
-import { useState, useEffect } from 'react';
-import { useAuth } from '../../../contexts/AuthContext';
-import { AuthModal } from '../../../components/AuthModal';
-import { Dropdown } from '../../../components/Dropdown';
-import Button from '../../../components/Button';
-import { BRAND, STORAGE_KEYS } from '../../../config';
+import { useState, useEffect } from "react";
+import { useAuth } from "../../../contexts/AuthContext";
+import { AuthModal } from "../../../components/AuthModal";
+import {
+  Dropdown,
+  DropdownHeader,
+  DropdownItem,
+  DropdownDivider,
+} from "../../../components/Dropdown";
+import Button from "../../../components/Button";
+import { BRAND, STORAGE_KEYS } from "../../../config";
 
 export const AccountSection = ({ showToast }) => {
   const { user, signOut, loading } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const accountDropdownId = 'account-dropdown';
 
   // Check for verification success flag
   useEffect(() => {
     if (!user) return;
 
-    chrome.storage.local.get([STORAGE_KEYS.VERIFICATION_SUCCESSFUL], (result) => {
-      if (result[STORAGE_KEYS.VERIFICATION_SUCCESSFUL]) {
-        // Clean up URL hash if present
-        if (window.location.hash) {
-          window.history.replaceState(null, '', window.location.pathname);
+    chrome.storage.local.get(
+      [STORAGE_KEYS.VERIFICATION_SUCCESSFUL],
+      (result) => {
+        if (result[STORAGE_KEYS.VERIFICATION_SUCCESSFUL]) {
+          // Clean up URL hash if present
+          if (window.location.hash) {
+            window.history.replaceState(null, "", window.location.pathname);
+          }
+
+          // Show success toast
+          showToast(`🎉 Email verified! Welcome to ${BRAND.NAME}!`, "success");
+
+          // Clean up all verification flags
+          chrome.storage.local.remove([
+            STORAGE_KEYS.VERIFICATION_SUCCESSFUL,
+            STORAGE_KEYS.EMAIL_JUST_VERIFIED,
+          ]);
         }
-        
-        // Show success toast
-        showToast(`🎉 Email verified! Welcome to ${BRAND.NAME}!`, 'success');
-        
-        // Clean up all verification flags
-        chrome.storage.local.remove([
-          STORAGE_KEYS.VERIFICATION_SUCCESSFUL,
-          STORAGE_KEYS.EMAIL_JUST_VERIFIED
-        ]);
       }
-    });
+    );
   }, [user, showToast]);
 
   const handleSignOut = async () => {
     const { error } = await signOut();
     if (error) {
-      showToast('Sign out failed', 'error');
+      showToast("Sign out failed", "error");
     } else {
-      showToast('Signed out successfully', 'success');
+      showToast("Signed out successfully", "success");
     }
   };
 
   const getInitials = () => {
-    if (!user?.email) return '?';
+    if (!user?.email) return "?";
     return user.email[0].toUpperCase();
   };
 
   const getPlanName = () => {
-    return 'Free Plan';
+    return "Free Plan";
   };
 
   if (loading) {
@@ -76,12 +83,22 @@ export const AccountSection = ({ showToast }) => {
             onClick={() => setShowAuthModal(true)}
             className="w-full btn-base btn-md btn-gradient font-medium flex items-center justify-center gap-2"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"
+              />
             </svg>
             Sign In / Sign Up
           </Button>
-          
+
           <div className="mt-3 text-center">
             <p className="text-xs text-gray-500">
               Sync settings across devices
@@ -89,25 +106,29 @@ export const AccountSection = ({ showToast }) => {
           </div>
         </div>
 
-        <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
+        <AuthModal
+          isOpen={showAuthModal}
+          onClose={() => setShowAuthModal(false)}
+        />
       </>
     );
   }
 
-  // Signed in state with Full-Width Dropdown
+  // Signed in state with Dropdown
   return (
     <>
-      <div className="relative">
+      <div>
         <Dropdown
-          dropdownId={accountDropdownId}
-          fullWidth={true}
+          fullWidth={false}
+          position="bottom-right"
+          minWidth="280px"
           trigger={
             <div className="p-4">
               <div className="w-full p-3 hover:bg-gray-50 rounded-xl transition-colors flex items-center gap-3">
                 <div className="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center text-white font-bold">
                   {getInitials()}
                 </div>
-                
+
                 <div className="flex-1 text-left">
                   <div className="text-sm font-medium text-gray-900 truncate">
                     {user.email}
@@ -117,57 +138,111 @@ export const AccountSection = ({ showToast }) => {
                     {getPlanName()}
                   </div>
                 </div>
-                
-                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+
+                <svg
+                  className="w-5 h-5 text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M19 9l-7 7-7-7"
+                  />
                 </svg>
               </div>
             </div>
           }
         >
-          <div className="overflow-hidden">
-            <div className="p-3 bg-gray-50 rounded-t-xl">
-              <p className="text-xs text-gray-500 mb-1">Account</p>
-              <p className="text-sm font-medium text-gray-900 truncate">{user.email}</p>
-              <p className="text-xs text-gray-600 mt-1">ID: {user.id.slice(0, 8)}...</p>
+          <div className="w-full">
+            <div className="px-4 py-3 bg-gray-50 border-b border-gray-100">
+              <p className="text-xs text-gray-500">Account</p>
+              <p className="text-sm font-medium text-gray-900 truncate">
+                {user.email}
+              </p>
+              <p className="text-xs text-gray-600 mt-0.5">
+                ID: {user.id.slice(0, 8)}...
+              </p>
             </div>
-            
-            <div className="bg-white rounded-b-xl overflow-hidden">
+
+            <div className="py-0">
               <Button
-                onClick={() => showToast('Account settings coming soon!', 'info')}
-                className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2 border-b border-gray-100"
+                type="button"
+                onClick={() =>
+                  showToast("Account settings coming soon!", "info")
+                }
+                className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-3 whitespace-nowrap"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                <svg
+                  className="w-4 h-4 flex-shrink-0"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                  />
                 </svg>
-                Profile Settings
+                <span>Profile Settings</span>
               </Button>
-              
+
               <Button
-                onClick={() => showToast('Pro plans coming soon!', 'info')}
-                className="w-full text-left px-4 py-3 text-sm text-primary hover:bg-primary/5 transition-colors flex items-center gap-2 font-medium border-b border-gray-100"
+                type="button"
+                onClick={() => showToast("Pro plans coming soon!", "info")}
+                className="w-full text-left px-4 py-2.5 text-sm text-primary hover:bg-primary/5 transition-colors flex items-center gap-3 font-medium whitespace-nowrap"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                <svg
+                  className="w-4 h-4 flex-shrink-0"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M13 10V3L4 14h7v7l9-11h-7z"
+                  />
                 </svg>
-                Upgrade to Pro
+                <span>Upgrade to Pro</span>
               </Button>
-              
+            </div>
+
+            <div className="border-t border-gray-100">
               <Button
+                type="button"
                 onClick={handleSignOut}
-                className="w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors flex items-center gap-2"
+                className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors flex items-center gap-3 whitespace-nowrap"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                <svg
+                  className="w-4 h-4 flex-shrink-0"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                  />
                 </svg>
-                Sign Out
+                <span>Sign Out</span>
               </Button>
             </div>
           </div>
         </Dropdown>
       </div>
 
-      <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+      />
     </>
   );
 };
