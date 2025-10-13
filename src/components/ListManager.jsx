@@ -16,8 +16,8 @@ export const ListManager = ({
   // UI props
   placeholder,
   icon,
-  variant = 'default', // 'default', 'danger', 'success', 'warning'
-  showList = true, // Show full list and controls (false for popup quick-add mode)
+  variant = 'default', // 'default', 'danger', 'success', 'warning', 'compact'
+  showList = true,
   
   // Behavior props
   confirmAdd = false,
@@ -48,24 +48,44 @@ export const ListManager = ({
       border: 'border-primary/20',
       bg: 'from-primary/5 to-secondary/5',
       icon: icon || '📝',
+      inputClass: 'input-base flex-1',
+      containerClass: 'p-6 rounded-xl border-2 bg-gradient-to-r',
     },
     danger: {
       addButton: 'btn-danger',
       border: 'border-red-200',
       bg: 'from-red-50 to-orange-50',
       icon: icon || '🚫',
+      inputClass: 'input-base flex-1',
+      containerClass: 'p-6 rounded-xl border-2 bg-gradient-to-r',
     },
     success: {
       addButton: 'bg-green-600 hover:bg-green-700 text-white',
       border: 'border-green-200',
       bg: 'from-green-50 to-emerald-50',
       icon: icon || '✨',
+      inputClass: 'input-base flex-1',
+      containerClass: 'p-6 rounded-xl border-2 bg-gradient-to-r',
     },
     warning: {
       addButton: 'bg-orange-600 hover:bg-orange-700 text-white',
       border: 'border-orange-200',
       bg: 'from-orange-50 to-yellow-50',
       icon: icon || '⚠️',
+      inputClass: 'input-base flex-1',
+      containerClass: 'p-6 rounded-xl border-2 bg-gradient-to-r',
+    },
+    compact: {
+      addButton: 'px-5 py-2.5 bg-white text-red-600 rounded-lg font-bold text-sm hover:shadow-xl hover:scale-105 active:scale-100 transition-all duration-200',
+      border: 'border-red-400/40',
+      bg: 'from-red-500/20 to-pink-500/20',
+      icon: icon || '🚫',
+      inputClass: 'flex-1 px-3 py-2.5 rounded-lg text-sm bg-black/20 border-0 text-white placeholder-white/60',
+      containerClass: 'p-4 bg-gradient-to-br rounded-xl border-2 backdrop-blur-sm',
+      headerClass: 'mb-3',
+      titleClass: 'text-sm font-bold uppercase tracking-wide',
+      countClass: 'text-xs font-medium opacity-80',
+      helperClass: 'text-xs opacity-80 mt-3',
     },
   }), [icon]);
 
@@ -73,25 +93,21 @@ export const ListManager = ({
 
   // Add item handler
   const handleAdd = useCallback(() => {
-    // Process input
     let processed = inputValue.trim();
     if (!processed) {
       showToast?.(`Please enter a ${itemName.toLowerCase()}`, 'error');
       return;
     }
 
-    // Transform if needed
     if (transformItem) {
       processed = transformItem(processed);
     }
 
-    // Length validation
     if (processed.length < minLength) {
       showToast?.(`${itemName} must be at least ${minLength} character${minLength > 1 ? 's' : ''}`, 'error');
       return;
     }
 
-    // Custom validation
     if (validateItem) {
       const error = validateItem(processed, items);
       if (error) {
@@ -100,26 +116,22 @@ export const ListManager = ({
       }
     }
 
-    // Duplicate check
     if (!allowDuplicates && items.includes(processed)) {
       showToast?.(`"${processed}" is already in the list`, 'error');
       return;
     }
 
-    // Max items check
     if (maxItems && items.length >= maxItems) {
       showToast?.(`Maximum ${maxItems} ${pluralName.toLowerCase()} allowed`, 'error');
       return;
     }
 
-    // Function to actually add the item
     const performAdd = () => {
       onItemsChange([...items, processed]);
       setInputValue('');
       showToast?.(`Added "${processed}"`, 'success');
     };
 
-    // Add with or without confirmation
     if (confirmAdd) {
       const confirmMessage = typeof confirmAdd === 'string' 
         ? confirmAdd.replace('{item}', processed)
@@ -197,15 +209,77 @@ export const ListManager = ({
     percentage: maxItems ? Math.round((items.length / maxItems) * 100) : null
   }), [items.length, maxItems]);
 
+  // Render compact variant (like Current Site style)
+  if (variant === 'compact') {
+    return (
+      <div className="space-y-4">
+        <div className={`${config.containerClass} ${config.border} ${config.bg}`}>
+          <div className={config.headerClass}>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">{config.icon}</span>
+                <h3 className={config.titleClass}>Add {itemName}</h3>
+              </div>
+              <span className={config.countClass}>
+                {items.length} {items.length === 1 ? itemName.toLowerCase() : pluralName.toLowerCase()}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex gap-2">
+            <Input
+              type="text"
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleAdd();
+                }
+              }}
+              placeholder={placeholder || `Enter ${itemName.toLowerCase()}...`}
+              className={config.inputClass}
+              maxLength={100}
+            />
+            <Button
+              onClick={handleAdd}
+              disabled={!inputValue.trim()}
+              className={`${config.addButton} disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100`}
+            >
+              Block
+            </Button>
+          </div>
+
+          <p className={config.helperClass}>
+            {itemName}s are blocked immediately after adding
+          </p>
+        </div>
+
+        {/* Confirmation Modal */}
+        <ConfirmationModal
+          isOpen={confirmation.isOpen}
+          onClose={confirmation.closeModal}
+          title={confirmation.config.title}
+          message={confirmation.config.message}
+          confirmText={confirmation.config.confirmText}
+          cancelText={confirmation.config.cancelText}
+          confirmColor={confirmation.config.confirmColor}
+          onConfirm={confirmation.handleConfirm}
+          onCancel={confirmation.handleCancel}
+        />
+      </div>
+    );
+  }
+
+  // Original full variant rendering
   return (
     <div className="space-y-6">
       {/* Add Input Section */}
-      <div className={`p-6 rounded-xl border-2 bg-gradient-to-r ${config.bg} ${config.border}`}>
+      <div className={`${config.containerClass} ${config.border} ${config.bg}`}>
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-semibold text-gray-800">
             Add {itemName}
           </h3>
-          {/* Quantity Display - Always shown */}
           <span className="text-sm text-gray-600 font-medium">
             {items.length} {items.length === 1 ? itemName.toLowerCase() : pluralName.toLowerCase()}
           </span>
@@ -223,7 +297,7 @@ export const ListManager = ({
               }
             }}
             placeholder={placeholder || `Enter ${itemName.toLowerCase()}...`}
-            className="input-base flex-1"
+            className={config.inputClass}
             maxLength={100}
           />
           <Button
@@ -235,7 +309,6 @@ export const ListManager = ({
           </Button>
         </div>
         
-        {/* Stats bar */}
         {maxItems && (
           <div className="mt-3">
             <div className="flex items-center justify-between text-xs text-gray-600 mb-1">
@@ -256,10 +329,9 @@ export const ListManager = ({
         )}
       </div>
 
-      {/* Only show rest if showList is true */}
+      {/* Rest of the component (Protected lists, etc.) */}
       {showList && (
         <>
-          {/* Protected List Controls */}
           {isProtected && (
             <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border-2 border-gray-200">
               <div className="flex items-center gap-3">
@@ -291,7 +363,6 @@ export const ListManager = ({
             </div>
           )}
 
-          {/* List Display */}
           {(!isProtected || isUnlocked) ? (
             items.length === 0 ? (
               <div className="text-center py-12 bg-gray-50 rounded-xl">

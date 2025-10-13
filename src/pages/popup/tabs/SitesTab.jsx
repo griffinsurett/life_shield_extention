@@ -15,8 +15,9 @@ export const SitesTab = () => {
         onItemsChange={(sites) => updateSettings({ blockedSites: sites })}
         itemName="Site"
         itemNamePlural="Blocked Sites"
-        placeholder="Enter domain (e.g., example.com)..."
-        variant="danger"  // Already danger
+        placeholder="e.g., example.com"
+        variant="compact"
+        icon="🚫"
         showList={false}
         confirmAdd="You will be unable to access '{item}' until you unblock it. Continue?"
         transformItem={(val) => val.toLowerCase().replace(/^https?:\/\//, '').replace(/\/$/, '')}

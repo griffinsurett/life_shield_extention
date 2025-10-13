@@ -16,7 +16,8 @@ export const WordsTab = () => {
         itemName="Word"
         itemNamePlural="Blocked Words"
         placeholder="Enter word or phrase to block..."
-        variant="danger"  // Changed to danger
+        variant="compact"
+        icon="📝"
         showList={false}
         confirmAdd="This will filter '{item}' from all web pages. Continue?"
         transformItem={(val) => val.toLowerCase()}
