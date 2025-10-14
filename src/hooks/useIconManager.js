@@ -9,6 +9,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '../components/ToastContainer';
 import { ImageProcessor } from '../utils/imageProcessor';
+import { ICON_CONFIG } from '../config/icons';
 
 export const useIconManager = () => {
   const { showToast } = useToast();
@@ -21,10 +22,14 @@ export const useIconManager = () => {
    */
   const loadIcons = useCallback(async () => {
     try {
-      const result = await chrome.storage.local.get(['customIcons', 'activeIconId']);
+      const result = await chrome.storage.local.get([
+        ICON_CONFIG.STORAGE_KEYS.CUSTOM_ICONS,
+        ICON_CONFIG.STORAGE_KEYS.ACTIVE_ICON
+      ]);
+      
       console.log('Loaded icons from storage:', result);
-      setIcons(result.customIcons || []);
-      setActiveIconId(result.activeIconId || 'default');
+      setIcons(result[ICON_CONFIG.STORAGE_KEYS.CUSTOM_ICONS] || []);
+      setActiveIconId(result[ICON_CONFIG.STORAGE_KEYS.ACTIVE_ICON] || 'default');
     } catch (error) {
       console.error('Failed to load icons', error);
     } finally {
@@ -38,13 +43,13 @@ export const useIconManager = () => {
     // Listen for changes
     const listener = (changes, namespace) => {
       if (namespace === 'local') {
-        if (changes.customIcons) {
-          console.log('Icons changed:', changes.customIcons.newValue);
-          setIcons(changes.customIcons.newValue || []);
+        if (changes[ICON_CONFIG.STORAGE_KEYS.CUSTOM_ICONS]) {
+          console.log('Icons changed:', changes[ICON_CONFIG.STORAGE_KEYS.CUSTOM_ICONS].newValue);
+          setIcons(changes[ICON_CONFIG.STORAGE_KEYS.CUSTOM_ICONS].newValue || []);
         }
-        if (changes.activeIconId) {
-          console.log('Active icon changed:', changes.activeIconId.newValue);
-          setActiveIconId(changes.activeIconId.newValue || 'default');
+        if (changes[ICON_CONFIG.STORAGE_KEYS.ACTIVE_ICON]) {
+          console.log('Active icon changed:', changes[ICON_CONFIG.STORAGE_KEYS.ACTIVE_ICON].newValue);
+          setActiveIconId(changes[ICON_CONFIG.STORAGE_KEYS.ACTIVE_ICON].newValue || 'default');
         }
       }
     };

@@ -10,14 +10,9 @@
 import { isExtensionContextValid } from "../../utils/chromeApi";
 import { createLogger } from "../../utils/logger";
 import { DEFAULTS } from "../../config";
+import { ICON_CONFIG } from "../../config/icons";
 
 const logger = createLogger("IconManager");
-
-const ICON_CONFIG = {
-  STORAGE_KEY: 'customIcons',
-  ACTIVE_ICON_KEY: 'activeIconId',
-  MAX_ICONS: 10,
-};
 
 class IconManager {
   constructor() {
@@ -36,12 +31,12 @@ class IconManager {
       logger.info('Initializing icon manager...');
       
       const result = await chrome.storage.local.get([
-        ICON_CONFIG.STORAGE_KEY,
-        ICON_CONFIG.ACTIVE_ICON_KEY
+        ICON_CONFIG.STORAGE_KEYS.CUSTOM_ICONS,
+        ICON_CONFIG.STORAGE_KEYS.ACTIVE_ICON
       ]);
 
-      this.customIcons = result[ICON_CONFIG.STORAGE_KEY] || [];
-      this.activeIconId = result[ICON_CONFIG.ACTIVE_ICON_KEY] || 'default';
+      this.customIcons = result[ICON_CONFIG.STORAGE_KEYS.CUSTOM_ICONS] || [];
+      this.activeIconId = result[ICON_CONFIG.STORAGE_KEYS.ACTIVE_ICON] || 'default';
 
       logger.info('Icon manager initialized', {
         customIcons: this.customIcons.length,
@@ -80,7 +75,7 @@ class IconManager {
 
       this.customIcons.push(icon);
       await chrome.storage.local.set({
-        [ICON_CONFIG.STORAGE_KEY]: this.customIcons
+        [ICON_CONFIG.STORAGE_KEYS.CUSTOM_ICONS]: this.customIcons
       });
 
       logger.info('Icon saved successfully', { iconId, name: icon.name });
@@ -126,7 +121,7 @@ class IconManager {
 
       this.activeIconId = iconId;
       await chrome.storage.local.set({
-        [ICON_CONFIG.ACTIVE_ICON_KEY]: iconId
+        [ICON_CONFIG.STORAGE_KEYS.ACTIVE_ICON]: iconId
       });
 
       logger.info('Icon applied successfully', { iconId });
@@ -165,7 +160,7 @@ class IconManager {
 
       this.activeIconId = 'default';
       await chrome.storage.local.set({
-        [ICON_CONFIG.ACTIVE_ICON_KEY]: 'default'
+        [ICON_CONFIG.STORAGE_KEYS.ACTIVE_ICON]: 'default'
       });
 
       logger.info('Reset to default icon complete');
@@ -189,7 +184,7 @@ class IconManager {
 
     this.customIcons.splice(index, 1);
     await chrome.storage.local.set({
-      [ICON_CONFIG.STORAGE_KEY]: this.customIcons
+      [ICON_CONFIG.STORAGE_KEYS.CUSTOM_ICONS]: this.customIcons
     });
 
     logger.info('Icon deleted', { iconId });
@@ -204,5 +199,5 @@ class IconManager {
   }
 }
 
-// CRITICAL: Export as singleton instance, not the class
+// Export as singleton instance
 export const iconManager = new IconManager();

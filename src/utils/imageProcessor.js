@@ -7,19 +7,21 @@
  * @module utils/imageProcessor
  */
 
+import { ICON_CONFIG, ICON_VALIDATION } from '../config/icons';
+
 export const ImageProcessor = {
   /**
    * Process an uploaded file and generate all required icon sizes
    */
   async processIconFile(file) {
-    // Validate file
-    const validTypes = ['image/svg+xml', 'image/png', 'image/jpeg', 'image/x-icon', 'image/webp'];
-    if (!validTypes.includes(file.type)) {
-      throw new Error(`Unsupported format. Supported: ${validTypes.join(', ')}`);
+    // Validate file format
+    if (!ICON_VALIDATION.validateFormat(file.type)) {
+      throw new Error(ICON_VALIDATION.getErrorMessage('format'));
     }
 
-    if (file.size > 2 * 1024 * 1024) {
-      throw new Error('File size must be less than 2MB');
+    // Validate file size
+    if (!ICON_VALIDATION.validateSize(file.size)) {
+      throw new Error(ICON_VALIDATION.getErrorMessage('size'));
     }
 
     // Read file as data URL
@@ -27,16 +29,15 @@ export const ImageProcessor = {
 
     // Generate all required sizes
     const sizes = {};
-    const iconSizes = [16, 48, 128];
 
     if (file.type === 'image/svg+xml') {
       // Convert SVG to PNG for each size
-      for (const size of iconSizes) {
+      for (const size of ICON_CONFIG.SIZES) {
         sizes[size] = await this.svgToPng(dataUrl, size);
       }
     } else {
       // Resize raster images
-      for (const size of iconSizes) {
+      for (const size of ICON_CONFIG.SIZES) {
         sizes[size] = await this.resizeImage(dataUrl, size);
       }
     }

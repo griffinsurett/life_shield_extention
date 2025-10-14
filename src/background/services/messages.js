@@ -9,7 +9,7 @@
 
 import { isExtensionContextValid } from "../../utils/chromeApi";
 import { createLogger } from "../../utils/logger";
-import { getRedirectUrl, shouldShowAlerts } from "./settings";
+import { getRedirectUrl } from "./settings";
 import { incrementStats } from "./stats";
 import { updateBadge } from "./badge";
 import {

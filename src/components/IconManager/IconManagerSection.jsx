@@ -4,6 +4,7 @@ import { useIconManager } from "../../hooks/useIconManager";
 import { IconUploadModal } from "./IconUploadModal";
 import { IconCard } from "./IconCard";
 import Button from "../Button";
+import { ICON_CONFIG, ICON_VALIDATION } from "../../config/icons";
 
 export const IconManagerSection = ({ showToast, showConfirmation }) => {
   const { icons, activeIconId, loading, uploadIcon, switchIcon, deleteIcon } =
@@ -19,22 +20,15 @@ export const IconManagerSection = ({ showToast, showConfirmation }) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate file size (2MB)
-    if (file.size > 2 * 1024 * 1024) {
-      showToast("File size must be less than 2MB", "error");
+    // Validate file size
+    if (!ICON_VALIDATION.validateSize(file.size)) {
+      showToast(ICON_VALIDATION.getErrorMessage('size'), "error");
       return;
     }
 
     // Validate file type
-    const validTypes = [
-      "image/svg+xml",
-      "image/png",
-      "image/jpeg",
-      "image/x-icon",
-      "image/webp",
-    ];
-    if (!validTypes.includes(file.type)) {
-      showToast("Please upload SVG, PNG, JPG, ICO, or WebP", "error");
+    if (!ICON_VALIDATION.validateFormat(file.type)) {
+      showToast(ICON_VALIDATION.getErrorMessage('format'), "error");
       return;
     }
 
@@ -122,7 +116,7 @@ export const IconManagerSection = ({ showToast, showConfirmation }) => {
         <div className="mb-4">
           <Button
             onClick={() => setShowUploadModal(true)}
-            disabled={loading || icons.length >= 10}
+            disabled={loading || icons.length >= ICON_CONFIG.MAX_ICONS}
             className="btn-base btn-md btn-primary flex items-center gap-2"
           >
             <svg
@@ -140,10 +134,9 @@ export const IconManagerSection = ({ showToast, showConfirmation }) => {
             </svg>
             Upload Custom Icon
           </Button>
-          {icons.length >= 10 && (
+          {icons.length >= ICON_CONFIG.MAX_ICONS && (
             <p className="text-sm text-orange-600 mt-2">
-              Maximum 10 custom icons reached. Delete unused icons to upload
-              more.
+              {ICON_VALIDATION.getErrorMessage('limit')}
             </p>
           )}
         </div>
@@ -188,10 +181,10 @@ export const IconManagerSection = ({ showToast, showConfirmation }) => {
             Requirements
           </h4>
           <ul className="space-y-1 text-xs text-gray-600">
-            <li>• Formats: SVG, PNG, JPG, ICO, WebP</li>
-            <li>• Max size: 2MB</li>
+            <li>• Formats: {ICON_CONFIG.SUPPORTED_FORMATS.map(f => f.split('/')[1].toUpperCase()).join(', ')}</li>
+            <li>• Max size: {ICON_CONFIG.MAX_FILE_SIZE / 1024 / 1024}MB</li>
             <li>• Recommended: Square images (1:1 ratio)</li>
-            <li>• Maximum 10 custom icons</li>
+            <li>• Maximum {ICON_CONFIG.MAX_ICONS} custom icons</li>
           </ul>
         </div>
       </div>
