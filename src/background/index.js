@@ -22,6 +22,7 @@ import {
   showStartupNotification,
   showWelcomeNotification,
 } from "./services/notifications";
+import { iconManager } from "./services/iconManager";
 
 const logger = createLogger("Background");
 
@@ -53,6 +54,9 @@ async function initializeServices() {
 
     await initStats();
     logger.info("✅ Stats service initialized");
+
+    await iconManager.init();
+    logger.info("✅ Icon manager initialized");
 
     initBadge();
     logger.info("✅ Badge service initialized");

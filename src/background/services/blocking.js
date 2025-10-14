@@ -17,7 +17,7 @@ import {
   shouldUseCustomUrl,
 } from "./settings";
 import { incrementStats } from "./stats";
-import { showUrlBlockedNotification } from "./notifications";
+import { showContentBlockedNotification } from "./notifications";
 import {
   getBlockedPageUrl,
   getRedirectUrlWithFallback,
@@ -229,7 +229,7 @@ function setupBlockedRequestListener() {
         if (!blockedTabIds.has(tabId)) {
           blockedTabIds.add(tabId);
           await incrementStats(1);
-          await showUrlBlockedNotification();
+          await showContentBlockedNotification();
 
           // Clear after debounce period
           setTimeout(() => blockedTabIds.delete(tabId), TAB_BLOCKING_DEBOUNCE);

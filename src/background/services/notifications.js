@@ -1,167 +1,233 @@
 /**
  * Notifications Service
  *
- * Manages browser notifications.
+ * Handles browser notifications for blocked content and other events.
  * Functional module pattern.
  *
  * @module background/services/notifications
  */
 
-import { isExtensionContextValid, getResourceURL } from "../../utils/chromeApi";
+import { isExtensionContextValid } from "../../utils/chromeApi";
 import { createLogger } from "../../utils/logger";
 import { shouldShowAlerts } from "./settings";
-import { BRAND, DEFAULTS } from "../../config";
-import { getIconUrl } from "../../utils/builders";
+import { BRAND } from "../../config/brand";
+import { iconManager } from "./iconManager";
 
 const logger = createLogger("NotificationsService");
 
-// Get icon URL
-const iconUrl = getIconUrl(48);
-
 /**
- * Create a notification
- *
- * @async
- * @param {string} id - Notification ID
- * @param {Object} options - Notification options
- * @returns {Promise<string|null>}
+ * Get the current active icon URL for notifications
  */
-async function createNotification(id, options) {
-  if (!isExtensionContextValid()) return null;
-
-  return new Promise((resolve) => {
-    const notificationOptions = {
-      type: "basic",
-      iconUrl: iconUrl,
-      ...options,
-    };
-
-    const callback = (notificationId) => {
-      if (chrome.runtime.lastError) {
-        logger.error("Notification error", chrome.runtime.lastError);
-        resolve(null);
-      } else {
-        logger.debug(`Notification created: ${notificationId}`);
-        resolve(notificationId);
-      }
-    };
-
-    if (id) {
-      chrome.notifications.create(id, notificationOptions, callback);
-    } else {
-      chrome.notifications.create(notificationOptions, callback);
+async function getCurrentIconUrl() {
+  try {
+    const activeIconId = iconManager.getActiveIconId();
+    
+    if (activeIconId === 'default') {
+      // Use default icon from extension
+      return chrome.runtime.getURL('assets/icon.png');
     }
-  });
-}
-
-/**
- * Show startup notification
- *
- * @async
- * @returns {Promise<string|null>}
- */
-export async function showStartupNotification() {
-  return createNotification("test-startup", {
-    title: `${BRAND.ICON} ${BRAND.NAME} Active`,
-    message: "Extension loaded successfully!",
-    priority: 2,
-  });
-}
-
-/**
- * Show welcome notification
- *
- * @async
- * @returns {Promise<string|null>}
- */
-export async function showWelcomeNotification() {
-  return createNotification("welcome", {
-    title: `${BRAND.ICON} Welcome to ${BRAND.NAME}!`,
-    message:
-      "Your extension is now active and protecting your browsing experience.",
-    priority: 2,
-  });
+    
+    // Get custom icon from storage
+    const icons = iconManager.getIcons();
+    const activeIcon = icons.find(icon => icon.id === activeIconId);
+    
+    if (activeIcon && activeIcon.sizes && activeIcon.sizes[128]) {
+      // Use the 128px version for notifications
+      return activeIcon.sizes[128];
+    }
+    
+    // Fallback to default
+    return chrome.runtime.getURL('assets/icon.png');
+  } catch (error) {
+    logger.error('Failed to get current icon URL', error);
+    return chrome.runtime.getURL('assets/icon.png');
+  }
 }
 
 /**
  * Show content blocked notification
  *
  * @async
- * @returns {Promise<string|null>}
+ * @returns {Promise<void>}
  */
 export async function showContentBlockedNotification() {
-  if (!shouldShowAlerts()) return null;
+  if (!isExtensionContextValid() || !shouldShowAlerts()) {
+    logger.debug("Skipping notification - context invalid or alerts disabled");
+    return;
+  }
 
-  return createNotification(null, {
-    title: `${BRAND.ICON} Content Blocked`,
-    message: "Redirecting to a healthier page...",
-    priority: 1,
-  });
+  try {
+    const iconUrl = await getCurrentIconUrl();
+    
+    await chrome.notifications.create("blocked-content", {
+      type: "basic",
+      iconUrl: iconUrl,
+      title: `${BRAND.ICON} URL Blocked`,
+      message: "This URL contains blocked content",
+      priority: 1,
+    });
+
+    logger.debug("Notification created: blocked-content");
+  } catch (error) {
+    logger.safeError("Error creating blocked notification", error);
+  }
 }
 
 /**
- * Show URL blocked notification
+ * Show URL blocked notification (alias for backward compatibility)
  *
  * @async
- * @returns {Promise<string|null>}
+ * @returns {Promise<void>}
  */
 export async function showUrlBlockedNotification() {
-  if (!shouldShowAlerts()) return null;
-
-  return createNotification(null, {
-    title: `${BRAND.ICON} URL Blocked`,
-    message: "This URL contains blocked content",
-    priority: 1,
-  });
+  return showContentBlockedNotification();
 }
 
 /**
  * Show search blocked notification
  *
  * @async
- * @returns {Promise<string|null>}
+ * @returns {Promise<void>}
  */
 export async function showSearchBlockedNotification() {
-  if (!shouldShowAlerts()) return null;
+  if (!isExtensionContextValid() || !shouldShowAlerts()) {
+    logger.debug("Skipping notification - context invalid or alerts disabled");
+    return;
+  }
 
-  return createNotification(null, {
-    title: `${BRAND.ICON} Search Blocked`,
-    message: "Your search contained blocked content",
-    priority: 1,
-  });
+  try {
+    const iconUrl = await getCurrentIconUrl();
+    
+    await chrome.notifications.create("blocked-search", {
+      type: "basic",
+      iconUrl: iconUrl,
+      title: `${BRAND.ICON} Search Blocked`,
+      message: "This search contains blocked content",
+      priority: 1,
+    });
+
+    logger.debug("Notification created: blocked-search");
+  } catch (error) {
+    logger.safeError("Error creating search blocked notification", error);
+  }
 }
 
 /**
  * Show content filtered notification
  *
  * @async
- * @param {number} count - Items filtered
- * @returns {Promise<string|null>}
+ * @param {number} count - Number of items filtered
+ * @returns {Promise<void>}
  */
-export async function showContentFilteredNotification(count) {
-  if (!shouldShowAlerts()) return null;
+export async function showContentFilteredNotification(count = 1) {
+  if (!isExtensionContextValid() || !shouldShowAlerts()) {
+    logger.debug("Skipping notification - context invalid or alerts disabled");
+    return;
+  }
 
-  return createNotification(null, {
-    title: `${BRAND.ICON} Content Filtered`,
-    message: `Blocked ${count} item(s) on this page`,
-    priority: 0,
-  });
+  try {
+    const iconUrl = await getCurrentIconUrl();
+    
+    await chrome.notifications.create("filtered-content", {
+      type: "basic",
+      iconUrl: iconUrl,
+      title: `${BRAND.ICON} Content Filtered`,
+      message: `${count} blocked ${count === 1 ? "word" : "words"} replaced`,
+      priority: 1,
+    });
+
+    logger.debug("Notification created: filtered-content");
+  } catch (error) {
+    logger.safeError("Error creating filtered notification", error);
+  }
 }
 
 /**
  * Show custom notification
  *
  * @async
- * @param {string} title - Title
- * @param {string} message - Message
- * @returns {Promise<string|null>}
+ * @param {string} title - Notification title
+ * @param {string} message - Notification message
+ * @returns {Promise<void>}
  */
 export async function showCustomNotification(title, message) {
-  if (!shouldShowAlerts()) return null;
+  if (!isExtensionContextValid() || !shouldShowAlerts()) {
+    logger.debug("Skipping notification - context invalid or alerts disabled");
+    return;
+  }
 
-  return createNotification(null, {
-    title: title || `${BRAND.ICON} ${BRAND.NAME}`,
-    message: message || "Content filtered",
-    priority: 1,
-  });
+  try {
+    const iconUrl = await getCurrentIconUrl();
+    
+    await chrome.notifications.create({
+      type: "basic",
+      iconUrl: iconUrl,
+      title: title,
+      message: message,
+      priority: 1,
+    });
+
+    logger.debug("Custom notification created");
+  } catch (error) {
+    logger.safeError("Error creating custom notification", error);
+  }
+}
+
+/**
+ * Show startup notification
+ *
+ * @async
+ * @returns {Promise<void>}
+ */
+export async function showStartupNotification() {
+  if (!isExtensionContextValid() || !shouldShowAlerts()) {
+    logger.debug("Skipping startup notification");
+    return;
+  }
+
+  try {
+    const iconUrl = await getCurrentIconUrl();
+    
+    await chrome.notifications.create("test-startup", {
+      type: "basic",
+      iconUrl: iconUrl,
+      title: `${BRAND.ICON} ${BRAND.NAME} Active`,
+      message: `${BRAND.TAGLINE}`,
+      priority: 0,
+    });
+
+    logger.debug("Notification created: test-startup");
+  } catch (error) {
+    logger.safeError("Error creating startup notification", error);
+  }
+}
+
+/**
+ * Show welcome notification (on first install)
+ *
+ * @async
+ * @returns {Promise<void>}
+ */
+export async function showWelcomeNotification() {
+  if (!isExtensionContextValid()) {
+    logger.debug("Skipping welcome notification - context invalid");
+    return;
+  }
+
+  try {
+    const iconUrl = await getCurrentIconUrl();
+    
+    await chrome.notifications.create("welcome", {
+      type: "basic",
+      iconUrl: iconUrl,
+      title: `${BRAND.HEART} Welcome to ${BRAND.NAME}!`,
+      message:
+        "Thank you for installing! Click the extension icon to configure your settings.",
+      priority: 2,
+    });
+
+    logger.debug("Notification created: welcome");
+  } catch (error) {
+    logger.safeError("Error creating welcome notification", error);
+  }
 }

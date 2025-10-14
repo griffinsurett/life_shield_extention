@@ -17,7 +17,7 @@ import {
 } from "./settings";
 import { incrementStats } from "./stats";
 import {
-  showUrlBlockedNotification,
+  showContentBlockedNotification,
   showSearchBlockedNotification,
 } from "./notifications";
 import {
@@ -96,7 +96,7 @@ async function handleBeforeNavigate(details) {
     await incrementStats(1);
 
     // Show notification
-    await showUrlBlockedNotification();
+    await showContentBlockedNotification();
 
     // Redirect to appropriate page
     const useCustom = shouldUseCustomUrl();

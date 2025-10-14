@@ -1,9 +1,9 @@
 // src/pages/settings/tabs/GeneralTab.jsx
 import { useApp } from "../../../contexts/AppContext";
 import { Toggle } from "../../../components/Toggle";
-import Button from "../../../components/Button";
-import Input from "../../../components/Inputs/Input";
-import Textarea from "../../../components/Inputs/Textarea";
+import { SettingSection } from "../../../components/SettingSection";
+import { BlockingBehaviorSection } from "../../../components/BlockingBehaviorSection";
+import { IconManagerSection } from "../../../components/IconManager";
 import { SobrietyTracker } from "../components/SobrietyTracker";
 
 const GeneralTab = ({ showToast, showConfirmation }) => {
@@ -15,13 +15,15 @@ const GeneralTab = ({ showToast, showConfirmation }) => {
   };
 
   const handleRedirectChange = async (e) => {
-    const url = e.target.value;
-    await updateSettings({ redirectUrl: url });
+    await updateSettings({ redirectUrl: e.target.value });
   };
 
   const handleMessageChange = async (e) => {
-    const message = e.target.value;
-    await updateSettings({ customMessage: message });
+    await updateSettings({ customMessage: e.target.value });
+  };
+
+  const handleToggleCustomUrl = async (value) => {
+    await updateSettings({ useCustomUrl: value });
   };
 
   return (
@@ -32,7 +34,7 @@ const GeneralTab = ({ showToast, showConfirmation }) => {
 
       <div className="space-y-8">
         {/* Enable Filter Toggle */}
-        <div className="pb-6 border-b border-gray-200">
+        <SettingSection>
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-lg font-semibold text-gray-800 mb-1">
@@ -47,10 +49,10 @@ const GeneralTab = ({ showToast, showConfirmation }) => {
               onChange={(checked) => handleToggle("enableFilter", checked)}
             />
           </div>
-        </div>
+        </SettingSection>
 
         {/* Show Alerts Toggle */}
-        <div className="pb-6 border-b border-gray-200">
+        <SettingSection>
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-lg font-semibold text-gray-800 mb-1">
@@ -65,127 +67,36 @@ const GeneralTab = ({ showToast, showConfirmation }) => {
               onChange={(checked) => handleToggle("showAlerts", checked)}
             />
           </div>
-        </div>
+        </SettingSection>
+
+        {/* Custom Icon Section */}
+        <IconManagerSection
+          showToast={showToast}
+          showConfirmation={showConfirmation}
+        />
 
         {/* Sobriety Tracker Section */}
-        <div className="pb-6 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-800 mb-1">
-            Sobriety Tracker
-          </h3>
-          <p className="text-sm text-gray-600 mb-4">
-            Track your wellness journey and celebrate your progress
-          </p>
-          
-          <SobrietyTracker 
-            showToast={showToast} 
-            showConfirmation={showConfirmation} 
+        <SettingSection
+          title="Sobriety Tracker"
+          description="Track your wellness journey and celebrate your progress"
+        >
+          <SobrietyTracker
+            showToast={showToast}
+            showConfirmation={showConfirmation}
           />
-        </div>
+        </SettingSection>
 
         {/* Blocking Behavior */}
-        <div>
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">
-            Blocking Behavior
-          </h3>
-          <p className="text-sm text-gray-600 mb-4">
-            Choose what happens when blocked content is detected
-          </p>
-
-          <div className="space-y-4">
-            {/* Built-in Blocked Page Option */}
-            <label
-              className={`block p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                !settings.useCustomUrl
-                  ? "border-primary bg-primary/5"
-                  : "border-gray-200 hover:border-gray-300"
-              }`}
-            >
-              <div className="flex items-start gap-3">
-                <input
-                  type="radio"
-                  name="blockBehavior"
-                  checked={!settings.useCustomUrl}
-                  onChange={() => updateSettings({ useCustomUrl: false })}
-                  className="mt-1"
-                />
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-2xl">🛡️</span>
-                    <span className="font-semibold text-gray-800">
-                      Built-in Blocked Page
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-600">
-                    Show a custom message on our blocked page
-                  </p>
-
-                  {!settings.useCustomUrl && (
-                    <div className="mt-3">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Custom Message (optional)
-                      </label>
-                      <Textarea
-                        value={settings.customMessage || ""}
-                        onChange={handleMessageChange}
-                        placeholder="This site is blocked for your wellbeing"
-                        className="textarea-base"
-                        rows={3}
-                      />
-                    </div>
-                  )}
-                </div>
-              </div>
-            </label>
-
-            {/* Custom URL Option */}
-            <label
-              className={`block p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                settings.useCustomUrl
-                  ? "border-primary bg-primary/5"
-                  : "border-gray-200 hover:border-gray-300"
-              }`}
-            >
-              <div className="flex items-start gap-3">
-                <input
-                  type="radio"
-                  name="blockBehavior"
-                  checked={settings.useCustomUrl}
-                  onChange={() => updateSettings({ useCustomUrl: true })}
-                  className="mt-1"
-                />
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-2xl">🔗</span>
-                    <span className="font-semibold text-gray-800">
-                      Custom Redirect URL
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-600">
-                    Redirect to a specific website when content is blocked
-                  </p>
-
-                  {settings.useCustomUrl && (
-                    <div className="mt-3">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Redirect URL
-                      </label>
-                      <Input
-                        type="url"
-                        value={settings.redirectUrl}
-                        onChange={handleRedirectChange}
-                        placeholder="https://example.com"
-                        className="input-base"
-                      />
-                      <p className="text-xs text-gray-500 mt-1">
-                        Enter a full URL including https://
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </label>
-          </div>
-        </div>
+        <SettingSection noBorder>
+          <BlockingBehaviorSection
+            useCustomUrl={settings.useCustomUrl}
+            redirectUrl={settings.redirectUrl}
+            customMessage={settings.customMessage}
+            onToggleCustomUrl={handleToggleCustomUrl}
+            onRedirectChange={handleRedirectChange}
+            onMessageChange={handleMessageChange}
+          />
+        </SettingSection>
       </div>
     </div>
   );

@@ -18,6 +18,7 @@ import {
   showContentFilteredNotification,
 } from "./notifications";
 import { getRedirectUrlWithFallback } from "../../utils/builders";
+import { iconManager } from "./iconManager";
 
 const logger = createLogger("MessagesService");
 
@@ -44,9 +45,10 @@ function setupMessageListener() {
   }
 
   try {
-    chrome.runtime.onMessage.addListener((message, sender) => {
+    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       if (isExtensionContextValid()) {
-        handleMessage(message, sender);
+        handleMessage(message, sender).then(sendResponse);
+        return true; // Will respond asynchronously
       }
     });
 
@@ -62,35 +64,43 @@ function setupMessageListener() {
  * @async
  * @param {Object} message - Message object
  * @param {Object} sender - Sender info
- * @returns {Promise<void>}
+ * @returns {Promise<any>}
  */
 async function handleMessage(message, sender) {
   if (!isExtensionContextValid()) return;
 
-  logger.debug(`Message received: ${message.action}`, {
-    showAlerts: shouldShowAlerts(),
-  });
+  logger.debug(`Message received: ${message.action}`);
 
   // Route to appropriate handler
   switch (message.action) {
     case "blockedUrl":
       await handleBlockedUrl(message, sender);
-      break;
+      return;
 
     case "showNotification":
       await handleShowNotification(message);
-      break;
+      return;
 
     case "contentFiltered":
       await handleContentFiltered(message);
-      break;
+      return;
 
     case "updateBadge":
       await updateBadge();
-      break;
+      return;
+
+    case "saveIcon":
+      return await handleSaveIcon(message);
+
+    case "switchIcon":
+      return await handleSwitchIcon(message);
+
+    case "deleteIcon":
+      return await handleDeleteIcon(message);
 
     default:
       logger.debug(`Unknown action: ${message.action}`);
+      return;
   }
 }
 
@@ -143,4 +153,47 @@ async function handleContentFiltered(message) {
 
   // Show notification with count
   await showContentFilteredNotification(message.count);
+}
+
+/**
+ * Handle save icon message (icon already processed in UI)
+ */
+async function handleSaveIcon(message) {
+  try {
+    logger.info('Saving icon', { name: message.iconData?.name });
+    const { iconData } = message;
+    const icon = await iconManager.saveIcon(iconData);
+    return { success: true, icon };
+  } catch (error) {
+    logger.error('Save icon failed', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Handle switch icon message
+ */
+async function handleSwitchIcon(message) {
+  try {
+    logger.info('Switching icon', { iconId: message.iconId });
+    await iconManager.switchIcon(message.iconId);
+    return { success: true };
+  } catch (error) {
+    logger.error('Switch icon failed', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Handle delete icon message
+ */
+async function handleDeleteIcon(message) {
+  try {
+    logger.info('Deleting icon', { iconId: message.iconId });
+    await iconManager.deleteIcon(message.iconId);
+    return { success: true };
+  } catch (error) {
+    logger.error('Delete icon failed', error);
+    return { success: false, error: error.message };
+  }
 }

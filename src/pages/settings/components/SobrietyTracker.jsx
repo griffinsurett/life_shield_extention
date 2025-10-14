@@ -164,67 +164,30 @@ export const SobrietyTracker = ({ showToast, showConfirmation }) => {
           </div>
         </div>
 
-        {/* Countdown Progress Bar */}
-        <div className="bg-white rounded-xl p-6 border-2 border-gray-200 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <h4 className="text-lg font-bold text-gray-900">Current Day Progress</h4>
-            <div className="text-right">
-              {timeElapsed.years > 0 ? (
-                <div className="flex flex-col items-end">
-                  <div className="text-3xl font-bold text-primary">
-                    {timeElapsed.years}
-                    <span className="text-xl ml-1">
-                      {timeElapsed.years === 1 ? 'Year' : 'Years'}
-                    </span>
-                  </div>
-                  <div className="text-sm text-gray-600 font-medium">
-                    {timeElapsed.months} {timeElapsed.months === 1 ? 'Month' : 'Months'}
-                  </div>
-                  <div className="text-xs text-gray-500 mt-1">
-                    {timeElapsed.days.toLocaleString()} total days
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <div className="text-3xl font-bold text-primary">
-                    {timeElapsed.days}
-                  </div>
-                  <div className="text-xs text-gray-600 font-medium">
-                    {timeElapsed.days === 1 ? 'Day' : 'Days'} Clean
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* Countdown Display */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-sm text-gray-700 font-medium">
-              <span>Time Until Next Day:</span>
-              <span className="text-lg font-bold text-primary">
-                {String(timeRemaining.hours).padStart(2, '0')}:
-                {String(timeRemaining.minutes).padStart(2, '0')}:
-                {String(timeRemaining.seconds).padStart(2, '0')}
-              </span>
-            </div>
-            <div className="relative h-8 bg-gray-200 rounded-full overflow-hidden">
-              <div 
-                className="absolute top-0 left-0 h-full bg-gradient-to-r from-green-500 via-emerald-500 to-green-600 transition-all duration-1000 ease-linear rounded-full"
-                style={{ width: `${dayProgressPercentage}%` }}
-              >
-                <div className="absolute inset-0 bg-white/20 animate-pulse"></div>
-              </div>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-xs font-bold text-gray-700 drop-shadow-sm">
-                  {dayProgressPercentage.toFixed(1)}% until next day
-                </span>
-              </div>
-            </div>
-            <p className="text-xs text-gray-500 text-center">
-              Counting down to day {timeElapsed.days + 1} • Updates every second
-            </p>
-          </div>
-        </div>
+        {/* Countdown Display */}
+<div className="space-y-2">
+  <div className="flex items-center justify-between text-sm text-gray-700 font-medium">
+    <span>Time Until Next Day:</span>
+    <span className="text-lg font-bold text-primary">
+      {String(timeRemaining.hours).padStart(2, '0')}:
+      {String(timeRemaining.minutes).padStart(2, '0')}:
+      {String(timeRemaining.seconds).padStart(2, '0')}
+    </span>
+  </div>
+  <div className="relative h-8 bg-gray-200 rounded-full overflow-hidden">
+    <div 
+      className="absolute top-0 left-0 h-full bg-gradient-to-r from-green-500 via-emerald-500 to-green-600 transition-all duration-1000 ease-linear rounded-full"
+      style={{ width: `${100 - dayProgressPercentage}%` }}
+    >
+      <div className="absolute inset-0 bg-white/20 animate-pulse"></div>
+    </div>
+    <div className="absolute inset-0 flex items-center justify-center">
+      <span className="text-xs font-bold text-gray-700 drop-shadow-sm">
+        {(100 - dayProgressPercentage).toFixed(1)}% complete
+      </span>
+    </div>
+  </div>
+</div>
 
         {/* Milestones Grid */}
         <div className="grid grid-cols-3 gap-3">
