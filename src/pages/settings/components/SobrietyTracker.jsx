@@ -164,30 +164,57 @@ export const SobrietyTracker = ({ showToast, showConfirmation }) => {
           </div>
         </div>
 
+        {/* DAYS COUNTER - NEW SECTION */}
+        <div className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl p-6 text-center text-white shadow-lg">
+          {timeElapsed.years > 0 ? (
+            <>
+              <div className="text-5xl font-bold mb-2">
+                {timeElapsed.years}
+                <span className="text-3xl ml-2">
+                  {timeElapsed.years === 1 ? 'Year' : 'Years'}
+                </span>
+              </div>
+              <div className="text-2xl font-medium mb-1">
+                {timeElapsed.months} {timeElapsed.months === 1 ? 'Month' : 'Months'}
+              </div>
+              <div className="text-lg opacity-90">
+                {timeElapsed.days.toLocaleString()} total days
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="text-7xl font-bold mb-3">{timeElapsed.days}</div>
+              <div className="text-xl font-medium opacity-95">
+                {timeElapsed.days === 1 ? 'Day' : 'Days'} Clean
+              </div>
+            </>
+          )}
+        </div>
+
         {/* Countdown Display */}
-<div className="space-y-2">
-  <div className="flex items-center justify-between text-sm text-gray-700 font-medium">
-    <span>Time Until Next Day:</span>
-    <span className="text-lg font-bold text-primary">
-      {String(timeRemaining.hours).padStart(2, '0')}:
-      {String(timeRemaining.minutes).padStart(2, '0')}:
-      {String(timeRemaining.seconds).padStart(2, '0')}
-    </span>
-  </div>
-  <div className="relative h-8 bg-gray-200 rounded-full overflow-hidden">
-    <div 
-      className="absolute top-0 left-0 h-full bg-gradient-to-r from-green-500 via-emerald-500 to-green-600 transition-all duration-1000 ease-linear rounded-full"
-      style={{ width: `${100 - dayProgressPercentage}%` }}
-    >
-      <div className="absolute inset-0 bg-white/20 animate-pulse"></div>
-    </div>
-    <div className="absolute inset-0 flex items-center justify-center">
-      <span className="text-xs font-bold text-gray-700 drop-shadow-sm">
-        {(100 - dayProgressPercentage).toFixed(1)}% complete
-      </span>
-    </div>
-  </div>
-</div>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between text-sm text-gray-700 font-medium">
+            <span>Time Until Next Day:</span>
+            <span className="text-lg font-bold text-primary">
+              {String(timeRemaining.hours).padStart(2, '0')}:
+              {String(timeRemaining.minutes).padStart(2, '0')}:
+              {String(timeRemaining.seconds).padStart(2, '0')}
+            </span>
+          </div>
+          <div className="relative h-8 bg-gray-200 rounded-full overflow-hidden">
+            <div 
+              className="absolute top-0 left-0 h-full bg-gradient-to-r from-green-500 via-emerald-500 to-green-600 transition-all duration-1000 ease-linear rounded-full"
+              style={{ width: `${100 - dayProgressPercentage}%` }}
+            >
+              <div className="absolute inset-0 bg-white/20 animate-pulse"></div>
+            </div>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="text-xs font-bold text-gray-700 drop-shadow-sm">
+                {(100 - dayProgressPercentage).toFixed(1)}% complete
+              </span>
+            </div>
+          </div>
+        </div>
 
         {/* Milestones Grid */}
         <div className="grid grid-cols-3 gap-3">
@@ -228,31 +255,6 @@ export const SobrietyTracker = ({ showToast, showConfirmation }) => {
             </div>
           </div>
         )}
-
-        {/* Next Milestone - COMMENTED OUT FOR NOW */}
-        {/* 
-        {milestones.nextMilestone && (
-          <div className="bg-gray-50 rounded-lg p-4 border-2 border-gray-200">
-            <div className="flex items-center justify-between mb-2">
-              <h5 className="font-bold text-gray-800 text-sm">Next Milestone</h5>
-              <span className="text-2xl">{milestones.nextMilestone.emoji}</span>
-            </div>
-            <div className="mb-2">
-              <div className="flex items-center justify-between text-xs text-gray-600 mb-1">
-                <span>{milestones.nextMilestone.title}</span>
-                <span className="font-bold">{milestones.nextMilestone.days - timeElapsed.days} days to go</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div 
-                  className="h-2 rounded-full bg-gradient-to-r from-primary to-secondary transition-all"
-                  style={{ width: `${(timeElapsed.days / milestones.nextMilestone.days) * 100}%` }}
-                />
-              </div>
-            </div>
-            <p className="text-xs text-gray-600">{milestones.nextMilestone.message}</p>
-          </div>
-        )}
-        */}
       </div>
 
       <SetDateModal
