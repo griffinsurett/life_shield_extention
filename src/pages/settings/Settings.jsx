@@ -1,13 +1,4 @@
 // src/pages/settings/Settings.jsx
-/**
- * Settings Component
- *
- * Main settings page with checkbox-controlled modal.
- *
- * @component
- */
-
-// src/pages/settings/Settings.jsx
 import { useState, useCallback, lazy, Suspense } from "react";
 import { useToast } from "../../components/ToastContainer";
 import { useConfirmation } from "../../hooks/useConfirmation";
@@ -90,7 +81,6 @@ export const Settings = () => {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           <aside className="lg:col-span-1">
             <div className="bg-white rounded-2xl shadow-lg sticky top-6 overflow-hidden">
-              {/* Main Navigation */}
               <nav className="p-0">
                 <div className="space-y-2">
                   {tabs.map((tab) => (
@@ -120,7 +110,6 @@ export const Settings = () => {
         </div>
       </div>
 
-      {/* Confirmation Modal - using the new system */}
       <ConfirmationModal
         isOpen={confirmation.isOpen}
         onClose={confirmation.closeModal}

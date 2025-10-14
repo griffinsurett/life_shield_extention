@@ -1,20 +1,12 @@
 // src/pages/settings/tabs/GeneralTab.jsx
-/**
- * General Tab Component
- *
- * Main settings tab with core configuration options.
- * Simplified - blur mode and technical settings removed.
- *
- * @component
- */
-
 import { useApp } from "../../../contexts/AppContext";
 import { Toggle } from "../../../components/Toggle";
 import Button from "../../../components/Button";
 import Input from "../../../components/Inputs/Input";
 import Textarea from "../../../components/Inputs/Textarea";
+import { SobrietyTracker } from "../components/SobrietyTracker";
 
-const GeneralTab = ({ showToast }) => {
+const GeneralTab = ({ showToast, showConfirmation }) => {
   const { settings, updateSettings } = useApp();
 
   const handleToggle = async (key, value) => {
@@ -73,6 +65,21 @@ const GeneralTab = ({ showToast }) => {
               onChange={(checked) => handleToggle("showAlerts", checked)}
             />
           </div>
+        </div>
+
+        {/* Sobriety Tracker Section */}
+        <div className="pb-6 border-b border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-800 mb-1">
+            Sobriety Tracker
+          </h3>
+          <p className="text-sm text-gray-600 mb-4">
+            Track your wellness journey and celebrate your progress
+          </p>
+          
+          <SobrietyTracker 
+            showToast={showToast} 
+            showConfirmation={showConfirmation} 
+          />
         </div>
 
         {/* Blocking Behavior */}
