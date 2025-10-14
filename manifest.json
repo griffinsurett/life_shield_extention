@@ -9,12 +9,13 @@
     "declarativeNetRequest",
     "webNavigation"
   ],
-  "host_permissions": [
-    "<all_urls>"
-  ],
+  "host_permissions": ["<all_urls>"],
   "background": {
     "service_worker": "src/background/index.js",
     "type": "module"
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
   },
   "content_scripts": [
     {
@@ -23,6 +24,7 @@
       "run_at": "document_start"
     }
   ],
+
   "action": {
     "default_popup": "src/pages/popup/index.html",
     "default_icon": {
