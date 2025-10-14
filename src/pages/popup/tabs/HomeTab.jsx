@@ -6,7 +6,7 @@ import { useConfirmation } from "../../../hooks/useConfirmation";
 import { ConfirmationModal } from "../../../components/ConfirmationModal";
 import { StatusCard } from "../components/StatusCard";
 import { QuickBlockCurrent } from "../components/QuickBlockCurrent";
-import { SobrietyCounter } from "../../../components/SobrietyCounter";
+import { SobrietyPopup } from "../../../components/Sobriety/SobrietyPopup";
 import { getRedirectUrlWithFallback } from "../../../utils/builders";
 import Input from "../../../components/Inputs/Input";
 import Button from "../../../components/Button";
@@ -53,7 +53,7 @@ export const HomeTab = ({ openSettings }) => {
       <StatusCard todayCount={stats.todayCount} />
 
       {/* Sobriety Counter */}
-      <SobrietyCounter showToast={showToast} />
+      <SobrietyPopup showToast={showToast} />
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 gap-3">
