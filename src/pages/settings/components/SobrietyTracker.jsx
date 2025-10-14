@@ -4,6 +4,7 @@ import Button from '../../../components/Button';
 import { Modal } from '../../../components/Modal';
 import Input from '../../../components/Inputs/Input';
 import { useSobrietyTracker } from '../../../hooks/useSobrietyTracker';
+import { MilestoneDisplay } from '../../../components/MilestoneDisplay';
 
 export const SobrietyTracker = ({ showToast, showConfirmation }) => {
   const {
@@ -11,7 +12,7 @@ export const SobrietyTracker = ({ showToast, showConfirmation }) => {
     timeElapsed,
     timeRemaining,
     dayProgressPercentage,
-    milestones,
+    currentMilestone,
     setSobrietyDate: setSobrietyDateStorage,
     resetSobrietyDate,
     isTracking
@@ -164,7 +165,7 @@ export const SobrietyTracker = ({ showToast, showConfirmation }) => {
           </div>
         </div>
 
-        {/* DAYS COUNTER - NEW SECTION */}
+        {/* DAYS COUNTER - Big beautiful display */}
         <div className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl p-6 text-center text-white shadow-lg">
           {timeElapsed.years > 0 ? (
             <>
@@ -243,17 +244,9 @@ export const SobrietyTracker = ({ showToast, showConfirmation }) => {
           </div>
         </div>
 
-        {/* Current Achievement */}
-        {milestones.lastMilestone && (
-          <div className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg p-4 border-2 border-yellow-300">
-            <div className="flex items-center gap-3">
-              <span className="text-3xl">{milestones.lastMilestone.emoji}</span>
-              <div className="flex-1">
-                <h5 className="font-bold text-yellow-900 mb-0.5">{milestones.lastMilestone.title}</h5>
-                <p className="text-sm text-yellow-800">{milestones.lastMilestone.message}</p>
-              </div>
-            </div>
-          </div>
+        {/* Current Milestone */}
+        {currentMilestone && (
+          <MilestoneDisplay milestone={currentMilestone} variant="full" />
         )}
       </div>
 
