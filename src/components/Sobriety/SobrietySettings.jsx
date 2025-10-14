@@ -1,12 +1,13 @@
 // src/components/Sobriety/SobrietySettings.jsx
-import { useState } from "react";
-import { useSobrietyTracker } from "./hooks/useSobrietyTracker";
-import { MilestoneDisplay } from "../MilestoneDisplay";
-import { SetDateModal } from "./SetDateModal";
-import { SobrietySetupPrompt } from "./SobrietySetupPrompt";
-import { SobrietyDaysDisplay } from "./SobrietyDaysDisplay";
-import { SobrietyTimeGrid } from "./SobrietyTimeGrid";
-import { SobrietyJourneyHeader } from "./SobrietyJourneyHeader";
+import { useState } from 'react';
+import { useSobrietyTracker } from './hooks/useSobrietyTracker';
+import { MilestoneDisplay } from '../MilestoneDisplay';
+import { SetDateModal } from './SetDateModal';
+import { SobrietySetupPrompt } from './SobrietySetupPrompt';
+import { SobrietyDaysDisplay } from './SobrietyDaysDisplay';
+import { SobrietyTimeGrid } from './SobrietyTimeGrid';
+import { SobrietyJourneyHeader } from './SobrietyJourneyHeader';
+import { getCurrentDate, getCurrentTime, getMaxDate } from '../../utils/dateHelpers';
 
 export const SobrietySettings = ({ showToast, showConfirmation }) => {
   const {
@@ -17,33 +18,35 @@ export const SobrietySettings = ({ showToast, showConfirmation }) => {
     currentMilestone,
     setSobrietyDate: setSobrietyDateStorage,
     resetSobrietyDate,
-    isTracking,
+    isTracking
   } = useSobrietyTracker();
 
   const [showSetDateModal, setShowSetDateModal] = useState(false);
-  const [dateInput, setDateInput] = useState("");
-  const [timeInput, setTimeInput] = useState("12:00");
+  const [dateInput, setDateInput] = useState(getCurrentDate());
+  const [timeInput, setTimeInput] = useState(getCurrentTime());
 
   const handleSetDate = async () => {
     if (!dateInput) {
-      showToast?.("Please select a date", "error");
+      showToast?.('Please select a date', 'error');
       return;
     }
 
     try {
       await setSobrietyDateStorage(dateInput, timeInput);
       setShowSetDateModal(false);
-      setDateInput("");
-      setTimeInput("12:00");
-      showToast?.("Sobriety date set! 🎉", "success");
+      // Reset to current date/time after successful save
+      setDateInput(getCurrentDate());
+      setTimeInput(getCurrentTime());
+      showToast?.('Sobriety date set! 🎉', 'success');
     } catch (error) {
-      showToast?.(error.message || "Error setting date", "error");
+      showToast?.(error.message || 'Error setting date', 'error');
     }
   };
 
   const handleEditDate = () => {
     if (sobrietyDate) {
-      const date = sobrietyDate.toISOString().split("T")[0];
+      // When editing, pre-fill with existing date
+      const date = sobrietyDate.toISOString().split('T')[0];
       const time = sobrietyDate.toTimeString().slice(0, 5);
       setDateInput(date);
       setTimeInput(time);
@@ -51,11 +54,24 @@ export const SobrietySettings = ({ showToast, showConfirmation }) => {
     setShowSetDateModal(true);
   };
 
+  const handleOpenModal = () => {
+    // When setting new date, use current date/time
+    setDateInput(getCurrentDate());
+    setTimeInput(getCurrentTime());
+    setShowSetDateModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowSetDateModal(false);
+    // Reset to current date/time when closing
+    setDateInput(getCurrentDate());
+    setTimeInput(getCurrentTime());
+  };
+
   const handleResetSobriety = () => {
     showConfirmation({
       title: "Reset Sobriety Date?",
-      message:
-        "Are you sure you want to reset your sobriety date? This will clear your current progress tracker.",
+      message: "Are you sure you want to reset your sobriety date? This will clear your current progress tracker.",
       confirmText: "Yes, Reset",
       cancelText: "Cancel",
       confirmColor: "red",
@@ -66,34 +82,28 @@ export const SobrietySettings = ({ showToast, showConfirmation }) => {
         } catch {
           showToast?.("Error resetting date", "error");
         }
-      },
+      }
     });
   };
-
-  const maxDate = new Date().toISOString().split("T")[0];
 
   // If no date is set
   if (!isTracking) {
     return (
       <>
-        <SobrietySetupPrompt
-          onSetDate={() => setShowSetDateModal(true)}
-          variant="settings"
+        <SobrietySetupPrompt 
+          onSetDate={handleOpenModal} 
+          variant="settings" 
         />
 
         <SetDateModal
           isOpen={showSetDateModal}
-          onClose={() => {
-            setShowSetDateModal(false);
-            setDateInput("");
-            setTimeInput("12:00");
-          }}
+          onClose={handleCloseModal}
           dateInput={dateInput}
           setDateInput={setDateInput}
           timeInput={timeInput}
           setTimeInput={setTimeInput}
           onSave={handleSetDate}
-          maxDate={maxDate}
+          maxDate={getMaxDate()}
           existingDate={null}
         />
       </>
@@ -111,20 +121,23 @@ export const SobrietySettings = ({ showToast, showConfirmation }) => {
           variant="full"
         />
 
-        <SobrietyDaysDisplay timeElapsed={timeElapsed} variant="full" />
+        <SobrietyDaysDisplay 
+          timeElapsed={timeElapsed} 
+          variant="full" 
+        />
 
         {/* Countdown Display */}
         <div className="space-y-2">
           <div className="flex items-center justify-between text-sm text-gray-700 font-medium">
             <span>Time Until Next Day:</span>
             <span className="text-lg font-bold text-primary">
-              {String(timeRemaining.hours).padStart(2, "0")}:
-              {String(timeRemaining.minutes).padStart(2, "0")}:
-              {String(timeRemaining.seconds).padStart(2, "0")}
+              {String(timeRemaining.hours).padStart(2, '0')}:
+              {String(timeRemaining.minutes).padStart(2, '0')}:
+              {String(timeRemaining.seconds).padStart(2, '0')}
             </span>
           </div>
           <div className="relative h-8 bg-gray-200 rounded-full overflow-hidden">
-            <div
+            <div 
               className="absolute top-0 left-0 h-full bg-gradient-to-r from-green-500 via-emerald-500 to-green-600 transition-all duration-1000 ease-linear rounded-full"
               style={{ width: `${100 - dayProgressPercentage}%` }}
             >
@@ -138,7 +151,10 @@ export const SobrietySettings = ({ showToast, showConfirmation }) => {
           </div>
         </div>
 
-        <SobrietyTimeGrid timeElapsed={timeElapsed} variant="full" />
+        <SobrietyTimeGrid 
+          timeElapsed={timeElapsed} 
+          variant="full" 
+        />
 
         {/* Current Milestone */}
         {currentMilestone && (
@@ -148,17 +164,13 @@ export const SobrietySettings = ({ showToast, showConfirmation }) => {
 
       <SetDateModal
         isOpen={showSetDateModal}
-        onClose={() => {
-          setShowSetDateModal(false);
-          setDateInput("");
-          setTimeInput("12:00");
-        }}
+        onClose={handleCloseModal}
         dateInput={dateInput}
         setDateInput={setDateInput}
         timeInput={timeInput}
         setTimeInput={setTimeInput}
         onSave={handleSetDate}
-        maxDate={maxDate}
+        maxDate={getMaxDate()}
         existingDate={sobrietyDate}
       />
     </>

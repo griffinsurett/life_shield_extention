@@ -1,26 +1,27 @@
 // src/components/Sobriety/SobrietyPopup.jsx
-import { useState } from "react";
-import Button from "../Button";
-import { useSobrietyTracker } from "./hooks/useSobrietyTracker";
-import { MilestoneDisplay } from "../MilestoneDisplay";
-import { SetDateModal } from "./SetDateModal";
-import { SobrietySetupPrompt } from "./SobrietySetupPrompt";
-import { SobrietyDaysDisplay } from "./SobrietyDaysDisplay";
-import { SobrietyTimeGrid } from "./SobrietyTimeGrid";
-import { SobrietyJourneyHeader } from "./SobrietyJourneyHeader";
+import { useState } from 'react';
+import Button from '../Button';
+import { useSobrietyTracker } from './hooks/useSobrietyTracker';
+import { MilestoneDisplay } from '../MilestoneDisplay';
+import { SetDateModal } from './SetDateModal';
+import { SobrietySetupPrompt } from './SobrietySetupPrompt';
+import { SobrietyDaysDisplay } from './SobrietyDaysDisplay';
+import { SobrietyTimeGrid } from './SobrietyTimeGrid';
+import { SobrietyJourneyHeader } from './SobrietyJourneyHeader';
+import { getCurrentDate, getCurrentTime, getMaxDate } from '../../utils/dateHelpers';
 
 export const SobrietyPopup = () => {
-  const {
-    sobrietyDate,
-    timeElapsed,
-    currentMilestone,
+  const { 
+    sobrietyDate, 
+    timeElapsed, 
+    currentMilestone, 
     isTracking,
-    setSobrietyDate: setSobrietyDateStorage,
+    setSobrietyDate: setSobrietyDateStorage
   } = useSobrietyTracker();
 
   const [showSetDateModal, setShowSetDateModal] = useState(false);
-  const [dateInput, setDateInput] = useState("");
-  const [timeInput, setTimeInput] = useState("12:00");
+  const [dateInput, setDateInput] = useState(getCurrentDate());
+  const [timeInput, setTimeInput] = useState(getCurrentTime());
 
   const openSettings = () => {
     chrome.runtime.openOptionsPage();
@@ -32,37 +33,46 @@ export const SobrietyPopup = () => {
     try {
       await setSobrietyDateStorage(dateInput, timeInput);
       setShowSetDateModal(false);
-      setDateInput("");
-      setTimeInput("12:00");
+      // Reset to current date/time after successful save
+      setDateInput(getCurrentDate());
+      setTimeInput(getCurrentTime());
     } catch (error) {
-      console.error("Error setting date:", error);
+      console.error('Error setting date:', error);
     }
   };
 
-  const maxDate = new Date().toISOString().split("T")[0];
+  const handleOpenModal = () => {
+    // Reset to current date/time when opening modal
+    setDateInput(getCurrentDate());
+    setTimeInput(getCurrentTime());
+    setShowSetDateModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowSetDateModal(false);
+    // Reset to current date/time when closing
+    setDateInput(getCurrentDate());
+    setTimeInput(getCurrentTime());
+  };
 
   // If no date is set, show setup prompt
   if (!isTracking) {
     return (
       <>
-        <SobrietySetupPrompt
-          onSetDate={() => setShowSetDateModal(true)}
-          variant="popup"
+        <SobrietySetupPrompt 
+          onSetDate={handleOpenModal} 
+          variant="popup" 
         />
 
         <SetDateModal
           isOpen={showSetDateModal}
-          onClose={() => {
-            setShowSetDateModal(false);
-            setDateInput("");
-            setTimeInput("12:00");
-          }}
+          onClose={handleCloseModal}
           dateInput={dateInput}
           setDateInput={setDateInput}
           timeInput={timeInput}
           setTimeInput={setTimeInput}
           onSave={handleSetDate}
-          maxDate={maxDate}
+          maxDate={getMaxDate()}
           existingDate={null}
         />
       </>
@@ -76,13 +86,22 @@ export const SobrietyPopup = () => {
       {currentMilestone && (
         <MilestoneDisplay milestone={currentMilestone} variant="compact" />
       )}
-
+      
       <div className="p-6 bg-white/10 rounded-xl backdrop-blur-sm border border-white/20">
-        <SobrietyJourneyHeader sobrietyDate={sobrietyDate} variant="compact" />
+        <SobrietyJourneyHeader 
+          sobrietyDate={sobrietyDate} 
+          variant="compact"
+        />
 
-        <SobrietyDaysDisplay timeElapsed={timeElapsed} variant="compact" />
+        <SobrietyDaysDisplay 
+          timeElapsed={timeElapsed} 
+          variant="compact" 
+        />
 
-        <SobrietyTimeGrid timeElapsed={timeElapsed} variant="compact" />
+        <SobrietyTimeGrid 
+          timeElapsed={timeElapsed} 
+          variant="compact" 
+        />
 
         <Button
           onClick={openSettings}
