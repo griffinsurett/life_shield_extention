@@ -20,6 +20,7 @@ import { ModalProvider } from '../contexts/ModalContext';
 import { ToastProvider } from './ToastContainer';
 import { ErrorBoundary } from './ErrorBoundary';
 import '../index.css';
+import { PremiumProvider } from '../contexts/PremiumContext';
 
 export const PageWrapper = ({ 
   children, 
@@ -31,11 +32,13 @@ export const PageWrapper = ({
       <ErrorBoundary showDetails={showErrorDetails}>
         <ModalProvider>
           <AuthProvider>
-            <AppProvider>
-              <ToastProvider>
-                {children}
-              </ToastProvider>
-            </AppProvider>
+            <PremiumProvider>
+              <AppProvider>
+                <ToastProvider>
+                  {children}
+                </ToastProvider>
+              </AppProvider>
+            </PremiumProvider>
           </AuthProvider>
         </ModalProvider>
       </ErrorBoundary>

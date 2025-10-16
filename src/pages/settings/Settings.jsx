@@ -13,6 +13,7 @@ const GeneralTab = lazy(() => import("./tabs/GeneralTab"));
 const WordsTab = lazy(() => import("./tabs/WordsTab"));
 const PhrasesTab = lazy(() => import("./tabs/PhrasesTab"));
 const SitesTab = lazy(() => import("./tabs/SitesTab"));
+const WellnessTab = lazy(() => import("./tabs/WellnessTab"));
 const StatsTab = lazy(() => import("./tabs/StatsTab"));
 const AboutTab = lazy(() => import("./tabs/AboutTab"));
 
@@ -31,6 +32,7 @@ export const Settings = () => {
   const [activeTab, setActiveTab] = useState("general");
 
   const tabs = [
+    { id: "wellness", name: "Wellness", icon: "🌿", component: WellnessTab },
     { id: "general", name: "General", icon: "⚙️", component: GeneralTab },
     { id: "words", name: "Blocked Words", icon: "📝", component: WordsTab },
     { id: "sites", name: "Blocked Sites", icon: "🚫", component: SitesTab },

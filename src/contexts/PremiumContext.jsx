@@ -189,12 +189,17 @@ export function PremiumProvider({ children }) {
         },
       );
 
+    // Subscribe and handle status in callback
     channel.subscribe((status) => {
-      if (status === 'CHANNEL_ERROR') {
+      if (status === 'SUBSCRIBED') {
+        logger.info('Premium subscription channel connected');
+      } else if (status === 'CHANNEL_ERROR') {
         logger.error('Premium subscription channel error');
+      } else if (status === 'TIMED_OUT') {
+        logger.warn('Premium subscription channel timed out');
+      } else if (status === 'CLOSED') {
+        logger.info('Premium subscription channel closed');
       }
-    }).catch((err) => {
-      logger.error('Unable to subscribe to premium updates', err);
     });
 
     return () => {

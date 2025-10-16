@@ -4,7 +4,6 @@ import { Toggle } from "../../../components/Toggle";
 import { SettingSection } from "../../../components/SettingSection";
 import { BlockingBehaviorSection } from "../../../components/BlockingBehaviorSection";
 import { IconManagerSection } from "../../../components/IconManager";
-import { SobrietySettings } from "../../../components/Sobriety/SobrietySettings";
 
 const GeneralTab = ({ showToast, showConfirmation }) => {
   const { settings, updateSettings } = useApp();
@@ -74,17 +73,6 @@ const GeneralTab = ({ showToast, showConfirmation }) => {
           showToast={showToast}
           showConfirmation={showConfirmation}
         />
-
-        {/* Sobriety Tracker Section */}
-        <SettingSection
-          title="Sobriety Tracker"
-          description="Track your wellness journey and celebrate your progress"
-        >
-          <SobrietySettings
-            showToast={showToast}
-            showConfirmation={showConfirmation}
-          />
-        </SettingSection>
 
         {/* Blocking Behavior */}
         <SettingSection noBorder>
