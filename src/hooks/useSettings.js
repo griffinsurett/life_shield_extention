@@ -11,6 +11,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { storage, sendMessageToTabs } from '../utils/storage';
 import { DEFAULTS, STORAGE_KEYS } from '../config';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('useSettings');
 
 export const useSettings = () => {
   const [settings, setSettings] = useState({
@@ -68,8 +71,8 @@ export const useSettings = () => {
    * Update settings in storage
    * Now with immediate filter state broadcast
    */
-const updateSettings = useCallback(async (updates) => {
-    console.log('[useSettings] Updating settings:', updates);
+  const updateSettings = useCallback(async (updates) => {
+    logger.debug('Updating settings:', updates);
     
     try {
       // Save to storage
@@ -78,16 +81,16 @@ const updateSettings = useCallback(async (updates) => {
       // Immediately update local state
       setSettings(prev => {
         const newSettings = { ...prev, ...updates };
-        console.log('[useSettings] New settings state:', newSettings);
+        logger.debug('New settings state:', newSettings);
         return newSettings;
       });
       
       // Broadcast changes
       await sendMessageToTabs({ action: 'reloadConfig' });
       
-      console.log('[useSettings] Update successful');
+      logger.info('Update successful');
     } catch (error) {
-      console.error('[useSettings] Update failed:', error);
+      logger.error('Update failed:', error);
       throw error; // Re-throw to let caller handle
     }
   }, []);

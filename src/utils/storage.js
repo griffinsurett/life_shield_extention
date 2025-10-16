@@ -15,6 +15,10 @@
  * @module utils/storage
  */
 
+import { createLogger } from './logger';
+
+const logger = createLogger('Storage');
+
 /**
  * Storage object with Promise-based methods
  * Wraps chrome.storage API for easier async/await usage
@@ -38,10 +42,10 @@ export const storage = {
     return new Promise((resolve, reject) => {
       chrome.storage.sync.get(keys, (result) => {
         if (chrome.runtime.lastError) {
-          console.error('[storage.get] Error:', chrome.runtime.lastError);
+          logger.error('Get error:', chrome.runtime.lastError);
           reject(chrome.runtime.lastError);
         } else {
-          console.log('[storage.get] Retrieved:', keys, '→', result);
+          logger.debug(`Retrieved: ${JSON.stringify(keys)} → ${JSON.stringify(result)}`);
           resolve(result);
         }
       });
@@ -59,13 +63,13 @@ export const storage = {
    */
   async set(items) {
     return new Promise((resolve, reject) => {
-      console.log('[storage.set] Saving:', items);
+      logger.debug(`Saving: ${JSON.stringify(items)}`);
       chrome.storage.sync.set(items, () => {
         if (chrome.runtime.lastError) {
-          console.error('[storage.set] Error:', chrome.runtime.lastError);
+          logger.error('Set error:', chrome.runtime.lastError);
           reject(chrome.runtime.lastError);
         } else {
-          console.log('[storage.set] Successfully saved:', items);
+          logger.debug(`Successfully saved: ${JSON.stringify(items)}`);
           resolve();
         }
       });
@@ -87,7 +91,7 @@ export const storage = {
     return new Promise((resolve, reject) => {
       chrome.storage.local.get(keys, (result) => {
         if (chrome.runtime.lastError) {
-          console.error('[storage.getLocal] Error:', chrome.runtime.lastError);
+          logger.error('Get local error:', chrome.runtime.lastError);
           reject(chrome.runtime.lastError);
         } else {
           resolve(result);
@@ -109,7 +113,7 @@ export const storage = {
     return new Promise((resolve, reject) => {
       chrome.storage.local.set(items, () => {
         if (chrome.runtime.lastError) {
-          console.error('[storage.setLocal] Error:', chrome.runtime.lastError);
+          logger.error('Set local error:', chrome.runtime.lastError);
           reject(chrome.runtime.lastError);
         } else {
           resolve();

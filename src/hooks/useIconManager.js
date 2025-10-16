@@ -10,6 +10,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '../components/ToastContainer';
 import { ImageProcessor } from '../utils/imageProcessor';
 import { ICON_CONFIG } from '../config/icons';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('useIconManager');
 
 export const useIconManager = () => {
   const { showToast } = useToast();
@@ -27,11 +30,11 @@ export const useIconManager = () => {
         ICON_CONFIG.STORAGE_KEYS.ACTIVE_ICON
       ]);
       
-      console.log('Loaded icons from storage:', result);
+      logger.debug('Loaded icons from storage:', result);
       setIcons(result[ICON_CONFIG.STORAGE_KEYS.CUSTOM_ICONS] || []);
       setActiveIconId(result[ICON_CONFIG.STORAGE_KEYS.ACTIVE_ICON] || 'default');
     } catch (error) {
-      console.error('Failed to load icons', error);
+      logger.error('Failed to load icons', error);
     } finally {
       setLoading(false);
     }
@@ -44,11 +47,11 @@ export const useIconManager = () => {
     const listener = (changes, namespace) => {
       if (namespace === 'local') {
         if (changes[ICON_CONFIG.STORAGE_KEYS.CUSTOM_ICONS]) {
-          console.log('Icons changed:', changes[ICON_CONFIG.STORAGE_KEYS.CUSTOM_ICONS].newValue);
+          logger.debug('Icons changed:', changes[ICON_CONFIG.STORAGE_KEYS.CUSTOM_ICONS].newValue);
           setIcons(changes[ICON_CONFIG.STORAGE_KEYS.CUSTOM_ICONS].newValue || []);
         }
         if (changes[ICON_CONFIG.STORAGE_KEYS.ACTIVE_ICON]) {
-          console.log('Active icon changed:', changes[ICON_CONFIG.STORAGE_KEYS.ACTIVE_ICON].newValue);
+          logger.debug('Active icon changed:', changes[ICON_CONFIG.STORAGE_KEYS.ACTIVE_ICON].newValue);
           setActiveIconId(changes[ICON_CONFIG.STORAGE_KEYS.ACTIVE_ICON].newValue || 'default');
         }
       }
@@ -65,23 +68,23 @@ export const useIconManager = () => {
     try {
       setLoading(true);
       
-      console.log('Starting icon upload...', { 
+      logger.info('Starting icon upload...', { 
         name, 
         type: file.type, 
         size: file.size 
       });
       
       // Process the image HERE in the UI context (not in background)
-      console.log('Processing image...');
+      logger.debug('Processing image...');
       const processedIcon = await ImageProcessor.processIconFile(file);
-      console.log('Image processed successfully', {
+      logger.debug('Image processed successfully', {
         hasOriginal: !!processedIcon.originalDataUrl,
         hasSizes: !!processedIcon.sizes,
         sizes: Object.keys(processedIcon.sizes || {})
       });
       
       // Send the PROCESSED data to background script
-      console.log('Sending to background script...');
+      logger.debug('Sending to background script...');
       const response = await chrome.runtime.sendMessage({
         action: 'saveIcon',
         iconData: {
@@ -92,7 +95,7 @@ export const useIconManager = () => {
         }
       });
 
-      console.log('Response from background:', response);
+      logger.debug('Response from background:', response);
 
       // Check if response is valid and successful
       if (!response) {
@@ -106,12 +109,12 @@ export const useIconManager = () => {
       showToast('Icon uploaded successfully!', 'success');
       
       // Reload icons to get the updated list
-      console.log('Reloading icons...');
+      logger.debug('Reloading icons...');
       await loadIcons();
       
       return response.icon;
     } catch (error) {
-      console.error('Upload icon error:', error);
+      logger.error('Upload icon error:', error);
       showToast(error.message || 'Failed to upload icon', 'error');
       throw error;
     } finally {
@@ -126,14 +129,14 @@ export const useIconManager = () => {
     try {
       setLoading(true);
       
-      console.log('Switching to icon:', iconId);
+      logger.info('Switching to icon:', iconId);
       
       const response = await chrome.runtime.sendMessage({
         action: 'switchIcon',
         iconId
       });
 
-      console.log('Switch icon response:', response);
+      logger.debug('Switch icon response:', response);
 
       if (!response || response.success === false || response.error) {
         throw new Error(response?.error || 'Failed to switch icon');
@@ -142,7 +145,7 @@ export const useIconManager = () => {
       showToast(iconId === 'default' ? 'Reset to default icon' : 'Icon switched successfully!', 'success');
       setActiveIconId(iconId);
     } catch (error) {
-      console.error('Switch icon error:', error);
+      logger.error('Switch icon error:', error);
       showToast(error.message || 'Failed to switch icon', 'error');
       throw error;
     } finally {
@@ -155,14 +158,14 @@ export const useIconManager = () => {
    */
   const deleteIcon = useCallback(async (iconId) => {
     try {
-      console.log('Deleting icon:', iconId);
+      logger.info('Deleting icon:', iconId);
       
       const response = await chrome.runtime.sendMessage({
         action: 'deleteIcon',
         iconId
       });
 
-      console.log('Delete icon response:', response);
+      logger.debug('Delete icon response:', response);
 
       if (!response || response.success === false || response.error) {
         throw new Error(response?.error || 'Failed to delete icon');
@@ -171,7 +174,7 @@ export const useIconManager = () => {
       showToast('Icon deleted', 'success');
       await loadIcons();
     } catch (error) {
-      console.error('Delete icon error:', error);
+      logger.error('Delete icon error:', error);
       showToast(error.message || 'Failed to delete icon', 'error');
       throw error;
     }
