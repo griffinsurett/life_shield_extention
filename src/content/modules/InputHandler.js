@@ -1,8 +1,8 @@
 /**
  * Input Handler Module
  * 
- * Handles input field interception and filtering.
- * Now with proper logging and immediate text replacement.
+ * Handles input field monitoring and scrubbing.
+ * Now supports async hashing for protected words.
  * 
  * @class InputHandler
  */
@@ -23,7 +23,7 @@ export class InputHandler {
   }
 
   /**
-   * Attach to input fields in container
+   * Attach listeners to all inputs in container
    * 
    * @param {Element} container - Container to search
    * @returns {number} Number of new inputs attached
@@ -32,55 +32,47 @@ export class InputHandler {
     if (!container) return 0;
 
     let count = 0;
-    const selectors = this.config.SELECTORS.INPUT.join(', ');
-    const inputs = container.querySelectorAll(selectors);
+    const selector = this.config.SELECTORS.INPUT.join(', ');
 
-    for (const input of inputs) {
-      if (!this.attachedInputs.has(input)) {
-        this.attachInputListener(input);
-        this.attachedInputs.add(input);
-        count++;
+    try {
+      const inputs = container.querySelectorAll(selector);
+
+      for (const input of inputs) {
+        if (!this.attachedInputs.has(input)) {
+          this.attachListener(input);
+          this.attachedInputs.add(input);
+          count++;
+        }
       }
-    }
 
-    if (count > 0) {
-      logger.debug(`Attached to ${count} new inputs`);
-    }
+      if (count > 0) {
+        logger.debug(`Attached to ${count} new inputs`);
+      }
 
-    return count;
+      return count;
+    } catch (error) {
+      logger.safeError('Error attaching to inputs', error);
+      return 0;
+    }
   }
 
   /**
-   * Attach event listeners to input
+   * Attach event listener to input
    * 
    * @param {HTMLInputElement} input - Input element
    */
-  attachInputListener(input) {
+  attachListener(input) {
     try {
-      // Handle input event (fires on every keystroke)
-      input.addEventListener('input', (e) => {
-        this.handleInputChange(e.target);
-      }, { passive: true });
+      input.setAttribute('data-filter-attached', 'true');
 
-      // Handle change event (fires when input loses focus)
-      input.addEventListener('change', (e) => {
-        this.handleInputChange(e.target);
-      }, { passive: true });
+      // Use arrow function to maintain context
+      const handler = () => this.handleInputChange(input);
 
-      // Handle keyup for immediate feedback
-      input.addEventListener('keyup', (e) => {
-        this.handleInputChange(e.target);
-      }, { passive: true });
+      input.addEventListener('input', handler);
+      input.addEventListener('change', handler);
+      input.addEventListener('paste', handler);
 
-      // Handle paste events
-      input.addEventListener('paste', (e) => {
-        // Small delay to let the paste complete
-        setTimeout(() => {
-          this.handleInputChange(e.target);
-        }, 10);
-      }, { passive: true });
-
-      logger.debug(`Listeners attached to input: ${input.name || input.id || 'unknown'}`);
+      logger.debug(`Listener attached to ${input.tagName}`);
     } catch (error) {
       logger.safeError('Error attaching input listener', error);
     }
@@ -88,17 +80,20 @@ export class InputHandler {
 
   /**
    * Handle input value change
+   * Now uses async checking/scrubbing for hashed words
    * 
    * @param {HTMLInputElement} input - Input element
    */
-  handleInputChange(input) {
-    if (!this.config.ENABLED) return; // Don't process if filter is disabled
+  async handleInputChange(input) {
+    if (!this.config.ENABLED) return;
 
     try {
       const value = input.value;
       
-      if (this.utils.containsBlockedWord(value)) {
-        const scrubbed = this.utils.scrubText(value);
+      // Async check with hashing
+      if (await this.utils.containsBlockedWord(value)) {
+        // Async scrub with hashing
+        const scrubbed = await this.utils.scrubText(value);
         
         // Only update if the value actually changed
         if (scrubbed !== value) {
@@ -113,9 +108,9 @@ export class InputHandler {
           const newPos = Math.max(0, cursorPos + lengthDiff);
           input.setSelectionRange(newPos, newPos);
           
-          logger.debug(`Input value scrubbed: "${value}" -> "${scrubbed}"`);
+          logger.debug(`Input value scrubbed`);
           
-          // Trigger input event for frameworks (React, Vue, etc.)
+          // Trigger events for frameworks
           input.dispatchEvent(new Event('input', { bubbles: true }));
           input.dispatchEvent(new Event('change', { bubbles: true }));
         }

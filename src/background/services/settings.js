@@ -2,7 +2,7 @@
  * Settings Service
  *
  * Manages extension settings.
- * Functional module with closure for state.
+ * Now supports hashed blocked sites.
  *
  * @module background/services/settings
  */
@@ -13,13 +13,14 @@ import {
 } from "../../utils/chromeApi";
 import { STORAGE_KEYS } from "../../config";
 import { createLogger } from "../../utils/logger";
+import { containsHashedWord, containsHashedSite } from "../../utils/hashing";
 
 const logger = createLogger("SettingsService");
 
 // Private state (closure)
 let state = {
-  blockedWords: [],
-  blockedSites: [],
+  blockedWords: [], // Array of hashes
+  blockedSites: [], // Array of hashes
   redirectUrl: "",
   showAlerts: false,
   enableFilter: true,
@@ -77,8 +78,8 @@ async function loadSettings() {
     state.customMessage = result.customMessage || "";
 
     logger.info("Settings loaded", {
-      words: state.blockedWords.length,
-      sites: state.blockedSites.length,
+      hashedWords: state.blockedWords.length,
+      hashedSites: state.blockedSites.length,
       enabled: state.enableFilter,
       useCustomUrl: state.useCustomUrl,
     });
@@ -98,32 +99,30 @@ function setupListeners() {
 
   try {
     chrome.storage.onChanged.addListener((changes, namespace) => {
-      if (!isExtensionContextValid()) return;
-
       if (namespace === "sync") {
-        if (changes.blockedWords) {
+        if (changes.blockedWords !== undefined) {
           state.blockedWords = changes.blockedWords.newValue || [];
-          logger.debug("Blocked words updated");
+          logger.debug(`Blocked words updated: ${state.blockedWords.length} hashes`);
         }
 
-        if (changes.blockedSites) {
+        if (changes.blockedSites !== undefined) {
           state.blockedSites = changes.blockedSites.newValue || [];
-          logger.debug("Blocked sites updated");
+          logger.debug(`Blocked sites updated: ${state.blockedSites.length} hashes`);
         }
 
-        if (changes.redirectUrl) {
-          state.redirectUrl = changes.redirectUrl.newValue || "";
+        if (changes.redirectUrl !== undefined) {
+          state.redirectUrl = changes.redirectUrl.newValue;
           logger.debug("Redirect URL updated");
         }
 
         if (changes.showAlerts !== undefined) {
           state.showAlerts = changes.showAlerts.newValue;
-          logger.debug("Show alerts updated");
+          logger.debug(`Show alerts: ${state.showAlerts ? "enabled" : "disabled"}`);
         }
 
         if (changes.enableFilter !== undefined) {
           state.enableFilter = changes.enableFilter.newValue;
-          logger.info(`Filter ${state.enableFilter ? "enabled" : "disabled"}`);
+          logger.debug(`Filter: ${state.enableFilter ? "enabled" : "disabled"}`);
         }
 
         if (changes.useCustomUrl !== undefined) {
@@ -143,31 +142,29 @@ function setupListeners() {
 }
 
 /**
- * Check if text contains blocked words
+ * Check if text contains blocked words (hashed comparison)
  *
  * @param {string} text - Text to check
- * @returns {boolean}
+ * @returns {Promise<boolean>}
  */
-export function containsBlockedWord(text) {
+export async function containsBlockedWord(text) {
   if (!text || !state.enableFilter) return false;
-  const lower = text.toLowerCase();
-  return state.blockedWords.some((word) => lower.includes(word.toLowerCase()));
+  return await containsHashedWord(text, state.blockedWords);
 }
 
 /**
- * Check if URL contains blocked sites
+ * Check if URL contains blocked sites (hashed comparison)
  *
  * @param {string} url - URL to check
- * @returns {boolean}
+ * @returns {Promise<boolean>}
  */
-export function containsBlockedSite(url) {
+export async function containsBlockedSite(url) {
   if (!url || !state.enableFilter) return false;
-  const lower = url.toLowerCase();
-  return state.blockedSites.some((site) => lower.includes(site.toLowerCase()));
+  return await containsHashedSite(url, state.blockedSites);
 }
 
 /**
- * Get blocked words
+ * Get blocked words (hashes)
  *
  * @returns {string[]}
  */
@@ -176,7 +173,7 @@ export function getBlockedWords() {
 }
 
 /**
- * Get blocked sites
+ * Get blocked sites (hashes)
  *
  * @returns {string[]}
  */

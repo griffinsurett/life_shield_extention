@@ -1,8 +1,8 @@
 /**
  * Navigation Service
  *
- * Intercepts browser navigation to block URLs with forbidden words.
- * Functional module pattern.
+ * Intercepts browser navigation to block URLs with forbidden content.
+ * Now supports hashed blocked sites.
  *
  * @module background/services/navigation
  */
@@ -11,6 +11,7 @@ import { isExtensionContextValid } from "../../utils/chromeApi";
 import { createLogger } from "../../utils/logger";
 import {
   containsBlockedWord,
+  containsBlockedSite,
   isFilterEnabled,
 } from "./settings";
 import { incrementStats } from "./stats";
@@ -78,13 +79,14 @@ async function handleBeforeNavigate(details) {
     return;
   }
 
-  if (containsBlockedWord(url)) {
-    logger.info(`Intercepted navigation with blocked word: ${url}`);
+  // Check if URL contains blocked site (using hash comparison)
+  if (await containsBlockedSite(url)) {
+    logger.info(`Intercepted navigation with blocked site (hash matched): ${url}`);
 
     await incrementStats(1);
     await showContentBlockedNotification();
 
-    // ✅ CLEAN: Just call redirectTab
+    // Redirect
     await redirectTab(details.tabId, url);
   }
 }
@@ -109,13 +111,14 @@ async function handleCommitted(details) {
       urlObj.searchParams.get("p") ||
       "";
 
-    if (containsBlockedWord(query)) {
-      logger.info("Blocked query parameter detected");
+    // Check query parameters for blocked words (using hash comparison)
+    if (await containsBlockedWord(query)) {
+      logger.info("Blocked query parameter detected (hash matched)");
 
       await incrementStats(1);
       await showSearchBlockedNotification();
 
-      // ✅ CLEAN: Just call redirectTab
+      // Redirect
       await redirectTab(details.tabId, url);
     }
   } catch (error) {

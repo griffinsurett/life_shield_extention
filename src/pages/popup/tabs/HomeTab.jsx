@@ -15,6 +15,7 @@ import {
   isFullUrl, 
   isDuplicate 
 } from "../../../utils/validators";
+import { hashString } from "../../../utils/hashing";
 
 export const HomeTab = ({ openSettings }) => {
   const { showToast } = useToast();
@@ -24,13 +25,25 @@ export const HomeTab = ({ openSettings }) => {
   const handleBlockCurrentSite = async (urlToBlock) => {
     const cleanUrl = transformSiteInput(urlToBlock);
 
-    if (isDuplicate(cleanUrl, settings.blockedSites)) {
+    // Hash the URL for protected storage
+    let hashedUrl;
+    try {
+      hashedUrl = await hashString(cleanUrl);
+    } catch (error) {
+      console.error('Error hashing URL:', error);
+      showToast('Failed to process URL', 'error');
+      return;
+    }
+
+    // Check for duplicates using the hashed value
+    if (isDuplicate(hashedUrl, settings.blockedSites)) {
       showToast(`Already blocked: ${cleanUrl}`, "info");
       return;
     }
 
+    // Add the hashed URL to blocked sites
     await updateSettings({
-      blockedSites: [...settings.blockedSites, cleanUrl],
+      blockedSites: [...settings.blockedSites, hashedUrl],
     });
 
     showToast(
@@ -43,6 +56,7 @@ export const HomeTab = ({ openSettings }) => {
       ? getRedirectUrlWithFallback(settings.redirectUrl)
       : getBlockedPageUrl(cleanUrl);
 
+    // Redirect the current tab
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       if (tabs[0]?.id) {
         chrome.tabs.update(tabs[0].id, { url: redirectUrl });

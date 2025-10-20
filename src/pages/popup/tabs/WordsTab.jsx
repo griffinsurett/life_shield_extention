@@ -20,6 +20,7 @@ export const WordsTab = () => {
         variant="compact"
         icon="📝"
         showList={false}
+        isProtected={true}
         confirmAdd="This will filter '{item}' from all web pages. Continue?"
         transformItem={transformWordInput}
         minLength={1}

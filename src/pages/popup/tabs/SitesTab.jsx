@@ -20,6 +20,7 @@ export const SitesTab = () => {
         variant="compact"
         icon="🚫"
         showList={false}
+        isProtected={true}
         confirmAdd="You will be unable to access '{item}' until you unblock it. Continue?"
         transformItem={transformSiteInput}
         validateItem={validateSite}

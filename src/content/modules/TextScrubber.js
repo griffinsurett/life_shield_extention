@@ -2,7 +2,7 @@
  * Text Scrubber Module
  * 
  * Handles text node scrubbing and replacement.
- * Now with proper logging.
+ * Now supports async hashing for protected words.
  * 
  * @class TextScrubber
  */
@@ -21,11 +21,12 @@ export class TextScrubber {
 
   /**
    * Scrub text nodes in a container
+   * Now uses async checking/scrubbing for hashed words
    * 
    * @param {Element} container - Container to search
-   * @returns {number} Number of nodes scrubbed
+   * @returns {Promise<number>} Number of nodes scrubbed
    */
-  scrubTextNodesIn(container) {
+  async scrubTextNodesIn(container) {
     if (!container) return 0;
 
     let count = 0;
@@ -56,15 +57,18 @@ export class TextScrubber {
       nodesToProcess.push(node);
     }
 
+    // Process nodes with async hashing
     for (const textNode of nodesToProcess) {
       try {
         const original = textNode.textContent;
         
-        if (this.utils.containsBlockedWord(original)) {
-          const scrubbed = this.utils.scrubText(original);
+        // Async check if blocked
+        if (await this.utils.containsBlockedWord(original)) {
+          // Async scrub with hashing
+          const scrubbed = await this.utils.scrubText(original);
           textNode.textContent = scrubbed;
           count++;
-          logger.debug(`Scrubbed text node: "${original.substring(0, 30)}..."`);
+          logger.debug(`Scrubbed text node`);
         }
       } catch (error) {
         logger.safeError('Error scrubbing text node', error);

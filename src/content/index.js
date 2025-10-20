@@ -2,7 +2,7 @@
  * Content Script Entry Point
  *
  * Main content script that runs on every page.
- * Now with proper logging and enableFilter check.
+ * Now supports async hashing for protected content.
  *
  * @module content/index
  */
@@ -20,12 +20,9 @@ import { EventListeners } from "./modules/EventListeners";
 const logger = createLogger("ContentScript");
 
 // =============================================================================
-// CRITICAL: Error handlers MUST be first - before any imports
+// CRITICAL: Error handlers MUST be first
 // =============================================================================
 
-/**
- * Global error handler for extension context invalidation
- */
 window.addEventListener(
   "error",
   (event) => {
@@ -39,21 +36,16 @@ window.addEventListener(
       event.preventDefault();
       event.stopPropagation();
       event.stopImmediatePropagation();
-
       return true;
     }
   },
   true
 );
 
-/**
- * Global promise rejection handler
- */
 window.addEventListener(
   "unhandledrejection",
   (event) => {
     const message = event.reason?.message || String(event.reason);
-
     if (
       message.includes("Extension context invalidated") ||
       message.includes("Cannot access") ||
@@ -63,7 +55,6 @@ window.addEventListener(
       event.preventDefault();
       event.stopPropagation();
       event.stopImmediatePropagation();
-
       return true;
     }
   },
@@ -77,7 +68,7 @@ window.addEventListener(
 (async function () {
   "use strict";
 
-  // Check if extension context is valid before starting
+  // Check if extension context is valid
   try {
     if (!chrome || !chrome.runtime || !chrome.runtime.id) {
       return;
@@ -86,16 +77,15 @@ window.addEventListener(
     return;
   }
 
-  // Load configuration from storage
+  // Load configuration
   const config = new WellnessConfig();
   await config.loadConfig();
 
-  // Initialize utility helpers
+  // Initialize modules
   const utils = new WellnessUtils(config);
 
   logger.info(`Active on: ${window.location.hostname}`);
 
-  // Initialize functional modules
   const textScrubber = new TextScrubber(utils);
   const elementCleaner = new ElementCleaner(config, utils);
   const inputHandler = new InputHandler(config, utils);
@@ -110,14 +100,13 @@ window.addEventListener(
   let isShuttingDown = false;
 
   /**
-   * Throttled cleaning function
+   * Throttled cleaning function (now async)
    */
-  function throttledClean(container = document.body) {
+  async function throttledClean(container = document.body) {
     if (isShuttingDown) return;
 
-    // CHECK IF FILTER IS ENABLED
     if (!config.ENABLED) {
-      return; // Skip all filtering if disabled
+      return;
     }
 
     if (!isExtensionContextValid()) {
@@ -135,8 +124,9 @@ window.addEventListener(
 
     if (container) {
       try {
-        const textCount = textScrubber.scrubTextNodesIn(container);
-        elementCleaner.hideBlockedElements(container);
+        // Async scrubbing with hashing
+        const textCount = await textScrubber.scrubTextNodesIn(container);
+        await elementCleaner.hideBlockedElements(container);
         const inputCount = inputHandler.attachToInputs(container);
 
         if (textCount > 0 || inputCount > 0) {
@@ -160,7 +150,7 @@ window.addEventListener(
     }
 
     try {
-      utils.checkURL();
+      await utils.checkURL();
     } catch (error) {
       if (error.message?.includes("Extension context invalidated")) {
         isShuttingDown = true;
@@ -172,7 +162,6 @@ window.addEventListener(
    * Initialize content script
    */
   function initialize() {
-    // CHECK IF FILTER IS ENABLED BEFORE INITIALIZING
     if (!config.ENABLED) {
       logger.info("Content filter is disabled, not initializing");
       return;
@@ -189,7 +178,7 @@ window.addEventListener(
         throttledClean();
       }
 
-      // Early scans for dynamic inputs
+      // Early scans
       config.EARLY_SCAN_DELAYS.forEach((delay) => {
         setTimeout(() => {
           if (isShuttingDown || !isExtensionContextValid() || !config.ENABLED)
@@ -245,7 +234,7 @@ window.addEventListener(
         });
       }
 
-      // Regular scan interval
+      // Regular scan
       const scanInterval = setInterval(() => {
         if (isShuttingDown || !isExtensionContextValid() || !config.ENABLED) {
           clearInterval(scanInterval);
@@ -272,7 +261,7 @@ window.addEventListener(
       eventListeners.init();
       siteHandlers.init();
 
-      logger.info("Wellness filter active!");
+      logger.info("Wellness filter active with hashed content protection!");
     } catch (error) {
       logger.safeError("Error during initialization", error);
       if (error.message?.includes("Extension context invalidated")) {

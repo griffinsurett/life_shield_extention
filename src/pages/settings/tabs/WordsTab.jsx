@@ -10,11 +10,9 @@ const WordsTab = () => {
 
   return (
     <div className="bg-white rounded-2xl shadow-lg p-8 animate-fade-in">
-      <h2 className="text-2xl font-bold text-gray-800 mb-6">
-        Blocked Words Management
-      </h2>
+      <h2 className="text-2xl font-bold text-gray-800 mb-6">Blocked Words</h2>
       <p className="text-gray-600 mb-6">
-        Words and phrases that will be filtered from web pages
+        Words and phrases that will be filtered from all web pages. Protected for your recovery.
       </p>
 
       <ListManager
@@ -25,8 +23,8 @@ const WordsTab = () => {
         placeholder="Enter word or phrase to block..."
         variant="danger"
         isProtected={true}
-        confirmAdd="This will filter '{item}' from all web pages. Continue?"
-        confirmRemove="Remove '{item}' from blocked sites?"
+        confirmAdd="This will filter '{item}' from all web pages. The word will be hashed and hidden for your protection. Continue?"
+        confirmRemove="Remove this blocked word? You will see it on web pages again."
         transformItem={transformWordInput}
         minLength={1}
         showToast={showToast}

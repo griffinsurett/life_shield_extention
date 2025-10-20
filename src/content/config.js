@@ -1,84 +1,45 @@
 /**
- * Wellness Config
+ * Content Script Configuration
  * 
- * Manages all configuration for content script.
- * Contains settings, selectors, and performance constants.
+ * Configuration loaded from chrome.storage.sync.
+ * Updates automatically when settings change.
+ * Now supports hashed blocked words and sites.
  * 
  * @class WellnessConfig
  */
 
-import { isExtensionContextValid } from "../utils/chromeApi";
-import { createLogger } from "../utils/logger";
+import { isExtensionContextValid } from '../utils/chromeApi';
+import { createLogger } from '../utils/logger';
 
 const logger = createLogger('WellnessConfig');
 
 export class WellnessConfig {
   constructor() {
-    // Core settings (user-configurable)
-    this.BLOCKED_WORDS = [];
-    this.REDIRECT_URL = "";
+    // Core settings - now stores hashes
+    this.BLOCKED_WORDS = []; // Array of hashed words
+    this.REPLACEMENT_PHRASES = [];
+    this.REDIRECT_URL = '';
     this.SHOW_ALERTS = false;
     this.ENABLED = true;
-    this.REPLACEMENT_PHRASES = [];
-    
-    // Performance settings (HARDCODED - not user-configurable)
-    this.SCAN_INTERVAL = 2000;
-    this.MUTATION_DEBOUNCE = 200;
-    this.MIN_CLEAN_INTERVAL = 500;
-    this.EARLY_SCAN_DELAYS = [0, 100, 500, 1000];
-    this.INPUT_SCAN_INTERVAL = 5000;
-    this.GOOGLE_SETUP_INTERVAL = 100;
-    this.YAHOO_CHECK_INTERVAL = 200;
-    
-    // Feature flags
-    this.HIDE_ENTIRE_DROPDOWN = true;
 
-    // CSS Selectors
+    // Performance settings (hardcoded for optimal performance)
+    this.MIN_CLEAN_INTERVAL = 100;
+    this.MUTATION_DEBOUNCE = 200;
+    this.SCAN_INTERVAL = 2000;
+    this.INPUT_SCAN_INTERVAL = 3000;
+    this.EARLY_SCAN_DELAYS = [100, 500, 1000, 2000];
+    
+    // Site-specific settings
+    this.HIDE_ENTIRE_DROPDOWN = true;
+    this.GOOGLE_CHECK_INTERVAL = 500;
+    this.YAHOO_CHECK_INTERVAL = 500;
+
+    // Selectors for various elements
     this.SELECTORS = {
       /**
-       * Google search box selectors
-       */
-      GOOGLE_SEARCH: [
-        'input[name="q"]',
-        'textarea[name="q"]',
-        'input[type="text"][title*="Search"]',
-        'input[aria-label*="Search"]',
-        'textarea[aria-label*="Search"]',
-        '[role="combobox"][name="q"]',
-        'textarea[aria-controls*="Alh6id"]',
-        'input[jsname]',
-        'textarea[jsname]',
-        '.gLFyf',
-        'input.gLFyf',
-        'textarea.gLFyf',
-        'form[role="search"] input',
-        'form[role="search"] textarea'
-      ],
-      
-      /**
-       * Google autocomplete suggestion selectors
+       * Google search suggestion selectors
        */
       GOOGLE_SUGGESTION: [
-        '.UUbT9',
-        '.aajZCb',
-        '[role="listbox"]',
-        '.sbdd_b',
-        '.erkvQe',
-        '.mkHrUc',
-        '.G43f7e',
-        '[jsname]',
-        'div[role="presentation"]'
-      ],
-      
-      /**
-       * Generic autocomplete suggestion selectors
-       */
-      SUGGESTION: [
-        '[role="option"]',
-        '[role="listbox"] li',
-        '[role="listbox"] div',
-        '.suggestion',
-        '[data-suggestion]',
         '.sbct',
         '.aypbod',
         'li',
@@ -118,6 +79,7 @@ export class WellnessConfig {
 
   /**
    * Load configuration from chrome.storage.sync
+   * Blocked words and sites are already hashed in storage
    * 
    * @async
    * @returns {Promise<void>}
@@ -137,14 +99,17 @@ export class WellnessConfig {
         "enableFilter",
       ]);
 
-      // Update config with loaded values or defaults
+      // Blocked words are already hashed in storage
       this.BLOCKED_WORDS = result.blockedWords || [];
       this.REDIRECT_URL = result.redirectUrl || "";
       this.SHOW_ALERTS = result.showAlerts || false;
       this.REPLACEMENT_PHRASES = result.replacementPhrases || [];
       this.ENABLED = result.enableFilter !== false;
 
-      logger.info("Settings loaded from storage");
+      logger.info("Settings loaded from storage", {
+        hashedWordsCount: this.BLOCKED_WORDS.length,
+        enabled: this.ENABLED
+      });
     } catch (error) {
       logger.safeError("Error loading config", error);
     }
@@ -155,61 +120,36 @@ export class WellnessConfig {
    */
   setupListeners() {
     if (!isExtensionContextValid()) {
-      logger.warn("Extension context invalid, skipping listeners");
       return;
     }
 
     try {
-      // Listen for manual reload requests
-      chrome.runtime.onMessage.addListener((message) => {
-        if (message.action === "reloadConfig") {
-          this.loadConfig();
-          logger.info("Config reloaded");
+      chrome.storage.onChanged.addListener((changes, namespace) => {
+        if (namespace === 'sync') {
+          // Reload config when any setting changes
+          if (changes.blockedWords || 
+              changes.replacementPhrases || 
+              changes.redirectUrl || 
+              changes.showAlerts ||
+              changes.enableFilter) {
+            
+            logger.info('Settings changed, reloading config');
+            this.loadConfig();
+          }
         }
       });
 
-      // Listen for storage changes and update config automatically
-      chrome.storage.onChanged.addListener((changes, namespace) => {
-        if (namespace === "sync") {
-          // Update blocked words
-          if (changes.blockedWords) {
-            this.BLOCKED_WORDS = changes.blockedWords.newValue || [];
-            logger.debug("Blocked words updated");
-          }
-          
-          // Update replacement phrases
-          if (changes.replacementPhrases) {
-            this.REPLACEMENT_PHRASES = changes.replacementPhrases.newValue || [];
-            logger.debug("Replacement phrases updated");
-          }
-          
-          // Update redirect URL
-          if (changes.redirectUrl) {
-            this.REDIRECT_URL = changes.redirectUrl.newValue || "";
-            logger.debug("Redirect URL updated");
-          }
-          
-          // Update show alerts
-          if (changes.showAlerts !== undefined) {
-            this.SHOW_ALERTS = changes.showAlerts.newValue;
-            logger.debug(`Show alerts: ${this.SHOW_ALERTS}`);
-          }
-          
-          // Update enabled state
-          if (changes.enableFilter !== undefined) {
-            this.ENABLED = changes.enableFilter.newValue;
-            if (!changes.enableFilter.newValue) {
-              logger.info("Filter disabled");
-            } else {
-              logger.info("Filter enabled");
-            }
-          }
-          
-          logger.debug("Settings updated in real-time");
+      // Listen for reload messages from background
+      chrome.runtime.onMessage.addListener((message) => {
+        if (message.action === 'reloadConfig') {
+          logger.info('Received reload request');
+          this.loadConfig();
         }
       });
+
+      logger.info('Config listeners setup complete');
     } catch (error) {
-      logger.safeError("Error setting up listeners", error);
+      logger.safeError('Error setting up listeners', error);
     }
   }
 }

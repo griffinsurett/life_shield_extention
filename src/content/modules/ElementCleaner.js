@@ -2,7 +2,7 @@
  * Element Cleaner Module
  * 
  * Handles hiding blocked elements.
- * Simplified - blur mode removed for better recovery focus.
+ * Now supports async hashing for protected content.
  * 
  * @class ElementCleaner
  */
@@ -47,11 +47,12 @@ export class ElementCleaner {
 
   /**
    * Hide blocked elements
+   * Now uses async checking for hashed words
    * 
    * @param {Element} container - Container to search
-   * @returns {number} Number of elements hidden
+   * @returns {Promise<number>} Number of elements hidden
    */
-  hideBlockedElements(container) {
+  async hideBlockedElements(container) {
     if (!container) return 0;
 
     let count = 0;
@@ -70,7 +71,8 @@ export class ElementCleaner {
         
         const combinedText = `${text} ${href} ${title}`;
 
-        if (this.utils.containsBlockedWord(combinedText)) {
+        // Async check with hashing
+        if (await this.utils.containsBlockedWord(combinedText)) {
           element.classList.add('wellness-filter-hidden');
           this.processedElements.add(element);
           count++;
@@ -90,7 +92,6 @@ export class ElementCleaner {
 
   /**
    * Clean up processed elements tracking
-   * Call this when page changes significantly
    */
   reset() {
     this.processedElements = new WeakSet();
