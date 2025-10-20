@@ -23,10 +23,10 @@ const WordsTab = () => {
         itemName="Word"
         itemNamePlural="Blocked Words"
         placeholder="Enter word or phrase to block..."
-        variant="default"
+        variant="danger"
         isProtected={true}
         confirmAdd="This will filter '{item}' from all web pages. Continue?"
-        confirmRemove={false}
+        confirmRemove="Remove '{item}' from blocked sites?"
         transformItem={transformWordInput}
         minLength={1}
         showToast={showToast}
