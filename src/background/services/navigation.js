@@ -11,25 +11,26 @@ import { isExtensionContextValid } from "../../utils/chromeApi";
 import { createLogger } from "../../utils/logger";
 import {
   containsBlockedWord,
-  getRedirectUrl,
   isFilterEnabled,
-  shouldUseCustomUrl,
 } from "./settings";
 import { incrementStats } from "./stats";
 import {
   showContentBlockedNotification,
   showSearchBlockedNotification,
 } from "./notifications";
-import {
-  getBlockedPageUrl,
-  getRedirectUrlWithFallback,
-} from "../../utils/builders";
+import { redirectTab } from "./redirect";
 
 const logger = createLogger("NavigationService");
 
-/**
- * Initialize navigation service
- */
+function isExcludedUrl(url) {
+  if (!url) return false;
+  return (
+    url.startsWith('chrome-extension://') ||
+    url.startsWith('chrome://') ||
+    url.startsWith('about:')
+  );
+}
+
 export function initNavigation() {
   if (!isExtensionContextValid()) {
     logger.warn("Context invalid, skipping init");
@@ -40,9 +41,6 @@ export function initNavigation() {
   setupNavigationListeners();
 }
 
-/**
- * Set up navigation event listeners
- */
 function setupNavigationListeners() {
   if (!isExtensionContextValid()) {
     logger.warn("Context invalid, skipping listeners");
@@ -50,14 +48,12 @@ function setupNavigationListeners() {
   }
 
   try {
-    // Handle navigation before it starts
     chrome.webNavigation.onBeforeNavigate.addListener((details) => {
       if (isExtensionContextValid()) {
         handleBeforeNavigate(details);
       }
     });
 
-    // Handle navigation after it commits
     chrome.webNavigation.onCommitted.addListener((details) => {
       if (isExtensionContextValid()) {
         handleCommitted(details);
@@ -70,91 +66,59 @@ function setupNavigationListeners() {
   }
 }
 
-/**
- * Handle navigation before it starts
- *
- * @async
- * @param {Object} details - Navigation details
- * @returns {Promise<void>}
- */
 async function handleBeforeNavigate(details) {
   if (!isExtensionContextValid()) return;
-
-  // CHECK IF FILTER IS ENABLED
   if (!isFilterEnabled()) return;
-
-  // Only process main frame
   if (details.frameId !== 0) return;
 
   const url = details.url;
 
-  // Check for blocked words in URL
+  if (isExcludedUrl(url)) {
+    logger.debug(`Excluded URL (extension page): ${url}`);
+    return;
+  }
+
   if (containsBlockedWord(url)) {
     logger.info(`Intercepted navigation with blocked word: ${url}`);
 
-    // Update statistics
     await incrementStats(1);
-
-    // Show notification
     await showContentBlockedNotification();
 
-    // Redirect to appropriate page
-    const useCustom = shouldUseCustomUrl();
-    const redirectUrl = useCustom
-      ? getRedirectUrlWithFallback(getRedirectUrl())
-      : getBlockedPageUrl(url);
-
-    chrome.tabs.update(details.tabId, { url: redirectUrl });
+    // ✅ CLEAN: Just call redirectTab
+    await redirectTab(details.tabId, url);
   }
 }
 
-/**
- * Handle navigation after it commits
- * Checks search query parameters
- *
- * @async
- * @param {Object} details - Navigation details
- * @returns {Promise<void>}
- */
 async function handleCommitted(details) {
   if (!isExtensionContextValid()) return;
-
-  // CHECK IF FILTER IS ENABLED
   if (!isFilterEnabled()) return;
-
-  // Only process main frame
   if (details.frameId !== 0) return;
 
-  try {
-    // Parse URL to extract query parameters
-    const urlObj = new URL(details.url);
+  const url = details.url;
 
-    // Check common search parameter names
+  if (isExcludedUrl(url)) {
+    logger.debug(`Excluded URL (extension page): ${url}`);
+    return;
+  }
+
+  try {
+    const urlObj = new URL(url);
     const query =
       urlObj.searchParams.get("q") ||
       urlObj.searchParams.get("query") ||
       urlObj.searchParams.get("p") ||
       "";
 
-    // If query contains blocked words, redirect
     if (containsBlockedWord(query)) {
       logger.info("Blocked query parameter detected");
 
-      // Update stats
       await incrementStats(1);
-
-      // Show search-specific notification
       await showSearchBlockedNotification();
 
-      // Redirect to appropriate page
-      const useCustom = shouldUseCustomUrl();
-      const redirectUrl = useCustom
-        ? getRedirectUrlWithFallback(getRedirectUrl())
-        : getBlockedPageUrl(details.url);
-
-      chrome.tabs.update(details.tabId, { url: redirectUrl });
+      // ✅ CLEAN: Just call redirectTab
+      await redirectTab(details.tabId, url);
     }
   } catch (error) {
-    logger.debug(`Error parsing URL: ${details.url}`, error);
+    logger.debug(`Error parsing URL: ${url}`, error);
   }
 }

@@ -2,6 +2,7 @@
 import { useApp } from "../../../contexts/AppContext";
 import { useToast } from "../../../components/ToastContainer";
 import { ListManager } from "../../../components/ListManager";
+import { transformWordInput } from "../../../utils/validators";
 
 const WordsTab = () => {
   const { settings, updateSettings } = useApp();
@@ -26,7 +27,7 @@ const WordsTab = () => {
         isProtected={true}
         confirmAdd="This will filter '{item}' from all web pages. Continue?"
         confirmRemove={false}
-        transformItem={(val) => val.toLowerCase()}
+        transformItem={transformWordInput}
         minLength={1}
         showToast={showToast}
       />

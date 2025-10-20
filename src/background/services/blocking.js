@@ -1,3 +1,4 @@
+// src/background/services/blocking.js
 /**
  * Blocking Service
  *
@@ -11,32 +12,30 @@ import { isExtensionContextValid } from "../../utils/chromeApi";
 import { createLogger } from "../../utils/logger";
 import {
   getBlockedSites,
-  getRedirectUrl,
   containsBlockedSite,
   isFilterEnabled,
-  shouldUseCustomUrl,
 } from "./settings";
 import { incrementStats } from "./stats";
 import { showContentBlockedNotification } from "./notifications";
-import {
-  getBlockedPageUrl,
-  getRedirectUrlWithFallback,
-} from "../../utils/builders";
+import { getRedirectUrl, redirectTab, redirectBlockedTabs } from "./redirect";
 
 const logger = createLogger("BlockingService");
 
-// Local timing constant
-const TAB_BLOCKING_DEBOUNCE = 2000; // 2 seconds
-
-// Track blocked tabs to prevent duplicate stats
+const TAB_BLOCKING_DEBOUNCE = 2000;
 const blockedTabIds = new Set();
 
 /**
- * Initialize blocking service
- *
- * @async
- * @returns {Promise<void>}
+ * Check if URL is an extension page that should be excluded from blocking
  */
+function isExcludedUrl(url) {
+  if (!url) return false;
+  return (
+    url.startsWith('chrome-extension://') ||
+    url.startsWith('chrome://') ||
+    url.startsWith('about:')
+  );
+}
+
 export async function initBlocking() {
   if (!isExtensionContextValid()) {
     logger.warn("Context invalid, skipping init");
@@ -46,7 +45,6 @@ export async function initBlocking() {
   try {
     logger.info("Initializing blocking service");
 
-    // Listen for settings changes
     chrome.storage.onChanged.addListener((changes, namespace) => {
       if (!isExtensionContextValid()) return;
 
@@ -62,10 +60,7 @@ export async function initBlocking() {
       }
     });
 
-    // Update rules on initialization
     await updateBlockingRules();
-
-    // Set up navigation listeners
     setupBlockedRequestListener();
 
     logger.info("Blocking service initialized");
@@ -74,23 +69,13 @@ export async function initBlocking() {
   }
 }
 
-/**
- * Update declarativeNetRequest rules
- *
- * @async
- * @returns {Promise<void>}
- */
 export async function updateBlockingRules() {
   if (!isExtensionContextValid()) return;
 
   try {
-    // CHECK IF FILTER IS ENABLED
     if (!isFilterEnabled()) {
       logger.info("Filter disabled, clearing all blocking rules");
-
-      // Get existing rules and remove them all
-      const existingRules =
-        await chrome.declarativeNetRequest.getDynamicRules();
+      const existingRules = await chrome.declarativeNetRequest.getDynamicRules();
       const existingRuleIds = existingRules.map((rule) => rule.id);
 
       await chrome.declarativeNetRequest.updateDynamicRules({
@@ -103,36 +88,25 @@ export async function updateBlockingRules() {
     }
 
     const blockedSites = getBlockedSites();
-    const useCustom = shouldUseCustomUrl();
-    const redirectUrl = useCustom
-      ? getRedirectUrlWithFallback(getRedirectUrl())
-      : getBlockedPageUrl();
+    const redirectUrl = getRedirectUrl();
 
     logger.info(`Updating rules for ${blockedSites.length} sites`);
-    logger.info(
-      `Using ${useCustom ? "custom URL" : "blocked page"}: ${redirectUrl}`
-    );
+    logger.info(`Using redirect URL: ${redirectUrl}`);
 
-    // Get existing rules
     const existingRules = await chrome.declarativeNetRequest.getDynamicRules();
     const existingRuleIds = existingRules.map((rule) => rule.id);
 
-    // Create new rules
     const rules = [];
     let ruleId = 1;
 
     for (const site of blockedSites) {
-      // Clean site URL
       const cleanSite = site.replace(/^https?:\/\//, "").replace(/\/$/, "");
 
       // Rule 1: Block site with path
       rules.push({
         id: ruleId++,
         priority: 1,
-        action: {
-          type: "redirect",
-          redirect: { url: redirectUrl },
-        },
+        action: { type: "redirect", redirect: { url: redirectUrl } },
         condition: {
           urlFilter: `*://${cleanSite}/*`,
           resourceTypes: ["main_frame"],
@@ -144,10 +118,7 @@ export async function updateBlockingRules() {
         rules.push({
           id: ruleId++,
           priority: 1,
-          action: {
-            type: "redirect",
-            redirect: { url: redirectUrl },
-          },
+          action: { type: "redirect", redirect: { url: redirectUrl } },
           condition: {
             urlFilter: `*://www.${cleanSite}/*`,
             resourceTypes: ["main_frame"],
@@ -160,10 +131,7 @@ export async function updateBlockingRules() {
         rules.push({
           id: ruleId++,
           priority: 1,
-          action: {
-            type: "redirect",
-            redirect: { url: redirectUrl },
-          },
+          action: { type: "redirect", redirect: { url: redirectUrl } },
           condition: {
             urlFilter: `*://*.${cleanSite}/*`,
             resourceTypes: ["main_frame"],
@@ -175,10 +143,7 @@ export async function updateBlockingRules() {
       rules.push({
         id: ruleId++,
         priority: 1,
-        action: {
-          type: "redirect",
-          redirect: { url: redirectUrl },
-        },
+        action: { type: "redirect", redirect: { url: redirectUrl } },
         condition: {
           urlFilter: `*://${cleanSite}`,
           resourceTypes: ["main_frame"],
@@ -186,21 +151,23 @@ export async function updateBlockingRules() {
       });
     }
 
-    // Update rules
     await chrome.declarativeNetRequest.updateDynamicRules({
       removeRuleIds: existingRuleIds,
       addRules: rules,
     });
 
     logger.info(`Updated blocking rules: ${rules.length} rules active`);
+
+    // ✅ NEW: Redirect any tabs currently on blocked sites
+    const redirectedCount = await redirectBlockedTabs();
+    if (redirectedCount > 0) {
+      logger.info(`Auto-redirected ${redirectedCount} tab(s) after rules update`);
+    }
   } catch (error) {
     logger.error("Error updating rules", error);
   }
 }
 
-/**
- * Set up navigation listeners for blocked sites
- */
 function setupBlockedRequestListener() {
   if (!isExtensionContextValid()) {
     logger.warn("Context invalid, skipping listeners");
@@ -208,56 +175,46 @@ function setupBlockedRequestListener() {
   }
 
   try {
-    // Listen for navigation attempts before they happen
     chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
       if (!isExtensionContextValid()) return;
-
-      // CHECK IF FILTER IS ENABLED
       if (!isFilterEnabled()) return;
-
-      // Only check main frame
       if (details.frameId !== 0) return;
 
       const url = details.url;
       const tabId = details.tabId;
 
-      // Check if URL matches blocked site
+      if (isExcludedUrl(url)) {
+        logger.debug(`Excluded URL (extension page): ${url}`);
+        return;
+      }
+
       if (containsBlockedSite(url)) {
         logger.debug(`BEFORE navigate - Blocked site detected: ${url}`);
 
-        // Only increment stats once per tab
         if (!blockedTabIds.has(tabId)) {
           blockedTabIds.add(tabId);
           await incrementStats(1);
           await showContentBlockedNotification();
-
-          // Clear after debounce period
           setTimeout(() => blockedTabIds.delete(tabId), TAB_BLOCKING_DEBOUNCE);
         }
 
-        // Redirect to appropriate page
-        const useCustom = shouldUseCustomUrl();
-        const redirectUrl = useCustom
-          ? getRedirectUrlWithFallback(getRedirectUrl())
-          : getBlockedPageUrl(url);
-
-        chrome.tabs.update(tabId, { url: redirectUrl });
+        await redirectTab(tabId, url);
       }
     });
 
-    // Listen for committed navigation
     chrome.webNavigation.onCommitted.addListener(async (details) => {
       if (!isExtensionContextValid()) return;
-
-      // CHECK IF FILTER IS ENABLED
       if (!isFilterEnabled()) return;
-
       if (details.frameId !== 0) return;
 
       const url = details.url;
       const tabId = details.tabId;
 
-      // Double-check after navigation commits
+      if (isExcludedUrl(url)) {
+        logger.debug(`Excluded URL (extension page): ${url}`);
+        return;
+      }
+
       if (containsBlockedSite(url)) {
         logger.debug(`COMMITTED - Blocked site detected: ${url}`);
 
@@ -267,25 +224,21 @@ function setupBlockedRequestListener() {
           setTimeout(() => blockedTabIds.delete(tabId), TAB_BLOCKING_DEBOUNCE);
         }
 
-        const useCustom = shouldUseCustomUrl();
-        const redirectUrl = useCustom
-          ? getRedirectUrlWithFallback(getRedirectUrl())
-          : getBlockedPageUrl(url);
-
-        chrome.tabs.update(tabId, { url: redirectUrl });
+        await redirectTab(tabId, url);
       }
     });
 
-    // Listen for server redirects
     chrome.webNavigation.onBeforeRedirect.addListener(async (details) => {
       if (!isExtensionContextValid()) return;
-
-      // CHECK IF FILTER IS ENABLED
       if (!isFilterEnabled()) return;
-
       if (details.frameId !== 0) return;
 
       const redirectUrl = details.redirectUrl;
+
+      if (isExcludedUrl(redirectUrl)) {
+        logger.debug(`Excluded redirect URL (extension page): ${redirectUrl}`);
+        return;
+      }
 
       if (containsBlockedSite(redirectUrl)) {
         logger.debug(`Server redirect to blocked site: ${redirectUrl}`);

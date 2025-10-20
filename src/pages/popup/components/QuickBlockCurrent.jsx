@@ -1,6 +1,7 @@
 // src/pages/popup/components/QuickBlockCurrent.jsx
 import { useState, useEffect } from 'react';
 import Button from '../../../components/Button';
+import { transformSiteInput, extractDomain } from '../../../utils/validators';
 
 export const QuickBlockCurrent = ({ onBlockSite, showConfirmation }) => {
   const [currentUrl, setCurrentUrl] = useState('');
@@ -10,26 +11,26 @@ export const QuickBlockCurrent = ({ onBlockSite, showConfirmation }) => {
   const [blockType, setBlockType] = useState('domain'); // 'domain' or 'url'
 
   useEffect(() => {
-    // Get current tab URL
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       if (tabs[0]?.url) {
         const url = tabs[0].url;
         setCurrentUrl(url);
         
-        // Check if it's a chrome:// or chrome-extension:// page
         if (url.startsWith('chrome://') || url.startsWith('chrome-extension://')) {
           setIsChromePage(true);
           return;
         }
         
-        // Extract domain and path
         try {
           const urlObj = new URL(url);
-          const domain = urlObj.hostname.replace(/^www\./, '');
-          const fullPath = domain + urlObj.pathname + urlObj.search;
+          const rawUrl = urlObj.hostname.replace(/^www\./, '') + urlObj.pathname + urlObj.search;
+          
+          // Use shared transformation logic
+          const cleanUrl = transformSiteInput(rawUrl);
+          const domain = extractDomain(cleanUrl);
           
           setCurrentDomain(domain);
-          setCurrentPath(fullPath.replace(/\/$/, '')); // Remove trailing slash
+          setCurrentPath(cleanUrl);
         } catch (e) {
           console.error('Error parsing URL:', e);
         }
@@ -54,7 +55,6 @@ export const QuickBlockCurrent = ({ onBlockSite, showConfirmation }) => {
     }
   };
 
-  // Don't show for chrome pages
   if (isChromePage || !currentDomain) {
     return null;
   }

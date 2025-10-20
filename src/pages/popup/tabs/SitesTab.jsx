@@ -3,6 +3,7 @@ import { useApp } from "../../../contexts/AppContext";
 import { useToast } from "../../../components/ToastContainer";
 import { ListManager } from "../../../components/ListManager";
 import { BlockingNotice } from "../components/BlockingNotice";
+import { transformSiteInput, validateSite } from "../../../utils/validators";
 
 export const SitesTab = () => {
   const { settings, updateSettings } = useApp();
@@ -20,13 +21,8 @@ export const SitesTab = () => {
         icon="🚫"
         showList={false}
         confirmAdd="You will be unable to access '{item}' until you unblock it. Continue?"
-        transformItem={(val) => val.toLowerCase().replace(/^https?:\/\//, '').replace(/\/$/, '')}
-        validateItem={(site) => {
-          if (!site.includes('.')) {
-            return 'Please enter a valid domain';
-          }
-          return null;
-        }}
+        transformItem={transformSiteInput}
+        validateItem={validateSite}
         minLength={3}
         showToast={showToast}
       />

@@ -6,6 +6,7 @@ import { useConfirmation } from "../../../hooks/useConfirmation";
 import { ConfirmationModal } from "../../../components/ConfirmationModal";
 import { ListManager } from "../../../components/ListManager";
 import { DEFAULTS } from "../../../config";
+import { transformPhraseInput, validatePhrase } from "../../../utils/validators";
 import Button from '../../../components/Button';
 
 const PhrasesTab = () => {
@@ -50,13 +51,8 @@ const PhrasesTab = () => {
         confirmRemove={false}
         maxItems={50}
         minLength={2}
-        transformItem={(val) => val.trim()}
-        validateItem={(phrase) => {
-          if (phrase.length > 50) {
-            return 'Phrase must be less than 50 characters';
-          }
-          return null;
-        }}
+        transformItem={transformPhraseInput}
+        validateItem={validatePhrase}
         showToast={showToast}
       />
 
@@ -69,7 +65,6 @@ const PhrasesTab = () => {
         </Button>
       </div>
 
-      {/* Confirmation Modal */}
       <ConfirmationModal
         isOpen={confirmation.isOpen}
         onClose={confirmation.closeModal}
