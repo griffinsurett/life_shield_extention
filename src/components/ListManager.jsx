@@ -244,7 +244,7 @@ export const ListManager = ({
         <div className="flex items-center gap-2 mb-3">
           <span className="text-lg">{config.icon}</span>
           <h3 className="text-sm font-bold uppercase tracking-wide text-white">
-            {items.length} blocked {pluralName.toLowerCase()}
+            {pluralName.toLowerCase()}
           </h3>
         </div>
 
