@@ -30,17 +30,6 @@ export const MoreTab = ({
         onRefresh={refreshPreviewPhrase}
       />
       
-      {/* Import/Export */}
-      <div className="p-4 bg-white/10 rounded-xl backdrop-blur-sm border border-white/20">
-        <h3 className="text-sm font-semibold uppercase tracking-wide opacity-90 mb-3">
-          Backup & Restore
-        </h3>
-        <QuickActions
-          onExport={handleExport}
-          onImport={handleImport}
-        />
-      </div>
-      
       {/* Advanced settings link */}
       <SettingsButton onClick={openSettings} />
       
