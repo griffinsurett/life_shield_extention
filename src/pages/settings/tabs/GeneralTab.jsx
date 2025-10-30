@@ -4,6 +4,7 @@ import { Toggle } from "../../../components/Toggle";
 import { SettingSection } from "../../../components/SettingSection";
 import { BlockingBehaviorSection } from "../../../components/BlockingBehaviorSection";
 import { IconManagerSection } from "../../../components/IconManager";
+import { PasscodeSection } from "../components/PasscodeSection";
 
 const GeneralTab = ({ showToast, showConfirmation }) => {
   const { settings, updateSettings } = useApp();
@@ -73,6 +74,14 @@ const GeneralTab = ({ showToast, showConfirmation }) => {
           showToast={showToast}
           showConfirmation={showConfirmation}
         />
+
+        {/* Passcode Protection Section */}
+        <SettingSection>
+          <PasscodeSection
+            showToast={showToast}
+            showConfirmation={showConfirmation}
+          />
+        </SettingSection>
 
         {/* Blocking Behavior */}
         <SettingSection noBorder>

@@ -1,10 +1,18 @@
-// src/components/ListManager.jsx
-import { useState, useCallback, useMemo } from 'react';
+// src/components/ListManager.jsx - FULLY MODULAR VERSION
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useConfirmation } from '../hooks/useConfirmation';
+import { useSecurityLock } from '../hooks/useSecurityLock';
+import { useInactivityLock } from '../hooks/useInactivityLock';
+import { useBlurLock } from '../hooks/useBlurLock';
+import { useScreenshotDetection } from '../hooks/useScreenshotDetection';
 import { ConfirmationModal } from './ConfirmationModal';
+import { PasscodeModal } from './PasscodeModal';
+import { ProtectedContent } from './ProtectedContent';
+import { SecurityMonitor } from './SecurityMonitor';
 import Input from './Inputs/Input';
 import Button from './Button';
 import { hashString } from '../utils/hashing';
+import { STORAGE_KEYS } from '../config';
 
 export const ListManager = ({
   // Core props
@@ -33,15 +41,64 @@ export const ListManager = ({
   showToast,
   maxItems,
   minLength = 1,
+
+  // Security props
+  enableInactivityLock = true,
+  enableBlurLock = true,
+  enableScreenshotDetection = true,
+  inactivityTimeout = 5 * 60 * 1000, // 5 minutes
 }) => {
   const [inputValue, setInputValue] = useState('');
-  const [isUnlocked, setIsUnlocked] = useState(!isProtected);
+  const [showPasscodeModal, setShowPasscodeModal] = useState(false);
+  const [hasPasscode, setHasPasscode] = useState(false);
+  const [passcodeMode, setPasscodeMode] = useState('verify');
   const confirmation = useConfirmation();
 
-  // Computed values
   const pluralName = itemNamePlural || `${itemName}s`;
+
+  // Security lock management
+  const securityLock = useSecurityLock({
+    isProtected,
+    showToast,
+    inactivityTimeout,
+  });
+
+  // Inactivity auto-lock
+  useInactivityLock({
+    enabled: isProtected && securityLock.isUnlocked && enableInactivityLock,
+    onLock: () => securityLock.lock('inactivity'),
+    timeout: inactivityTimeout,
+    showToast,
+  });
+
+  // Tab blur auto-lock
+  useBlurLock({
+    enabled: isProtected && securityLock.isUnlocked && enableBlurLock,
+    onLock: () => securityLock.lock('blur'),
+    lockOnVisibilityChange: true,
+    lockOnWindowBlur: false,
+    showToast,
+  });
+
+  // Screenshot detection
+  useScreenshotDetection({
+    enabled: isProtected && securityLock.isUnlocked && enableScreenshotDetection,
+    onScreenshot: () => securityLock.lock('screenshot'),
+    showToast,
+  });
   
-  // Color configuration based on variant
+  // Check if passcode exists on mount
+  useEffect(() => {
+    const checkPasscode = async () => {
+      const result = await chrome.storage.local.get([STORAGE_KEYS.PASSCODE_HASH]);
+      setHasPasscode(!!result[STORAGE_KEYS.PASSCODE_HASH]);
+    };
+    
+    if (isProtected) {
+      checkPasscode();
+    }
+  }, [isProtected]);
+  
   const variantConfig = useMemo(() => ({
     default: {
       addButton: 'btn-primary',
@@ -82,7 +139,6 @@ export const ListManager = ({
 
   const config = variantConfig[variant] || variantConfig.default;
 
-  // Calculate stats for maxItems
   const stats = useMemo(() => {
     if (!maxItems) return null;
     return {
@@ -92,14 +148,11 @@ export const ListManager = ({
     };
   }, [items.length, maxItems]);
 
-  /**
-   * Handle adding a new item
-   * Hashes the item if isProtected is true
-   */
   const handleAdd = useCallback(async () => {
     let value = inputValue.trim();
     
     if (!value) return;
+    
     if (value.length < minLength) {
       if (showToast) {
         showToast(`${itemName} must be at least ${minLength} characters`, 'error');
@@ -107,12 +160,10 @@ export const ListManager = ({
       return;
     }
 
-    // Transform if function provided
     if (transformItem) {
       value = transformItem(value);
     }
 
-    // Validate if function provided
     if (validateItem) {
       const error = validateItem(value);
       if (error) {
@@ -121,7 +172,6 @@ export const ListManager = ({
       }
     }
 
-    // Check max items
     if (maxItems && items.length >= maxItems) {
       if (showToast) {
         showToast(`Maximum ${maxItems} ${pluralName.toLowerCase()} allowed`, 'error');
@@ -129,7 +179,6 @@ export const ListManager = ({
       return;
     }
 
-    // Hash if protected
     let itemToAdd = value;
     if (isProtected) {
       try {
@@ -143,7 +192,6 @@ export const ListManager = ({
       }
     }
 
-    // Check duplicates (check against hashed value if protected)
     if (!allowDuplicates && items.includes(itemToAdd)) {
       if (showToast) {
         showToast(`This ${itemName.toLowerCase()} is already blocked`, 'info');
@@ -151,7 +199,6 @@ export const ListManager = ({
       return;
     }
 
-    // Add with confirmation if needed
     if (confirmAdd) {
       const message = typeof confirmAdd === 'string' 
         ? confirmAdd.replace('{item}', value)
@@ -179,14 +226,10 @@ export const ListManager = ({
     }
   }, [inputValue, items, itemName, pluralName, minLength, maxItems, transformItem, validateItem, allowDuplicates, confirmAdd, isProtected, onItemsChange, showToast, confirmation]);
 
-  /**
-   * Handle removing an item
-   */
   const handleRemove = useCallback((index) => {
     const itemToRemove = items[index];
     
     if (confirmRemove) {
-      // For protected items, we can't show the actual value
       const displayText = isProtected 
         ? `this ${itemName.toLowerCase()}`
         : `"${itemToRemove}"`;
@@ -217,30 +260,81 @@ export const ListManager = ({
     }
   }, [items, itemName, confirmRemove, isProtected, onItemsChange, showToast, confirmation]);
 
-  /**
-   * Handle unlocking protected list
-   */
   const handleUnlock = useCallback(() => {
-    confirmation.showConfirmation({
-      title: '⚠️ Warning: Sensitive Content',
-      message: `The ${pluralName.toLowerCase()} contain potentially triggering content that may not be safe for recovery. Are you sure you want to view them?`,
-      confirmText: 'Yes, Show List',
-      cancelText: 'Keep Hidden',
-      confirmColor: 'orange',
-      onConfirm: () => {
-        setIsUnlocked(true);
-        if (showToast) {
-          showToast('List unlocked temporarily', 'info');
-        }
-      }
-    });
-  }, [pluralName, showToast, confirmation]);
+    if (!hasPasscode) {
+      setPasscodeMode('setup');
+      setShowPasscodeModal(true);
+    } else {
+      setPasscodeMode('verify');
+      setShowPasscodeModal(true);
+    }
+  }, [hasPasscode]);
 
-  // Compact variant rendering (matching Quick Block style)
+  const handlePasscodeSuccess = useCallback(() => {
+    securityLock.unlock();
+    setHasPasscode(true);
+    if (showToast) {
+      showToast('List unlocked temporarily', 'info');
+    }
+  }, [securityLock, showToast]);
+
+  const renderListItems = useCallback(() => {
+    // SECURITY: Conditional rendering
+    if (isProtected && !securityLock.isUnlocked) {
+      return null;
+    }
+
+    if (items.length === 0) {
+      return (
+        <div className="bg-gray-50 rounded-xl p-8 text-center border-2 border-dashed border-gray-300">
+          <div className="text-4xl mb-3 opacity-30">{config.icon}</div>
+          <p className="text-gray-600 font-medium mb-1">
+            No {pluralName.toLowerCase()} yet
+          </p>
+          <p className="text-sm text-gray-500">
+            Add your first {itemName.toLowerCase()} above to get started
+          </p>
+        </div>
+      );
+    }
+
+    return (
+      <ProtectedContent
+        preventCopy={true}
+        preventContextMenu={true}
+        showToast={showToast}
+        className="bg-white rounded-xl border-2 border-gray-200 overflow-hidden"
+      >
+        <div className="max-h-96 overflow-y-auto">
+          {items.map((item, index) => (
+            <div
+              key={index}
+              className="flex items-center justify-between p-4 hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-b-0"
+            >
+              <div className="flex-1 min-w-0 pr-3">
+                <span className="text-gray-700 break-all font-mono text-sm">
+                  {item}
+                </span>
+              </div>
+              <Button
+                onClick={() => handleRemove(index)}
+                className="ml-3 text-red-600 hover:text-red-800 hover:bg-red-50 p-2 rounded-lg transition-colors flex-shrink-0"
+                aria-label={`Remove ${itemName}`}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </Button>
+            </div>
+          ))}
+        </div>
+      </ProtectedContent>
+    );
+  }, [isProtected, securityLock.isUnlocked, items, config.icon, pluralName, itemName, handleRemove, showToast]);
+
   if (variant === 'compact') {
     return (
       <div className="p-4 bg-gradient-to-r from-red-500/20 to-pink-500/20 rounded-xl border-2 border-red-400/40 backdrop-blur-sm">
-        {/* Header */}
         <div className="flex items-center gap-2 mb-3">
           <span className="text-lg">{config.icon}</span>
           <h3 className="text-sm font-bold uppercase tracking-wide text-white">
@@ -248,7 +342,6 @@ export const ListManager = ({
           </h3>
         </div>
 
-        {/* Input and Block Button */}
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
             <div className="bg-black/20 rounded-lg p-3 mb-3">
@@ -263,54 +356,39 @@ export const ListManager = ({
                   }
                 }}
                 placeholder={placeholder || `Enter ${itemName.toLowerCase()}...`}
-                className="w-full bg-transparent border-none text-white placeholder-white/50 focus:outline-none p-0 text-xs font-mono"
-                maxLength={100}
+                className="w-full bg-transparent border-none text-white placeholder-white/60 focus:outline-none text-sm"
               />
             </div>
-            <p className="text-xs text-white/60">
-              {itemName}s are blocked immediately after adding
+            <p className="text-xs text-white/80">
+              {items.length} {items.length === 1 ? itemName.toLowerCase() : pluralName.toLowerCase()}
             </p>
           </div>
-          
+
           <Button
             onClick={handleAdd}
             disabled={!inputValue.trim()}
-            className="flex-shrink-0 px-4 py-3 bg-white text-red-600 rounded-lg font-bold text-sm hover:shadow-xl hover:scale-105 active:scale-100 transition-all duration-200 flex flex-col items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+            className="btn-base btn-md bg-red-600 hover:bg-red-700 text-white font-bold shadow-lg flex-shrink-0"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-            </svg>
-            <span className="text-xs">Block</span>
+            Block
           </Button>
         </div>
-
-        {/* Confirmation Modal */}
-        <ConfirmationModal
-          isOpen={confirmation.isOpen}
-          onClose={confirmation.closeModal}
-          title={confirmation.config.title}
-          message={confirmation.config.message}
-          confirmText={confirmation.config.confirmText}
-          cancelText={confirmation.config.cancelText}
-          confirmColor={confirmation.config.confirmColor}
-          onConfirm={confirmation.handleConfirm}
-          onCancel={confirmation.handleCancel}
-        />
       </div>
     );
   }
 
-  // Original full variant rendering (for settings page)
   return (
     <div className="space-y-6">
-      {/* Add Input Section */}
-      <div className={`${config.containerClass} ${config.border} ${config.bg}`}>
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="font-semibold text-gray-800">
-            Add {itemName}
-          </h3>
-          <span className="text-sm text-gray-600 font-medium">
-            {items.length} {items.length === 1 ? itemName.toLowerCase() : pluralName.toLowerCase()}
+      {/* Security Monitor - silent background monitoring */}
+      <SecurityMonitor
+        enabled={isProtected && !securityLock.isUnlocked}
+        expectedLocked={true}
+      />
+
+      <div className={`${config.containerClass} ${config.bg} ${config.border}`}>
+        <div className="flex items-center gap-2 mb-4">
+          <span className="text-xl">{config.icon}</span>
+          <span className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
+            Add {items.length === 0 ? itemName.toLowerCase() : pluralName.toLowerCase()}
           </span>
         </div>
         
@@ -358,20 +436,19 @@ export const ListManager = ({
         )}
       </div>
 
-      {/* List Display Section */}
       {showList && (
         <>
           {isProtected && (
             <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border-2 border-gray-200">
               <div className="flex items-center gap-3">
                 <div className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all ${
-                  isUnlocked ? 'bg-green-100 rotate-0' : 'bg-yellow-100 rotate-12'
+                  securityLock.isUnlocked ? 'bg-green-100 rotate-0' : 'bg-yellow-100 rotate-12'
                 }`}>
-                  {isUnlocked ? '🔓' : '🔒'}
+                  {securityLock.isUnlocked ? '🔓' : '🔒'}
                 </div>
                 <div>
                   <h3 className="font-semibold text-gray-800">
-                    {isUnlocked ? 'List Visible' : 'List Protected'}
+                    {securityLock.isUnlocked ? 'List Visible' : 'List Protected'}
                   </h3>
                   <p className="text-sm text-gray-600">
                     {items.length} {items.length === 1 ? itemName.toLowerCase() : pluralName.toLowerCase()}
@@ -380,59 +457,21 @@ export const ListManager = ({
               </div>
               
               <Button
-                onClick={isUnlocked ? () => setIsUnlocked(false) : handleUnlock}
+                onClick={securityLock.isUnlocked ? () => securityLock.lock('manual') : handleUnlock}
                 className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                  isUnlocked 
+                  securityLock.isUnlocked 
                     ? 'bg-gray-600 hover:bg-gray-700 text-white'
                     : 'bg-yellow-600 hover:bg-yellow-700 text-white animate-pulse'
                 }`}
               >
-                {isUnlocked ? 'Lock' : 'Unlock to View'}
+                {securityLock.isUnlocked ? 'Lock' : 'Unlock to View'}
               </Button>
             </div>
           )}
 
-          {(!isProtected || isUnlocked) && items.length > 0 && (
-            <div className="bg-white rounded-xl border-2 border-gray-200 overflow-hidden">
-              <div className="max-h-96 overflow-y-auto">
-                {items.map((item, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between p-4 hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-b-0"
-                  >
-                    <div className="flex-1 min-w-0 pr-3">
-                      <span className="text-gray-700 break-all font-mono text-sm">
-                        {item}
-                      </span>
-                    </div>
-                    <Button
-                      onClick={() => handleRemove(index)}
-                      className="ml-3 text-red-600 hover:text-red-800 hover:bg-red-50 p-2 rounded-lg transition-colors flex-shrink-0"
-                      aria-label={`Remove ${itemName}`}
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          {renderListItems()}
 
-          {(!isProtected || isUnlocked) && items.length === 0 && (
-            <div className="bg-gray-50 rounded-xl p-8 text-center border-2 border-dashed border-gray-300">
-              <div className="text-4xl mb-3 opacity-30">{config.icon}</div>
-              <p className="text-gray-600 font-medium mb-1">
-                No {pluralName.toLowerCase()} yet
-              </p>
-              <p className="text-sm text-gray-500">
-                Add your first {itemName.toLowerCase()} above to get started
-              </p>
-            </div>
-          )}
-
-          {isProtected && !isUnlocked && (
+          {isProtected && !securityLock.isUnlocked && (
             <div className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl p-6 border-2 border-yellow-200">
               <div className="flex items-start gap-3">
                 <span className="text-2xl flex-shrink-0">🔒</span>
@@ -441,8 +480,7 @@ export const ListManager = ({
                     Protected List Hidden
                   </h4>
                   <p className="text-sm text-yellow-800">
-                    This list contains sensitive content that may not be safe for recovery. 
-                    Click unlock above to view or manage them.
+                    This list contains sensitive content that may not be safe for recovery. Click unlock above to view or manage them.
                   </p>
                 </div>
               </div>
@@ -451,7 +489,6 @@ export const ListManager = ({
         </>
       )}
 
-      {/* Confirmation Modal */}
       <ConfirmationModal
         isOpen={confirmation.isOpen}
         onClose={confirmation.closeModal}
@@ -462,6 +499,19 @@ export const ListManager = ({
         confirmColor={confirmation.config.confirmColor}
         onConfirm={confirmation.handleConfirm}
         onCancel={confirmation.handleCancel}
+      />
+
+      <PasscodeModal
+        isOpen={showPasscodeModal}
+        onClose={() => setShowPasscodeModal(false)}
+        onSuccess={handlePasscodeSuccess}
+        mode={passcodeMode}
+        title={passcodeMode === 'setup' ? 'Set Passcode' : 'Enter Passcode'}
+        message={
+          passcodeMode === 'setup'
+            ? 'Set a passcode to protect your blocked content lists'
+            : 'Enter your passcode to view the list'
+        }
       />
     </div>
   );
