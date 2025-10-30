@@ -5,6 +5,8 @@ import { useToast } from "../../../components/ToastContainer";
 import { useConfirmation } from "../../../hooks/useConfirmation";
 import { ConfirmationModal } from "../../../components/ConfirmationModal";
 import { ListManager } from "../../../components/ListManager";
+import { Toggle } from "../../../components/Toggle";
+import { SettingSection } from "../../../components/SettingSection";
 import { DEFAULTS } from "../../../config";
 import { transformPhraseInput, validatePhrase } from "../../../utils/validators";
 import Button from '../../../components/Button';
@@ -30,40 +32,81 @@ const PhrasesTab = () => {
     });
   }, [confirmation, updateSettings, showToast]);
 
+  const handleToggleReplacements = useCallback(async (value) => {
+    await updateSettings({ useReplacementPhrases: value });
+    showToast(
+      `Replacement phrases ${value ? "enabled" : "disabled"}`,
+      "success"
+    );
+  }, [updateSettings, showToast]);
+
   return (
     <div className="bg-white rounded-2xl shadow-lg p-8 animate-fade-in">
       <h2 className="text-2xl font-bold text-gray-800 mb-6">
         Replacement Phrases
       </h2>
-      <p className="text-gray-600 mb-6">
-        Positive phrases that replace blocked words when filtered
-      </p>
 
-      <ListManager
-        items={settings.replacementPhrases}
-        onItemsChange={(phrases) => updateSettings({ replacementPhrases: phrases })}
-        itemName="Phrase"
-        itemNamePlural="Replacement Phrases"
-        placeholder="Enter a positive replacement phrase..."
-        variant="success"
-        isProtected={false}
-        confirmAdd={false}
-        confirmRemove={false}
-        maxItems={50}
-        minLength={2}
-        transformItem={transformPhraseInput}
-        validateItem={validatePhrase}
-        showToast={showToast}
-      />
+      {/* Toggle for enabling/disabling replacement phrases */}
+      <SettingSection>
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-800 mb-1">
+              Use Replacement Phrases
+            </h3>
+            <p className="text-sm text-gray-600">
+              When enabled, blocked words are replaced with positive phrases. When disabled, blocked words are simply erased.
+            </p>
+          </div>
+          <Toggle
+            checked={settings.useReplacementPhrases}
+            onChange={handleToggleReplacements}
+          />
+        </div>
+      </SettingSection>
 
-      <div className="mt-6 flex justify-end">
-        <Button
-          onClick={resetPhrases}
-          className="px-6 py-3 bg-orange-500 text-white rounded-xl font-medium hover:bg-orange-600 transition-colors"
-        >
-          Reset to Default Phrases
-        </Button>
-      </div>
+      {/* Only show phrase management when replacements are enabled */}
+      {settings.useReplacementPhrases && (
+        <>
+          <p className="text-gray-600 mb-6">
+            Positive phrases that replace blocked words when filtered
+          </p>
+
+          <ListManager
+            items={settings.replacementPhrases}
+            onItemsChange={(phrases) => updateSettings({ replacementPhrases: phrases })}
+            itemName="Phrase"
+            itemNamePlural="Replacement Phrases"
+            placeholder="Enter a positive replacement phrase..."
+            variant="success"
+            isProtected={false}
+            confirmAdd={false}
+            confirmRemove={false}
+            maxItems={50}
+            minLength={2}
+            transformItem={transformPhraseInput}
+            validateItem={validatePhrase}
+            showToast={showToast}
+          />
+
+          <div className="mt-6 flex justify-end">
+            <Button
+              onClick={resetPhrases}
+              className="px-6 py-3 bg-orange-500 text-white rounded-xl font-medium hover:bg-orange-600 transition-colors"
+            >
+              Reset to Default Phrases
+            </Button>
+          </div>
+        </>
+      )}
+
+      {/* Show message when replacements are disabled */}
+      {!settings.useReplacementPhrases && (
+        <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+          <p className="text-sm text-blue-800">
+            <strong>Erase Mode Active:</strong> Blocked words will be removed from text without replacement. Enable replacement phrases above to use positive alternatives instead.
+          </p>
+        </div>
+      )}
 
       <ConfirmationModal
         isOpen={confirmation.isOpen}

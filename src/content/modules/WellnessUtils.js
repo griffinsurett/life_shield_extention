@@ -3,6 +3,7 @@
  *
  * Core utility functions used throughout the content script.
  * Now supports hashed blocked words AND phrases.
+ * Supports optional replacement phrases (can erase instead).
  *
  * @class WellnessUtils
  */
@@ -23,11 +24,18 @@ export class WellnessUtils {
   }
 
   /**
-   * Get a random replacement phrase
+   * Get a replacement string for blocked content
+   * Returns empty string if replacements are disabled
    *
-   * @returns {string} Random healthy phrase
+   * @returns {string} Replacement text or empty string
    */
-  getRandomReplacement() {
+  getReplacementString() {
+    // If replacement phrases are disabled, return empty string (erase mode)
+    if (!this.config.USE_REPLACEMENT_PHRASES) {
+      return "";
+    }
+
+    // Otherwise, return a random healthy phrase
     const phrases = this.config.REPLACEMENT_PHRASES;
     if (!phrases || phrases.length === 0) {
       return "wellness";
@@ -56,11 +64,14 @@ export class WellnessUtils {
   }
 
   /**
-   * Scrub text by replacing blocked words and phrases
-   * Supports multi-word phrase detection and replacement
+   * Scrub text by replacing or erasing blocked words and phrases
+   * Supports multi-word phrase detection
+   * Behavior depends on USE_REPLACEMENT_PHRASES setting:
+   * - true: replaces with random healthy phrases
+   * - false: erases blocked content (replaces with empty string)
    *
    * @param {string} text - Text to scrub
-   * @returns {Promise<string>} Scrubbed text with replacements
+   * @returns {Promise<string>} Scrubbed text with replacements or erasures
    */
   async scrubText(text) {
     if (!text) return text;
@@ -71,7 +82,7 @@ export class WellnessUtils {
       const result = await scrubTextWithHashes(
         text,
         this.config.BLOCKED_WORDS,
-        () => this.getRandomReplacement()
+        () => this.getReplacementString()
       );
 
       // Update statistics if anything was found
@@ -108,19 +119,14 @@ export class WellnessUtils {
 
       // Check URL and query parameters
       const hasBlockedInUrl = await this.containsBlockedWord(url);
-      const hasBlockedInQuery = query ? await this.containsBlockedWord(query) : false;
+      const hasBlockedInQuery = query
+        ? await this.containsBlockedWord(query)
+        : false;
 
       if (hasBlockedInUrl || hasBlockedInQuery) {
-        logger.info(`Detected blocked word/phrase in URL, notifying background`);
-
-        try {
-          chrome.runtime.sendMessage({
-            action: "blockedUrl",
-            url: window.location.href,
-          });
-        } catch (error) {
-          logger.safeError("Failed to send message", error);
-        }
+        this.sessionFilterCount++;
+        this.updateFilterStats(1);
+        await this.redirectToBlockedPage();
       }
     } catch (error) {
       logger.safeError("Error checking URL", error);
@@ -133,74 +139,31 @@ export class WellnessUtils {
    * @param {number} count - Number of items filtered
    */
   updateFilterStats(count) {
-    if (!isExtensionContextValid()) {
-      logger.debug("Extension context invalidated, skipping stats update");
-      return;
-    }
-
-    logger.debug(`Updating stats with count: ${count}`);
+    if (!isExtensionContextValid()) return;
 
     try {
-      chrome.storage.local.get(["filterCount", "todayCount"], (result) => {
-        if (chrome.runtime.lastError) {
-          logger.safeError("Error reading stats", chrome.runtime.lastError);
-          return;
-        }
-
-        const newFilterCount = (result.filterCount || 0) + count;
-        const newTodayCount = (result.todayCount || 0) + count;
-
-        logger.debug(
-          `New counts: filter=${newFilterCount}, today=${newTodayCount}`
-        );
-
-        chrome.storage.local.set(
-          {
-            filterCount: newFilterCount,
-            todayCount: newTodayCount,
-          },
-          () => {
-            if (chrome.runtime.lastError) {
-              logger.safeError("Error saving stats", chrome.runtime.lastError);
-              return;
-            }
-
-            logger.debug("Stats saved, sending updateBadge message");
-
-            try {
-              chrome.runtime.sendMessage({
-                action: "updateBadge",
-              });
-            } catch (error) {
-              logger.safeError("Failed to send updateBadge message", error);
-            }
-          }
-        );
+      chrome.runtime.sendMessage({
+        type: "UPDATE_STATS",
+        count: count,
       });
     } catch (error) {
-      logger.safeError("Error in updateFilterStats", error);
+      logger.safeError("Error updating stats", error);
     }
   }
 
   /**
-   * Notify background script that content was filtered
-   *
-   * @param {number} count - Number of items filtered
+   * Redirect to blocked page
    */
-  notifyContentFiltered(count) {
-    if (!isExtensionContextValid()) {
-      return;
-    }
+  async redirectToBlockedPage() {
+    if (!isExtensionContextValid()) return;
 
-    if (this.config.SHOW_ALERTS && count > 0) {
-      try {
-        chrome.runtime.sendMessage({
-          action: "contentFiltered",
-          count: count,
-        });
-      } catch (error) {
-        logger.safeError("Failed to send notification", error);
-      }
+    try {
+      const blockedPageUrl = chrome.runtime.getURL(
+        "src/pages/blocked/index.html"
+      );
+      window.location.href = blockedPageUrl;
+    } catch (error) {
+      logger.safeError("Error redirecting to blocked page", error);
     }
   }
 }

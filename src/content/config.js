@@ -18,6 +18,7 @@ export class WellnessConfig {
     // Core settings - now stores hashes
     this.BLOCKED_WORDS = []; // Array of hashed words
     this.REPLACEMENT_PHRASES = [];
+    this.USE_REPLACEMENT_PHRASES = true; // NEW: Toggle for replacement vs erasure
     this.REDIRECT_URL = '';
     this.SHOW_ALERTS = false;
     this.ENABLED = true;
@@ -96,6 +97,7 @@ export class WellnessConfig {
         "redirectUrl",
         "showAlerts",
         "replacementPhrases",
+        "useReplacementPhrases",
         "enableFilter",
       ]);
 
@@ -104,52 +106,63 @@ export class WellnessConfig {
       this.REDIRECT_URL = result.redirectUrl || "";
       this.SHOW_ALERTS = result.showAlerts || false;
       this.REPLACEMENT_PHRASES = result.replacementPhrases || [];
-      this.ENABLED = result.enableFilter !== false;
+      this.USE_REPLACEMENT_PHRASES = result.useReplacementPhrases !== false; // Default to true
+      this.ENABLED = result.enableFilter !== false; // Default to true
 
-      logger.info("Settings loaded from storage", {
-        hashedWordsCount: this.BLOCKED_WORDS.length,
-        enabled: this.ENABLED
-      });
+      logger.debug("Config loaded successfully");
     } catch (error) {
       logger.safeError("Error loading config", error);
     }
   }
 
   /**
-   * Set up listeners for configuration changes
+   * Set up listeners for real-time config updates
    */
   setupListeners() {
-    if (!isExtensionContextValid()) {
-      return;
-    }
+    if (!isExtensionContextValid()) return;
 
     try {
-      chrome.storage.onChanged.addListener((changes, namespace) => {
-        if (namespace === 'sync') {
-          // Reload config when any setting changes
-          if (changes.blockedWords || 
-              changes.replacementPhrases || 
-              changes.redirectUrl || 
-              changes.showAlerts ||
-              changes.enableFilter) {
-            
-            logger.info('Settings changed, reloading config');
-            this.loadConfig();
-          }
+      chrome.storage.onChanged.addListener((changes, areaName) => {
+        if (areaName !== "sync") return;
+
+        let configChanged = false;
+
+        if (changes.blockedWords) {
+          this.BLOCKED_WORDS = changes.blockedWords.newValue || [];
+          configChanged = true;
+        }
+
+        if (changes.redirectUrl) {
+          this.REDIRECT_URL = changes.redirectUrl.newValue || "";
+          configChanged = true;
+        }
+
+        if (changes.showAlerts) {
+          this.SHOW_ALERTS = changes.showAlerts.newValue || false;
+          configChanged = true;
+        }
+
+        if (changes.replacementPhrases) {
+          this.REPLACEMENT_PHRASES = changes.replacementPhrases.newValue || [];
+          configChanged = true;
+        }
+
+        if (changes.useReplacementPhrases) {
+          this.USE_REPLACEMENT_PHRASES = changes.useReplacementPhrases.newValue !== false;
+          configChanged = true;
+        }
+
+        if (changes.enableFilter) {
+          this.ENABLED = changes.enableFilter.newValue !== false;
+          configChanged = true;
+        }
+
+        if (configChanged) {
+          logger.debug("Config updated from storage changes");
         }
       });
-
-      // Listen for reload messages from background
-      chrome.runtime.onMessage.addListener((message) => {
-        if (message.action === 'reloadConfig') {
-          logger.info('Received reload request');
-          this.loadConfig();
-        }
-      });
-
-      logger.info('Config listeners setup complete');
     } catch (error) {
-      logger.safeError('Error setting up listeners', error);
+      logger.safeError("Error setting up storage listeners", error);
     }
   }
 }

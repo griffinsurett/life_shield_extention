@@ -20,6 +20,7 @@ export const useSettings = () => {
     enableFilter: DEFAULTS.ENABLE_FILTER,
     showAlerts: DEFAULTS.SHOW_ALERTS,
     replacementPhrases: DEFAULTS.REPLACEMENT_PHRASES,
+    useReplacementPhrases: DEFAULTS.USE_REPLACEMENT_PHRASES,
     useCustomUrl: DEFAULTS.USE_CUSTOM_URL,
     customMessage: DEFAULTS.CUSTOM_MESSAGE,
   });
@@ -40,57 +41,65 @@ export const useSettings = () => {
       enableFilter: result.enableFilter ?? DEFAULTS.ENABLE_FILTER,
       showAlerts: result.showAlerts ?? DEFAULTS.SHOW_ALERTS,
       replacementPhrases: result.replacementPhrases ?? DEFAULTS.REPLACEMENT_PHRASES,
+      useReplacementPhrases: result.useReplacementPhrases ?? DEFAULTS.USE_REPLACEMENT_PHRASES,
       useCustomUrl: result.useCustomUrl ?? DEFAULTS.USE_CUSTOM_URL,
       customMessage: result.customMessage ?? DEFAULTS.CUSTOM_MESSAGE,
     });
     
     setLoading(false);
-  }, []); // No dependencies - uses constants
+  }, []);
 
+  // Load settings on mount
   useEffect(() => {
-    // Load initial settings
     loadSettings();
-
-    // Listen for storage changes
-    const listener = (changes, namespace) => {
-      if (namespace === 'sync') {
-        loadSettings();
-      }
-    };
-
-    storage.onChanged(listener);
-    
-    // Cleanup
-    return () => chrome.storage.onChanged.removeListener(listener);
   }, [loadSettings]);
+
+  // Listen for storage changes
+  useEffect(() => {
+    const handleStorageChange = (changes, areaName) => {
+      if (areaName !== 'sync') return;
+      
+      setSettings(prevSettings => {
+        const newSettings = { ...prevSettings };
+        
+        if (changes.blockedWords) newSettings.blockedWords = changes.blockedWords.newValue ?? DEFAULTS.BLOCKED_WORDS;
+        if (changes.blockedSites) newSettings.blockedSites = changes.blockedSites.newValue ?? DEFAULTS.BLOCKED_SITES;
+        if (changes.redirectUrl) newSettings.redirectUrl = changes.redirectUrl.newValue ?? DEFAULTS.REDIRECT_URL;
+        if (changes.enableFilter) newSettings.enableFilter = changes.enableFilter.newValue ?? DEFAULTS.ENABLE_FILTER;
+        if (changes.showAlerts) newSettings.showAlerts = changes.showAlerts.newValue ?? DEFAULTS.SHOW_ALERTS;
+        if (changes.replacementPhrases) newSettings.replacementPhrases = changes.replacementPhrases.newValue ?? DEFAULTS.REPLACEMENT_PHRASES;
+        if (changes.useReplacementPhrases) newSettings.useReplacementPhrases = changes.useReplacementPhrases.newValue ?? DEFAULTS.USE_REPLACEMENT_PHRASES;
+        if (changes.useCustomUrl) newSettings.useCustomUrl = changes.useCustomUrl.newValue ?? DEFAULTS.USE_CUSTOM_URL;
+        if (changes.customMessage) newSettings.customMessage = changes.customMessage.newValue ?? DEFAULTS.CUSTOM_MESSAGE;
+        
+        return newSettings;
+      });
+    };
+    
+    chrome.storage.onChanged.addListener(handleStorageChange);
+    return () => chrome.storage.onChanged.removeListener(handleStorageChange);
+  }, []);
 
   /**
    * Update settings in storage
-   * Now with immediate filter state broadcast
+   * Notifies all tabs of the change
+   * 
+   * @param {Object} updates - Settings to update
    */
-const updateSettings = useCallback(async (updates) => {
-    console.log('[useSettings] Updating settings:', updates);
+  const updateSettings = useCallback(async (updates) => {
+    // Update local state immediately
+    setSettings(prev => ({ ...prev, ...updates }));
     
-    try {
-      // Save to storage
-      await storage.set(updates);
-      
-      // Immediately update local state
-      setSettings(prev => {
-        const newSettings = { ...prev, ...updates };
-        console.log('[useSettings] New settings state:', newSettings);
-        return newSettings;
-      });
-      
-      // Broadcast changes
-      await sendMessageToTabs({ action: 'reloadConfig' });
-      
-      console.log('[useSettings] Update successful');
-    } catch (error) {
-      console.error('[useSettings] Update failed:', error);
-      throw error; // Re-throw to let caller handle
-    }
+    // Save to storage
+    await storage.set(updates);
+    
+    // Notify all tabs
+    await sendMessageToTabs({ type: 'SETTINGS_UPDATED', settings: updates });
   }, []);
 
-  return { settings, updateSettings, loading };
+  return {
+    settings,
+    updateSettings,
+    loading
+  };
 };

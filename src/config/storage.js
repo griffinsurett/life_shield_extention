@@ -16,6 +16,7 @@ export const STORAGE_KEYS = {
   SHOW_ALERTS: 'showAlerts',
   REPLACEMENT_PHRASES: 'replacementPhrases',
   USE_CUSTOM_URL: 'useCustomUrl',
+  USE_REPLACEMENT_PHRASES: 'useReplacementPhrases',  // NEW: Toggle for replacement phrases
   CUSTOM_MESSAGE: 'customMessage',
   
   // Statistics (stored in local storage)

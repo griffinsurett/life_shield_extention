@@ -45,7 +45,9 @@ export const DEFAULTS = {
   BLOCKED_SITES: [],
   ENABLE_FILTER: true,
   SHOW_ALERTS: false,
-  USE_CUSTOM_URL: false
+  USE_CUSTOM_URL: false,
+  USE_REPLACEMENT_PHRASES: true,  // Enable/disable replacement phrases
+  INPUT_BEHAVIOR: 'remove_words'  // NEW: 'remove_words' or 'clear_input'
 };
 
 // Test data - clearly separated
