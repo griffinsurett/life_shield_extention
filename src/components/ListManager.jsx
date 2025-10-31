@@ -63,35 +63,34 @@ export const ListManager = ({
     inactivityTimeout,
   });
 
-  // Inactivity auto-lock - ONLY when list is visible
+  // Inactivity auto-lock - ONLY when list is visible and unlocked
   useInactivityLock({
-    enabled: isProtected && showList && securityLock.isUnlocked && enableInactivityLock,
-    onLock: () => securityLock.lock('inactivity'),
+    enabled: enableInactivityLock && isProtected && showList && securityLock.isUnlocked,
     timeout: inactivityTimeout,
-    showToast,
+    onTimeout: () => securityLock.lock('inactivity'),
   });
 
-  // Tab blur auto-lock - ONLY when list is visible
+  // Blur auto-lock - ONLY when list is visible and unlocked
   useBlurLock({
-    enabled: isProtected && showList && securityLock.isUnlocked && enableBlurLock,
-    onLock: () => securityLock.lock('blur'),
-    lockOnVisibilityChange: true,
-    lockOnWindowBlur: false,
-    showToast,
+    enabled: enableBlurLock && isProtected && showList && securityLock.isUnlocked,
+    onBlur: () => securityLock.lock('blur'),
   });
 
-  // Screenshot detection - ONLY when list is visible
+  // Screenshot detection - ONLY when list is visible and unlocked
   useScreenshotDetection({
-    enabled: isProtected && showList && securityLock.isUnlocked && enableScreenshotDetection,
-    onScreenshot: () => securityLock.lock('screenshot'),
-    showToast,
+    enabled: enableScreenshotDetection && isProtected && showList && securityLock.isUnlocked,
+    onScreenshot: () => {
+      if (showToast) {
+        showToast('Screenshot detected - list locked for protection', 'warning');
+      }
+      securityLock.lock('screenshot');
+    },
   });
-  
+
   // Check if passcode exists on mount
   useEffect(() => {
     const checkPasscode = async () => {
       if (!isProtected) return;
-      
       const result = await chrome.storage.local.get([STORAGE_KEYS.PASSCODE_HASH]);
       setHasPasscode(!!result[STORAGE_KEYS.PASSCODE_HASH]);
     };
@@ -333,51 +332,51 @@ export const ListManager = ({
     );
   }, [isProtected, showList, securityLock.isUnlocked, items, config.icon, pluralName, itemName, handleRemove, showToast]);
 
-  if (variant === 'compact') {
-    return (
-      <div className="p-4 bg-gradient-to-r from-red-500/20 to-pink-500/20 rounded-xl border-2 border-red-400/40 backdrop-blur-sm">
-        <div className="flex items-center gap-2 mb-3">
-          <span className="text-lg">{config.icon}</span>
-          <h3 className="text-sm font-bold uppercase tracking-wide text-white">
-            {pluralName.toLowerCase()}
-          </h3>
-        </div>
-
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex-1 min-w-0">
-            <div className="bg-black/20 rounded-lg p-3 mb-3">
-              <Input
-                type="text"
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    handleAdd();
-                  }
-                }}
-                placeholder={placeholder || `Enter ${itemName.toLowerCase()}...`}
-                className="w-full bg-transparent border-none text-white placeholder-white/60 focus:outline-none text-sm"
-              />
-            </div>
-            <p className="text-xs text-white/80">
-              {items.length} {items.length === 1 ? itemName.toLowerCase() : pluralName.toLowerCase()}
-            </p>
-          </div>
-
-          <Button
-            onClick={handleAdd}
-            disabled={!inputValue.trim()}
-            className="btn-base btn-md bg-red-600 hover:bg-red-700 text-white font-bold shadow-lg flex-shrink-0"
-          >
-            Block
-          </Button>
-        </div>
+  // Render compact variant
+  const renderCompactVariant = () => (
+    <div className="p-4 bg-gradient-to-r from-red-500/20 to-pink-500/20 rounded-xl border-2 border-red-400/40 backdrop-blur-sm">
+      <div className="flex items-center gap-2 mb-3">
+        <span className="text-lg">{config.icon}</span>
+        <h3 className="text-sm font-bold uppercase tracking-wide text-white">
+          {pluralName.toLowerCase()}
+        </h3>
       </div>
-    );
-  }
 
-  return (
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1 min-w-0">
+          <div className="bg-black/20 rounded-lg p-3 mb-3">
+            <Input
+              type="text"
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleAdd();
+                }
+              }}
+              placeholder={placeholder || `Enter ${itemName.toLowerCase()}...`}
+              className="w-full bg-transparent border-none text-white placeholder-white/60 focus:outline-none text-sm"
+            />
+          </div>
+          <p className="text-xs text-white/80">
+            {items.length} {items.length === 1 ? itemName.toLowerCase() : pluralName.toLowerCase()}
+          </p>
+        </div>
+
+        <Button
+          onClick={handleAdd}
+          disabled={!inputValue.trim()}
+          className="btn-base btn-md bg-red-600 hover:bg-red-700 text-white font-bold shadow-lg flex-shrink-0"
+        >
+          Block
+        </Button>
+      </div>
+    </div>
+  );
+
+  // Render default variant
+  const renderDefaultVariant = () => (
     <div className="space-y-6">
       {/* Security Monitor - silent background monitoring - ONLY when list shown */}
       {showList && (
@@ -491,7 +490,15 @@ export const ListManager = ({
           )}
         </>
       )}
+    </div>
+  );
 
+  return (
+    <>
+      {/* Render the appropriate variant */}
+      {variant === 'compact' ? renderCompactVariant() : renderDefaultVariant()}
+
+      {/* CRITICAL FIX: Always render modals regardless of variant */}
       <ConfirmationModal
         isOpen={confirmation.isOpen}
         onClose={confirmation.closeModal}
@@ -518,7 +525,7 @@ export const ListManager = ({
           }
         />
       )}
-    </div>
+    </>
   );
 };
 
