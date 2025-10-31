@@ -18,6 +18,7 @@ export const PasscodeSection = ({ showToast, showConfirmation }) => {
   const [hasPasscode, setHasPasscode] = useState(false);
   const [showPasscodeModal, setShowPasscodeModal] = useState(false);
   const [passcodeMode, setPasscodeMode] = useState('setup');
+  const [passcodeAction, setPasscodeAction] = useState(null); // 'change' or 'remove'
   const [loadingPasscode, setLoadingPasscode] = useState(true);
 
   // Check if passcode exists on mount
@@ -51,6 +52,7 @@ export const PasscodeSection = ({ showToast, showConfirmation }) => {
    */
   const handleSetPasscode = () => {
     setPasscodeMode('setup');
+    setPasscodeAction('setup');
     setShowPasscodeModal(true);
   };
 
@@ -58,49 +60,111 @@ export const PasscodeSection = ({ showToast, showConfirmation }) => {
    * Handle changing passcode
    */
   const handleChangePasscode = () => {
-    setPasscodeMode('setup');
+    setPasscodeMode('verify');
+    setPasscodeAction('change');
     setShowPasscodeModal(true);
   };
 
   /**
-   * Handle removing passcode with confirmation
+   * Handle removing passcode - requires verification first
    */
   const handleRemovePasscode = () => {
-    showConfirmation({
-      title: 'Remove Passcode?',
-      message: 'Your blocked content lists will no longer be protected. Anyone with access to this browser will be able to view them. Are you sure?',
-      confirmText: 'Remove Passcode',
-      cancelText: 'Keep Passcode',
-      confirmColor: 'red',
-      onConfirm: async () => {
-        try {
-          await chrome.storage.local.remove([
-            STORAGE_KEYS.PASSCODE_HASH,
-            'failed_attempts',
-            'passcode_lockout'
-          ]);
-          setHasPasscode(false);
-          showToast('Passcode removed successfully', 'success');
-        } catch (error) {
-          console.error('Error removing passcode:', error);
-          showToast('Failed to remove passcode', 'error');
-        }
-      }
-    });
+    setPasscodeMode('verify');
+    setPasscodeAction('remove');
+    setShowPasscodeModal(true);
   };
 
   /**
-   * Handle passcode setup/change success
+   * Actually remove the passcode (called after confirmation)
+   */
+  const executeRemovePasscode = async () => {
+    try {
+      await chrome.storage.local.remove([
+        STORAGE_KEYS.PASSCODE_HASH,
+        'failed_attempts',
+        'passcode_lockout'
+      ]);
+      setHasPasscode(false);
+      showToast('Passcode removed successfully', 'success');
+    } catch (error) {
+      console.error('Error removing passcode:', error);
+      showToast('Failed to remove passcode', 'error');
+    }
+  };
+
+  /**
+   * Handle passcode verification/setup success
    */
   const handlePasscodeSuccess = () => {
-    const wasChanging = hasPasscode && passcodeMode === 'setup';
-    setHasPasscode(true);
-    
-    if (wasChanging) {
-      showToast('Passcode changed successfully', 'success');
-    } else {
+    // Handle different actions based on what was requested
+    if (passcodeAction === 'setup') {
+      // Setting up new passcode
+      setHasPasscode(true);
       showToast('Passcode set successfully', 'success');
+      setPasscodeAction(null);
+    } else if (passcodeAction === 'change') {
+      // Verified for change - now show setup modal for new passcode
+      setPasscodeMode('setup');
+      setPasscodeAction('setup');
+      // Keep modal open, just change mode
+    } else if (passcodeAction === 'remove') {
+      // Verified for removal - now show confirmation dialog
+      showConfirmation({
+        title: 'Remove Passcode?',
+        message: 'Your blocked content lists will no longer be protected. Anyone with access to this browser will be able to view them. Are you sure you want to remove your passcode?',
+        confirmText: 'Remove Passcode',
+        cancelText: 'Keep Passcode',
+        confirmColor: 'red',
+        onConfirm: executeRemovePasscode
+      });
+      setPasscodeAction(null);
+      setShowPasscodeModal(false);
     }
+  };
+
+  /**
+   * Handle modal close
+   */
+  const handleModalClose = () => {
+    setShowPasscodeModal(false);
+    setPasscodeAction(null);
+    setPasscodeMode('setup');
+  };
+
+  /**
+   * Get modal title based on action
+   */
+  const getModalTitle = () => {
+    if (passcodeMode === 'verify') {
+      if (passcodeAction === 'change') {
+        return 'Verify Current Passcode';
+      } else if (passcodeAction === 'remove') {
+        return 'Verify Passcode to Remove';
+      }
+    } else if (passcodeMode === 'setup') {
+      if (passcodeAction === 'setup' && hasPasscode) {
+        return 'Set New Passcode';
+      }
+    }
+    return undefined; // Use default
+  };
+
+  /**
+   * Get modal message based on action
+   */
+  const getModalMessage = () => {
+    if (passcodeMode === 'verify') {
+      if (passcodeAction === 'change') {
+        return 'Enter your current passcode to change it';
+      } else if (passcodeAction === 'remove') {
+        return 'Enter your current passcode to proceed with removal';
+      }
+    } else if (passcodeMode === 'setup') {
+      if (passcodeAction === 'setup' && hasPasscode) {
+        return 'Enter a new passcode to replace your current one';
+      }
+    }
+    return undefined; // Use default
   };
 
   return (
@@ -215,6 +279,10 @@ export const PasscodeSection = ({ showToast, showConfirmation }) => {
                       <span className="text-blue-600 mt-0.5">•</span>
                       <span><strong>Rate Limiting:</strong> 1 hour lockout after 5 failed attempts</span>
                     </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-blue-600 mt-0.5">•</span>
+                      <span><strong>Verification Required:</strong> Passcode needed to change or remove</span>
+                    </li>
                   </ul>
                 </div>
               </div>
@@ -258,14 +326,11 @@ export const PasscodeSection = ({ showToast, showConfirmation }) => {
       {/* Passcode Modal */}
       <PasscodeModal
         isOpen={showPasscodeModal}
-        onClose={() => setShowPasscodeModal(false)}
+        onClose={handleModalClose}
         onSuccess={handlePasscodeSuccess}
         mode={passcodeMode}
-        title={passcodeMode === 'setup' && hasPasscode ? 'Change Passcode' : undefined}
-        message={passcodeMode === 'setup' && hasPasscode 
-          ? 'Enter a new passcode to replace your current one'
-          : undefined
-        }
+        title={getModalTitle()}
+        message={getModalMessage()}
       />
     </>
   );
