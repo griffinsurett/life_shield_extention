@@ -1,4 +1,4 @@
-// src/components/ListManager.jsx - FULLY MODULAR VERSION
+// src/components/ListManager.jsx
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useConfirmation } from '../hooks/useConfirmation';
 import { useSecurityLock } from '../hooks/useSecurityLock';
@@ -56,33 +56,33 @@ export const ListManager = ({
 
   const pluralName = itemNamePlural || `${itemName}s`;
 
-  // Security lock management
+  // Security lock management - ONLY for viewing list
   const securityLock = useSecurityLock({
-    isProtected,
+    isProtected: isProtected && showList, // Only lock if showing list
     showToast,
     inactivityTimeout,
   });
 
-  // Inactivity auto-lock
+  // Inactivity auto-lock - ONLY when list is visible
   useInactivityLock({
-    enabled: isProtected && securityLock.isUnlocked && enableInactivityLock,
+    enabled: isProtected && showList && securityLock.isUnlocked && enableInactivityLock,
     onLock: () => securityLock.lock('inactivity'),
     timeout: inactivityTimeout,
     showToast,
   });
 
-  // Tab blur auto-lock
+  // Tab blur auto-lock - ONLY when list is visible
   useBlurLock({
-    enabled: isProtected && securityLock.isUnlocked && enableBlurLock,
+    enabled: isProtected && showList && securityLock.isUnlocked && enableBlurLock,
     onLock: () => securityLock.lock('blur'),
     lockOnVisibilityChange: true,
     lockOnWindowBlur: false,
     showToast,
   });
 
-  // Screenshot detection
+  // Screenshot detection - ONLY when list is visible
   useScreenshotDetection({
-    enabled: isProtected && securityLock.isUnlocked && enableScreenshotDetection,
+    enabled: isProtected && showList && securityLock.isUnlocked && enableScreenshotDetection,
     onScreenshot: () => securityLock.lock('screenshot'),
     showToast,
   });
@@ -90,13 +90,13 @@ export const ListManager = ({
   // Check if passcode exists on mount
   useEffect(() => {
     const checkPasscode = async () => {
+      if (!isProtected) return;
+      
       const result = await chrome.storage.local.get([STORAGE_KEYS.PASSCODE_HASH]);
       setHasPasscode(!!result[STORAGE_KEYS.PASSCODE_HASH]);
     };
     
-    if (isProtected) {
-      checkPasscode();
-    }
+    checkPasscode();
   }, [isProtected]);
   
   const variantConfig = useMemo(() => ({
@@ -179,6 +179,7 @@ export const ListManager = ({
       return;
     }
 
+    // Hash item if protected (regardless of unlock state for adding)
     let itemToAdd = value;
     if (isProtected) {
       try {
@@ -279,8 +280,8 @@ export const ListManager = ({
   }, [securityLock, showToast]);
 
   const renderListItems = useCallback(() => {
-    // SECURITY: Conditional rendering
-    if (isProtected && !securityLock.isUnlocked) {
+    // SECURITY: Conditional rendering - only for viewing list
+    if (isProtected && showList && !securityLock.isUnlocked) {
       return null;
     }
 
@@ -330,7 +331,7 @@ export const ListManager = ({
         </div>
       </ProtectedContent>
     );
-  }, [isProtected, securityLock.isUnlocked, items, config.icon, pluralName, itemName, handleRemove, showToast]);
+  }, [isProtected, showList, securityLock.isUnlocked, items, config.icon, pluralName, itemName, handleRemove, showToast]);
 
   if (variant === 'compact') {
     return (
@@ -378,11 +379,13 @@ export const ListManager = ({
 
   return (
     <div className="space-y-6">
-      {/* Security Monitor - silent background monitoring */}
-      <SecurityMonitor
-        enabled={isProtected && !securityLock.isUnlocked}
-        expectedLocked={true}
-      />
+      {/* Security Monitor - silent background monitoring - ONLY when list shown */}
+      {showList && (
+        <SecurityMonitor
+          enabled={isProtected && !securityLock.isUnlocked}
+          expectedLocked={true}
+        />
+      )}
 
       <div className={`${config.containerClass} ${config.bg} ${config.border}`}>
         <div className="flex items-center gap-2 mb-4">
@@ -501,18 +504,20 @@ export const ListManager = ({
         onCancel={confirmation.handleCancel}
       />
 
-      <PasscodeModal
-        isOpen={showPasscodeModal}
-        onClose={() => setShowPasscodeModal(false)}
-        onSuccess={handlePasscodeSuccess}
-        mode={passcodeMode}
-        title={passcodeMode === 'setup' ? 'Set Passcode' : 'Enter Passcode'}
-        message={
-          passcodeMode === 'setup'
-            ? 'Set a passcode to protect your blocked content lists'
-            : 'Enter your passcode to view the list'
-        }
-      />
+      {showList && (
+        <PasscodeModal
+          isOpen={showPasscodeModal}
+          onClose={() => setShowPasscodeModal(false)}
+          onSuccess={handlePasscodeSuccess}
+          mode={passcodeMode}
+          title={passcodeMode === 'setup' ? 'Set Passcode' : 'Enter Passcode'}
+          message={
+            passcodeMode === 'setup'
+              ? 'Set a passcode to protect your blocked content lists'
+              : 'Enter your passcode to view the list'
+          }
+        />
+      )}
     </div>
   );
 };

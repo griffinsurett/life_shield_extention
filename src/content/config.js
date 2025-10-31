@@ -1,9 +1,10 @@
+// src/content/config.js
 /**
  * Content Script Configuration
  * 
  * Configuration loaded from chrome.storage.sync.
  * Updates automatically when settings change.
- * Now supports hashed blocked words and sites.
+ * Now supports hashed blocked words and sites with cache management.
  * 
  * @class WellnessConfig
  */
@@ -18,7 +19,6 @@ export class WellnessConfig {
     // Core settings - now stores hashes
     this.BLOCKED_WORDS = []; // Array of hashed words
     this.REPLACEMENT_PHRASES = [];
-    this.USE_REPLACEMENT_PHRASES = true; // NEW: Toggle for replacement vs erasure
     this.REDIRECT_URL = '';
     this.SHOW_ALERTS = false;
     this.ENABLED = true;
@@ -97,7 +97,6 @@ export class WellnessConfig {
         "redirectUrl",
         "showAlerts",
         "replacementPhrases",
-        "useReplacementPhrases",
         "enableFilter",
       ]);
 
@@ -106,63 +105,74 @@ export class WellnessConfig {
       this.REDIRECT_URL = result.redirectUrl || "";
       this.SHOW_ALERTS = result.showAlerts || false;
       this.REPLACEMENT_PHRASES = result.replacementPhrases || [];
-      this.USE_REPLACEMENT_PHRASES = result.useReplacementPhrases !== false; // Default to true
-      this.ENABLED = result.enableFilter !== false; // Default to true
+      this.ENABLED = result.enableFilter !== false;
 
-      logger.debug("Config loaded successfully");
+      logger.info("Configuration loaded:", {
+        blockedWords: this.BLOCKED_WORDS.length,
+        phrases: this.REPLACEMENT_PHRASES.length,
+        enabled: this.ENABLED,
+      });
     } catch (error) {
       logger.safeError("Error loading config", error);
     }
   }
 
   /**
-   * Set up listeners for real-time config updates
+   * Set up storage change listeners with cache clearing
    */
   setupListeners() {
     if (!isExtensionContextValid()) return;
 
     try {
-      chrome.storage.onChanged.addListener((changes, areaName) => {
-        if (areaName !== "sync") return;
+      chrome.storage.onChanged.addListener((changes, namespace) => {
+        if (namespace === 'sync') {
+          let shouldClearCache = false;
 
-        let configChanged = false;
+          if (changes.blockedWords) {
+            this.BLOCKED_WORDS = changes.blockedWords.newValue || [];
+            shouldClearCache = true;
+            logger.info(`Blocked words updated: ${this.BLOCKED_WORDS.length} hashes`);
+          }
 
-        if (changes.blockedWords) {
-          this.BLOCKED_WORDS = changes.blockedWords.newValue || [];
-          configChanged = true;
-        }
+          if (changes.replacementPhrases) {
+            this.REPLACEMENT_PHRASES = changes.replacementPhrases.newValue || [];
+            logger.info(`Replacement phrases updated: ${this.REPLACEMENT_PHRASES.length}`);
+          }
 
-        if (changes.redirectUrl) {
-          this.REDIRECT_URL = changes.redirectUrl.newValue || "";
-          configChanged = true;
-        }
+          if (changes.redirectUrl) {
+            this.REDIRECT_URL = changes.redirectUrl.newValue || '';
+            logger.info('Redirect URL updated');
+          }
 
-        if (changes.showAlerts) {
-          this.SHOW_ALERTS = changes.showAlerts.newValue || false;
-          configChanged = true;
-        }
+          if (changes.showAlerts !== undefined) {
+            this.SHOW_ALERTS = changes.showAlerts.newValue || false;
+            logger.info(`Show alerts: ${this.SHOW_ALERTS}`);
+          }
 
-        if (changes.replacementPhrases) {
-          this.REPLACEMENT_PHRASES = changes.replacementPhrases.newValue || [];
-          configChanged = true;
-        }
+          if (changes.enableFilter !== undefined) {
+            this.ENABLED = changes.enableFilter.newValue;
+            logger.info(`Filter enabled: ${this.ENABLED}`);
+          }
 
-        if (changes.useReplacementPhrases) {
-          this.USE_REPLACEMENT_PHRASES = changes.useReplacementPhrases.newValue !== false;
-          configChanged = true;
-        }
+          // Clear caches when blocked words change
+          if (shouldClearCache) {
+            // Clear hash cache
+            import('../utils/hashing.js').then(module => {
+              module.clearHashCache();
+              logger.info('Hash cache cleared due to settings change');
+            }).catch(err => {
+              logger.safeError('Failed to clear hash cache', err);
+            });
 
-        if (changes.enableFilter) {
-          this.ENABLED = changes.enableFilter.newValue !== false;
-          configChanged = true;
-        }
-
-        if (configChanged) {
-          logger.debug("Config updated from storage changes");
+            // Notify page to reload if needed
+            logger.info('Configuration updated - caches cleared');
+          }
         }
       });
+
+      logger.debug('Storage listeners configured with cache management');
     } catch (error) {
-      logger.safeError("Error setting up storage listeners", error);
+      logger.safeError('Error setting up listeners', error);
     }
   }
 }

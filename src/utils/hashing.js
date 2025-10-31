@@ -1,71 +1,81 @@
+// src/utils/hashing.js
 /**
  * Hashing Utilities
  * 
- * Provides secure hashing for protected content.
- * Supports both individual words and complete phrases/sentences.
- * Uses SHA-256 via Web Crypto API for consistent hashing.
+ * Provides SHA-256 hashing functions for privacy-preserving content filtering.
+ * Now includes intelligent caching for performance optimization.
  * 
  * @module utils/hashing
  */
 
+// Hash cache to avoid recomputing same hashes
+const hashCache = new Map();
+const MAX_CACHE_SIZE = 1000;
+
 /**
- * Hash a string using SHA-256
- * Always normalizes to lowercase and trims whitespace
- * Preserves internal spaces for phrase matching
- * 
- * @param {string} str - String to hash
- * @returns {Promise<string>} Hex-encoded hash
+ * Clear hash cache (useful for testing or memory management)
  */
-export async function hashString(str) {
-  if (!str) return '';
+export function clearHashCache() {
+  hashCache.clear();
+  console.log('Hash cache cleared');
+}
+
+/**
+ * Hash a string using SHA-256 (with caching)
+ * 
+ * @param {string} text - Text to hash
+ * @returns {Promise<string>} Hex string of hash
+ * 
+ * @example
+ * const hash = await hashString("example");
+ * // Returns: "50d858e0985ecc7f60418aaf0cc5ab587f42c2570a884095a9e8ccacd0f6545c"
+ */
+export async function hashString(text) {
+  if (!text) return '';
   
-  // Normalize: lowercase, trim, but preserve internal spaces
-  const normalized = str.toLowerCase().trim();
+  // Normalize
+  const normalized = text.toLowerCase().trim();
   
-  // Encode string to Uint8Array
+  // Check cache first
+  if (hashCache.has(normalized)) {
+    return hashCache.get(normalized);
+  }
+  
+  // Compute hash
   const encoder = new TextEncoder();
   const data = encoder.encode(normalized);
-  
-  // Hash using SHA-256
   const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  
-  // Convert to hex string
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  
+  // Cache result (with size limit)
+  if (hashCache.size >= MAX_CACHE_SIZE) {
+    // Remove oldest entry (first in map)
+    const firstKey = hashCache.keys().next().value;
+    hashCache.delete(firstKey);
+  }
+  hashCache.set(normalized, hashHex);
   
   return hashHex;
 }
 
 /**
- * Hash an array of strings
- * 
- * @param {string[]} strings - Array of strings to hash
- * @returns {Promise<string[]>} Array of hashes
- */
-export async function hashArray(strings) {
-  if (!Array.isArray(strings)) return [];
-  
-  const hashes = await Promise.all(
-    strings.map(str => hashString(str))
-  );
-  
-  return hashes;
-}
-
-/**
- * Extract words from text for hashing/comparison
- * Splits on whitespace and common punctuation
+ * Extract words from text for hashing
+ * Splits on whitespace and punctuation
  * 
  * @param {string} text - Text to extract words from
  * @returns {string[]} Array of words
+ * 
+ * @example
+ * extractWords("Hello, world! How are you?")
+ * // Returns: ["hello", "world", "how", "are", "you"]
  */
 export function extractWords(text) {
   if (!text) return [];
   
-  // Split on whitespace and common punctuation, keep alphanumeric
-  const words = text
-    .toLowerCase()
-    .split(/[\s,.\-_!?;:()\[\]{}'"\/\\]+/)
+  const normalized = text.toLowerCase().trim();
+  const words = normalized
+    .split(/[\s\-_.,;:()\[\]{}'"\/\\]+/)
     .filter(word => word.length > 0);
   
   return words;
@@ -142,7 +152,7 @@ export async function scrubTextWithHashes(text, hashedWords, getReplacementFn) {
   
   const words = extractWords(text);
   const hashSet = new Set(hashedWords);
-  const replacements = new Map(); // Map of ngram -> replacement
+  const replacements = new Map(); // Map of word index -> replacement
   let matchCount = 0;
   
   // Check all n-grams (longest first to prefer longer matches)
@@ -179,7 +189,6 @@ export async function scrubTextWithHashes(text, hashedWords, getReplacementFn) {
   
   // Reconstruct text with replacements
   let scrubbedText = text;
-  let offset = 0;
   
   // Group consecutive replacements
   const groups = [];

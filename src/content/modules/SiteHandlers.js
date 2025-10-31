@@ -1,8 +1,9 @@
+// src/content/modules/SiteHandlers.js
 /**
  * Site Handlers Module
  * 
- * Site-specific handling for Google, Yahoo, etc.
- * Now with enhanced Google New Tab page support.
+ * Site-specific handlers for Google, Yahoo, Bing, etc.
+ * Optimized for performance with caching and throttling.
  * 
  * @class SiteHandlers
  */
@@ -15,156 +16,136 @@ export class SiteHandlers {
   /**
    * @param {WellnessConfig} config - Configuration
    * @param {WellnessUtils} utils - Utility functions
-   * @param {InputHandler} inputHandler - Input handler
+   * @param {InputHandler} inputHandler - Input handler instance
    */
   constructor(config, utils, inputHandler) {
     this.config = config;
     this.utils = utils;
     this.inputHandler = inputHandler;
-    this.hostname = window.location.hostname.toLowerCase();
+    this.observers = [];
+    this.lastGoogleCheck = 0;
+    this.googleCheckCache = new Map(); // Cache suggestion checks
   }
 
   /**
-   * Initialize site-specific handlers
+   * Initialize site-specific handlers based on hostname
    */
   init() {
-    logger.info(`Checking site-specific handlers for: ${this.hostname}`);
+    const hostname = window.location.hostname;
 
-    if (this.hostname.includes('google')) {
+    if (hostname.includes('google.')) {
       this.setupGoogleHandler();
-    } else if (this.hostname.includes('yahoo')) {
+    } else if (hostname.includes('yahoo.')) {
       this.setupYahooHandler();
-    } else if (this.hostname.includes('bing')) {
+    } else if (hostname.includes('bing.')) {
       this.setupBingHandler();
     }
   }
 
   /**
-   * Set up Google search handler
+   * Set up Google search handler - OPTIMIZED
    */
   setupGoogleHandler() {
-    logger.info('Setting up Google search handler');
-
-    // More aggressive setup for Google's dynamic UI
-    const setupInterval = setInterval(() => {
-      // Find all possible Google search inputs
-      const searchBoxes = document.querySelectorAll(
-        this.config.SELECTORS.GOOGLE_SEARCH.join(', ')
-      );
-
-      if (searchBoxes.length > 0) {
-        let attached = 0;
-        searchBoxes.forEach(box => {
-          if (!box.getAttribute('data-filter-attached')) {
-            this.inputHandler.attachInputListener(box);
-            this.inputHandler.attachedInputs.add(box);
-            attached++;
-          }
-        });
-        
-        if (attached > 0) {
-          logger.info(`Google: Attached to ${attached} search boxes`);
-        }
-      }
-    }, this.config.GOOGLE_SETUP_INTERVAL);
-
-    // Clean up after 30 seconds (increased from 10)
-    setTimeout(() => {
-      clearInterval(setupInterval);
-      logger.debug('Google setup interval cleared');
-    }, 30000);
-
-    // Hide blocked suggestions
+    logger.info('Setting up Google search handler (optimized)');
+    this.inputHandler.attachToInputs(document);
     this.hideGoogleSuggestions();
-    
-    // Add special handler for Google New Tab page
-    this.setupGoogleNewTabHandler();
   }
 
   /**
-   * Set up special handler for Google New Tab page
-   */
-  setupGoogleNewTabHandler() {
-    // Check if this is the Google homepage (often used as new tab)
-    if (window.location.pathname === '/' || window.location.pathname === '') {
-      logger.info('Detected Google homepage - setting up new tab handler');
-
-      // Very aggressive scanning for the search input
-      let scanCount = 0;
-      const aggressiveScan = setInterval(() => {
-        scanCount++;
-        
-        // Try every possible selector
-        const inputs = document.querySelectorAll('input, textarea, [contenteditable="true"]');
-        
-        inputs.forEach(input => {
-          // Check if it looks like a search input
-          const isSearchInput = 
-            input.name === 'q' ||
-            input.getAttribute('aria-label')?.toLowerCase().includes('search') ||
-            input.getAttribute('title')?.toLowerCase().includes('search') ||
-            input.className?.includes('gLFyf') ||
-            input.getAttribute('jsname');
-
-          if (isSearchInput && !input.getAttribute('data-filter-attached')) {
-            logger.info(`Found Google search input (scan #${scanCount}):`, {
-              tag: input.tagName,
-              name: input.name,
-              class: input.className,
-              jsname: input.getAttribute('jsname')
-            });
-            
-            this.inputHandler.attachInputListener(input);
-            this.inputHandler.attachedInputs.add(input);
-          }
-        });
-
-        // Stop after 60 scans (6 seconds)
-        if (scanCount >= 60) {
-          clearInterval(aggressiveScan);
-          logger.info('Aggressive scan completed');
-        }
-      }, 100); // Every 100ms for first 6 seconds
-    }
-  }
-
-  /**
-   * Hide Google suggestions with blocked words
+   * Hide Google suggestions containing blocked words - HEAVILY OPTIMIZED
    */
   hideGoogleSuggestions() {
+    let debounceTimer = null;
+    const DEBOUNCE_DELAY = 500; // Wait 500ms after last change
+    const CHECK_INTERVAL = 300; // Minimum 300ms between checks
+    
     const observer = new MutationObserver(() => {
-      try {
-        const suggestions = document.querySelectorAll(
-          this.config.SELECTORS.GOOGLE_SUGGESTION.join(', ')
-        );
+      // Clear existing timer
+      if (debounceTimer) {
+        clearTimeout(debounceTimer);
+      }
 
-        for (const suggestion of suggestions) {
-          const text = suggestion.textContent || '';
-          
-          if (this.utils.containsBlockedWord(text)) {
-            if (this.config.HIDE_ENTIRE_DROPDOWN) {
-              const dropdown = suggestion.closest('[role="listbox"]');
-              if (dropdown) {
-                dropdown.style.display = 'none';
-                logger.debug('Hidden Google dropdown with blocked content');
+      // Debounce to avoid excessive checks
+      debounceTimer = setTimeout(async () => {
+        // Throttle checks
+        const now = Date.now();
+        if (now - this.lastGoogleCheck < CHECK_INTERVAL) {
+          return;
+        }
+        this.lastGoogleCheck = now;
+
+        try {
+          const suggestions = document.querySelectorAll(
+            this.config.SELECTORS.GOOGLE_SUGGESTION.join(', ')
+          );
+
+          // Early exit if no suggestions
+          if (suggestions.length === 0) return;
+
+          // Process in smaller batches to avoid blocking
+          for (const suggestion of suggestions) {
+            // Skip if already hidden
+            if (suggestion.style.display === 'none') continue;
+
+            const text = suggestion.textContent || '';
+            
+            // Skip empty
+            if (!text.trim()) continue;
+
+            // Check cache first
+            if (this.googleCheckCache.has(text)) {
+              if (this.googleCheckCache.get(text)) {
+                if (this.config.HIDE_ENTIRE_DROPDOWN) {
+                  const dropdown = suggestion.closest('[role="listbox"]');
+                  if (dropdown) dropdown.style.display = 'none';
+                } else {
+                  suggestion.style.display = 'none';
+                }
               }
-            } else {
-              suggestion.style.display = 'none';
-              logger.debug('Hidden Google suggestion');
+              continue;
+            }
+
+            // Check if blocked (async)
+            const isBlocked = await this.utils.containsBlockedWord(text);
+            
+            // Cache result (limit cache size)
+            if (this.googleCheckCache.size > 100) {
+              // Clear oldest entries
+              const firstKey = this.googleCheckCache.keys().next().value;
+              this.googleCheckCache.delete(firstKey);
+            }
+            this.googleCheckCache.set(text, isBlocked);
+
+            if (isBlocked) {
+              if (this.config.HIDE_ENTIRE_DROPDOWN) {
+                const dropdown = suggestion.closest('[role="listbox"]');
+                if (dropdown) {
+                  dropdown.style.display = 'none';
+                  logger.debug('Hidden Google dropdown with blocked content');
+                }
+              } else {
+                suggestion.style.display = 'none';
+                logger.debug('Hidden Google suggestion');
+              }
             }
           }
+        } catch (error) {
+          logger.safeError('Error hiding Google suggestions', error);
         }
-      } catch (error) {
-        logger.safeError('Error hiding Google suggestions', error);
-      }
+      }, DEBOUNCE_DELAY);
     });
 
     if (document.body) {
-      observer.observe(document.body, {
+      // More targeted observation - only watch specific container
+      const searchContainer = document.querySelector('[role="listbox"]')?.parentElement || document.body;
+      
+      observer.observe(searchContainer, {
         childList: true,
         subtree: true
       });
-      logger.debug('Google suggestions observer started');
+      
+      this.observers.push(observer);
+      logger.debug('Google suggestions observer started (optimized)');
     }
   }
 
@@ -198,5 +179,15 @@ export class SiteHandlers {
 
     // Bing is similar to Google
     this.inputHandler.attachToInputs(document);
+  }
+
+  /**
+   * Cleanup observers and caches
+   */
+  destroy() {
+    this.observers.forEach(observer => observer.disconnect());
+    this.observers = [];
+    this.googleCheckCache.clear();
+    logger.debug('SiteHandlers cleaned up');
   }
 }
